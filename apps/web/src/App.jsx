@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, L } from './ui.jsx';
-import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES } from '@engine/taxonomy.js';
+import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
@@ -28,31 +28,51 @@ export const START_SCORE = 45;
 // same scores to `matches`, but waiting for it would mean a new account sees an empty screen
 // for fifteen minutes — and changing a city would do nothing until the next sweep. Scoring
 // locally makes every choice answer back immediately, which is the whole feel of the product.
-const POOL_KEY = 'fursa:pool';
 const POOL_TTL = 300000;                 // the worker sweeps every 15 minutes; 5 is well inside that
-let POOL = null, POOL_AT = 0;
+const COLUMNS = 'id,title,company,location,city,country,arrangement,salary_published,description,url,published_at,last_seen';
+let POOL = null, POOL_AT = 0, POOL_FOR = '';
 
-async function loadPool() {
-  if (POOL && Date.now() - POOL_AT < POOL_TTL) return POOL;
-  // Descriptions are most of the weight, and the scorer needs them. Carrying the pool across
-  // reloads keeps a phone from paying for it twice in the same few minutes.
-  if (!POOL) {
+/** The countries a profile can actually take a job in. */
+function countriesFor(profile) {
+  const set = new Set(profile?.countries ?? []);
+  for (const c of profile?.cities ?? []) if (CITY_COUNTRY[c]) set.add(CITY_COUNTRY[c]);
+  return [...set].sort();
+}
+
+async function loadPool(countries) {
+  const key = countries.join(',');
+  if (POOL && POOL_FOR === key && Date.now() - POOL_AT < POOL_TTL) return POOL;
+
+  // Descriptions are most of the weight, and the scorer needs them — so the question is how
+  // many rows carry them. Someone looking for work in Riyadh has no use for two hundred jobs
+  // in Dubai, and downloading them on a phone is the difference between a second and five.
+  // A job with no country is remote and open from anywhere, so it stays.
+  const cacheKey = 'fursa:pool:' + key;
+  if (POOL_FOR !== key || !POOL) {
     try {
-      const c = JSON.parse(sessionStorage.getItem(POOL_KEY) || 'null');
-      if (c && Date.now() - c.at < POOL_TTL) { POOL = c.rows; POOL_AT = c.at; return POOL; }
+      const c = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+      if (c && Date.now() - c.at < POOL_TTL) { POOL = c.rows; POOL_AT = c.at; POOL_FOR = key; return POOL; }
     } catch { /* private window, or a quota that filled */ }
   }
-  const { data } = await supabase.from('jobs')
-    .select('id,title,company,location,city,country,arrangement,salary_published,description,url,published_at,last_seen')
-    .eq('is_open', true).order('last_seen', { ascending: false }).limit(250);
-  POOL = data ?? []; POOL_AT = Date.now();
-  try { sessionStorage.setItem(POOL_KEY, JSON.stringify({ at: POOL_AT, rows: POOL })); } catch { /* over quota */ }
+
+  let q = supabase.from('jobs').select(COLUMNS).eq('is_open', true);
+  if (countries.length) q = q.or(`country.in.(${countries.join(',')}),country.is.null`);
+  const { data } = await q.order('published_at', { ascending: false, nullsFirst: false }).limit(600);
+
+  POOL = data ?? []; POOL_AT = Date.now(); POOL_FOR = key;
+  try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: POOL_AT, rows: POOL })); } catch { /* over quota */ }
   return POOL;
 }
 
-function useJobPool() {
-  const [pool, setPool] = useState(POOL);
-  useEffect(() => { let live = true; loadPool().then((p) => live && setPool(p)); return () => { live = false; }; }, []);
+function useJobPool(profile) {
+  const countries = useMemo(() => countriesFor(profile), [profile?.cities, profile?.countries]);
+  const [pool, setPool] = useState(() => (POOL_FOR === countries.join(',') ? POOL : null));
+  useEffect(() => {
+    let live = true;
+    setPool((p) => (POOL_FOR === countries.join(',') ? p : null));
+    loadPool(countries).then((p) => live && setPool(p));
+    return () => { live = false; };
+  }, [countries.join(',')]);
   return pool;
 }
 
@@ -207,7 +227,7 @@ function FirstRun({ user, profile, onDone }) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const pool = useJobPool();
+  const pool = useJobPool(form);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const ready = form.roles.length > 0 && form.cities.length > 0;
   const softwareOff = !form.roles.some((r) => CODE_ROLES.has(r));
@@ -382,7 +402,7 @@ function Settings({ user, profile, onDone }) {
   });
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
-  const pool = useJobPool();
+  const pool = useJobPool({ ...profile, ...form });
   const ext = useExtension();
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
   const listOf = (s) => String(s).split(/[,،\n]/).map((x) => x.trim()).filter(Boolean);
@@ -523,7 +543,12 @@ function useExtension() {
   useEffect(() => {
     const on = (e) => { if (e.source === window && e.data?.type === 'fursa:extension-ready') setVersion(e.data.version); };
     addEventListener('message', on);
-    return () => removeEventListener('message', on);
+    // The extension announces itself at document_idle, which is usually before this effect
+    // runs — so asking is what actually finds it. A couple of retries cover a slow start.
+    const ask = () => postMessage({ type: 'fursa:extension-hello' }, '*');
+    ask();
+    const t1 = setTimeout(ask, 400), t2 = setTimeout(ask, 1500);
+    return () => { removeEventListener('message', on); clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return version;
 }
@@ -537,7 +562,9 @@ async function sendToExtension(profile) {
     session: {
       url: import.meta.env.VITE_SUPABASE_URL,
       key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      token: data.session.access_token
+      token: data.session.access_token,
+      // Without this the extension stops working an hour after this page was last open.
+      refresh_token: data.session.refresh_token
     },
     profile: {
       full_name: profile.full_name, first_name: (profile.full_name || '').split(' ')[0],
@@ -557,7 +584,7 @@ async function sendToExtension(profile) {
 }
 
 function Jobs({ user, profile, onProfile }) {
-  const pool = useJobPool();
+  const pool = useJobPool(profile);
   const [actedOn, setActedOn] = useState(null);   // job ids already saved or dismissed
   const [busyId, setBusyId] = useState(null);
   const [sheetFor, setSheetFor] = useState(null);

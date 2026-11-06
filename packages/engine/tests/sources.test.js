@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -83,6 +83,16 @@ check('Resilience', 'A failing board is recorded and the others still load',
 let blocked = null;
 try { await getJson('https://api.openai.com/v1/chat', { fetchImpl }); } catch (e) { blocked = e; }
 check('Safety', 'A host outside the allowlist is refused', blocked instanceof BlockedHost);
+
+// Recruitee hands every customer its own host, so that one suffix is pinned rather than
+// listed. A suffix rule is a door: these are the ways someone would try to walk through it.
+check('Safety', 'A real Recruitee tenant is allowed', hostAllowed('unifonic.recruitee.com'));
+check('Safety', 'A look-alike domain is refused', !hostAllowed('recruitee.com.attacker.net'));
+check('Safety', 'A deeper label under the suffix is refused', !hostAllowed('a.b.recruitee.com'));
+check('Safety', 'The bare suffix is refused', !hostAllowed('recruitee.com'));
+check('Safety', 'A host with userinfo is refused', !hostAllowed('evil@x.recruitee.com'));
+check('Safety', 'A host with a port is refused', !hostAllowed('x.recruitee.com:8080'));
+check('Safety', 'Another vendor is still refused', !hostAllowed('api.example.com'));
 check('Safety', 'Only hiring-system hosts are allowed',
   ALLOWED_HOSTS.every((h) => /greenhouse|lever|ashby|workable|smartrecruiters/.test(h)));
 check('Safety', 'The adapters issue GET only',

@@ -12,7 +12,7 @@ const POLL_MINUTES = 2;
 async function state() {
   const s = await chrome.storage.local.get(['session', 'profile', 'log', 'settings', 'running']);
   return {
-    session: s.session ?? null,          // { url, token }
+    session: s.session ?? null,          // { url, key, token, refresh_token }
     profile: s.profile ?? null,
     log: s.log ?? [],
     settings: { ...DEFAULTS, ...(s.settings ?? {}) },
@@ -27,7 +27,26 @@ async function note(entry) {
 }
 
 // ── the platform's database, through the user's own token ────────────────────
-async function api(session, path, init = {}) {
+/**
+ * An access token lasts an hour. Without renewing it, applying works for one hour after the
+ * last visit to the site and then fails silently for ever — which is the whole feature gone,
+ * reported as nothing. The refresh token the page handed over is what keeps it alive.
+ */
+async function refresh(session) {
+  if (!session.refresh_token) throw new Error('انتهت الجلسة — افتح المنصة مرة واحدة');
+  const res = await fetch(session.url + '/auth/v1/token?grant_type=refresh_token', {
+    method: 'POST',
+    headers: { apikey: session.key, 'content-type': 'application/json' },
+    body: JSON.stringify({ refresh_token: session.refresh_token })
+  });
+  if (!res.ok) throw new Error('انتهت الجلسة — افتح المنصة مرة واحدة');
+  const j = await res.json();
+  const next = { ...session, token: j.access_token, refresh_token: j.refresh_token ?? session.refresh_token };
+  await chrome.storage.local.set({ session: next });
+  return next;
+}
+
+async function api(session, path, init = {}, retried = false) {
   const res = await fetch(session.url + '/rest/v1' + path, {
     ...init,
     headers: {
@@ -35,6 +54,9 @@ async function api(session, path, init = {}) {
       'content-type': 'application/json', ...(init.headers ?? {})
     }
   });
+  if ((res.status === 401 || res.status === 403) && !retried) {
+    return api(await refresh(session), path, init, true);
+  }
   if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0, 120));
   return res.status === 204 ? null : res.json();
 }

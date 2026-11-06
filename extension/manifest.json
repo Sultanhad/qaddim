@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "قدّم — تعبئة وإرسال طلبات التوظيف",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "يعبّي استمارات التوظيف من ملفك ويرسلها، داخل متصفحك أنت.",
   "default_locale": "ar",
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "permissions": [
     "storage",
     "tabs",
@@ -17,6 +18,11 @@
     "https://jobs.ashbyhq.com/*",
     "https://*.greenhouse.io/*",
     "https://jobs.smartrecruiters.com/*",
+    "https://*.recruitee.com/*",
+    "https://*.supabase.co/*",
+    "https://qaddim.netlify.app/*",
+    "https://sultanhad.github.io/*",
+    "http://localhost:4173/*",
     "http://localhost:5190/*"
   ],
   "background": {
@@ -25,7 +31,8 @@
   },
   "action": {
     "default_popup": "src/popup.html",
-    "default_title": "قدّم"
+    "default_title": "قدّم",
+    "default_icon": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" }
   },
   "content_scripts": [
     {
@@ -34,7 +41,8 @@
         "https://jobs.lever.co/*",
         "https://jobs.ashbyhq.com/*",
         "https://*.greenhouse.io/*",
-        "https://jobs.smartrecruiters.com/*"
+        "https://jobs.smartrecruiters.com/*",
+        "https://*.recruitee.com/*"
       ],
       "js": [
         "src/fields.js",
@@ -45,6 +53,9 @@
     },
     {
       "matches": [
+        "https://qaddim.netlify.app/*",
+        "https://sultanhad.github.io/*",
+        "http://localhost:4173/*",
         "http://localhost:5190/*"
       ],
       "js": [

@@ -9,26 +9,13 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { fetchAll } from '../_shared/sources.js';
+import { BOARDS } from '../_shared/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../_shared/score.js';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const INGEST_SECRET = Deno.env.get('INGEST_SECRET') ?? '';
 
-type Source = { system: string; slug: string; label: string };
-
-/** The boards we read. Adding a company is one line here. */
-const SOURCES: Source[] = [
-  { system: 'workable', slug: 'mozn-ai', label: 'Mozn' },
-  { system: 'workable', slug: 'lucidya', label: 'Lucidya' },
-  { system: 'workable', slug: 'foodics', label: 'Foodics' },
-  { system: 'workable', slug: 'mrsool-3', label: 'Mrsool' },
-  { system: 'ashby', slug: 'leantech', label: 'Lean Technologies' },
-  { system: 'lever', slug: 'flowlife', label: 'Flow' },
-  { system: 'lever', slug: 'dlocal', label: 'dLocal' },
-  { system: 'lever', slug: 'rewaatech', label: 'Rewaa' },
-  { system: 'greenhouse', slug: 'tamara', label: 'Tamara' }
-];
 
 Deno.serve(async (req) => {
   if (INGEST_SECRET && req.headers.get('x-ingest-secret') !== INGEST_SECRET) {
@@ -38,7 +25,7 @@ Deno.serve(async (req) => {
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
   // 1. Read every board. A broken one is recorded, never fatal.
-  const { jobs, errors } = await fetchAll(SOURCES, { pauseMs: 150 });
+  const { jobs, errors } = await fetchAll(BOARDS, { pauseMs: 150 });
 
   // 2. Store the postings. Seeing one again only refreshes last_seen.
   const now = new Date().toISOString();
@@ -92,7 +79,7 @@ Deno.serve(async (req) => {
 
   return json({
     ok: true,
-    sources: SOURCES.length,
+    sources: BOARDS.length,
     fetched: jobs.length,
     closed: gone.length,
     users: profiles?.length ?? 0,

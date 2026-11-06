@@ -13,12 +13,27 @@ export const ALLOWED_HOSTS = [
   'boards-api.greenhouse.io', 'api.smartrecruiters.com', 'apply.workable.com'
 ];
 
+/**
+ * Recruitee gives every customer its own host, so there is no fixed name to list. The
+ * suffix is pinned instead, and the part before it may only be a slug — no dots, so
+ * `evil.com.recruitee.com.attacker.net` cannot slip through, and no userinfo or port.
+ */
+export const ALLOWED_HOST_SUFFIXES = [
+  { suffix: '.recruitee.com', slug: /^[a-z0-9][a-z0-9-]{0,62}$/ }
+];
+
+export function hostAllowed(host) {
+  if (ALLOWED_HOSTS.includes(host)) return true;
+  return ALLOWED_HOST_SUFFIXES.some(({ suffix, slug }) =>
+    host.endsWith(suffix) && slug.test(host.slice(0, -suffix.length)));
+}
+
 export class BlockedHost extends Error {}
 
 /** The only way this package reaches the network. */
 export async function getJson(url, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
   const host = (String(url).match(/^https:\/\/([^/?#]+)/i) || [])[1]?.toLowerCase();
-  if (!host || !ALLOWED_HOSTS.includes(host)) throw new BlockedHost(`Blocked by allowlist: ${host}`);
+  if (!host || !hostAllowed(host)) throw new BlockedHost(`Blocked by allowlist: ${host}`);
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
   try {
@@ -131,6 +146,22 @@ const ADAPTERS = {
     }));
   },
 
+  async recruitee(slug, opts) {
+    const j = await getJson(`https://${encodeURIComponent(slug)}.recruitee.com/api/offers/`, opts);
+    return (j.offers || []).filter((x) => x.status === 'published' || !x.status).map((x) => {
+      const places = (x.locations || []).map((l) => l.full_address || [l.city, l.country].filter(Boolean).join(', '));
+      const location = places.length ? places.join('; ') : [x.city, x.country].filter(Boolean).join(', ');
+      return raw({
+        source: `recruitee:${slug}`, source_job_id: x.id, title: x.title,
+        company: opts?.label || x.company_name || slug,
+        location,
+        arrangement: x.remote ? 'Remote' : (x.hybrid ? 'Hybrid' : null),
+        description: stripHtml([x.description, x.requirements].filter(Boolean).join('\n')),
+        url: x.careers_url || x.careers_apply_url, published_at: x.published_at || x.created_at, salary: ''
+      });
+    });
+  },
+
   async smartrecruiters(slug, opts) {
     const country = opts?.country || 'sa';
     const j = await getJson(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?country=${country}&limit=100`, opts);
@@ -159,6 +190,24 @@ export async function fetchSource(source, opts = {}) {
   return adapter(source.slug, { ...opts, label: source.label, eu: source.eu, country: source.country });
 }
 
+/** The countries this board serves. */
+export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
+
+/**
+ * Is this posting for someone here?
+ *
+ * A global employer's board is worth reading for its handful of Gulf roles, but storing the
+ * other three hundred would bury them: the app loads the most recently seen jobs, so jobs
+ * nobody here can take would push out the ones they can.
+ *
+ * Remote with no country named stays — that is open from anywhere, which includes here.
+ */
+export function servesRegion(job) {
+  if (job.country && REGION.includes(job.country)) return true;
+  if (job.country) return false;
+  return job.arrangement === 'Remote' || /\bremote\b|عن بعد/i.test(job.location || '');
+}
+
 /** Fetch every source, collecting failures instead of aborting. */
 export async function fetchAll(sources, opts = {}) {
   const jobs = [], errors = [];
@@ -173,10 +222,12 @@ export async function fetchAll(sources, opts = {}) {
   }
   // one row per posting, even if two boards carry it
   const seen = new Set(), unique = [];
+  let elsewhere = 0;
   for (const j of jobs) {
     if (seen.has(j.canonical_url)) continue;
     seen.add(j.canonical_url);
+    if (opts.allRegions !== true && !servesRegion(j)) { elsewhere++; continue; }
     unique.push(j);
   }
-  return { jobs: unique, errors };
+  return { jobs: unique, errors, elsewhere };
 }

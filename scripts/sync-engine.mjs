@@ -1,7 +1,7 @@
 // The edge function cannot import from outside its folder, so the engine is copied in.
 // This keeps the copy honest: `--check` fails if the two ever drift apart.
 import { readFile, writeFile } from 'node:fs/promises';
-const FILES = ['text.js', 'taxonomy.js', 'score.js', 'sources.js'];
+const FILES = ['text.js', 'taxonomy.js', 'score.js', 'sources.js', 'boards.js'];
 const root = new URL('../', import.meta.url);
 const from = (f) => new URL(`packages/engine/src/${f}`, root);
 const to = (f) => new URL(`supabase/functions/_shared/${f}`, root);

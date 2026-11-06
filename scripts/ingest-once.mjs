@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
 import { fetchAll } from '../packages/engine/src/sources.js';
+import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 
 const root = new URL('../', import.meta.url);
@@ -28,23 +29,12 @@ if (!key) {
   process.exit(2);
 }
 
-const SOURCES = [
-  { system: 'workable', slug: 'mozn-ai', label: 'Mozn' },
-  { system: 'workable', slug: 'lucidya', label: 'Lucidya' },
-  { system: 'workable', slug: 'foodics', label: 'Foodics' },
-  { system: 'workable', slug: 'mrsool-3', label: 'Mrsool' },
-  { system: 'ashby', slug: 'leantech', label: 'Lean Technologies' },
-  { system: 'lever', slug: 'flowlife', label: 'Flow' },
-  { system: 'lever', slug: 'dlocal', label: 'dLocal' },
-  { system: 'lever', slug: 'rewaatech', label: 'Rewaa' },
-  { system: 'greenhouse', slug: 'tamara', label: 'Tamara' }
-];
 
 const db = createClient(url, key, { auth: { persistSession: false }, realtime: { transport: ws } });
 const t0 = Date.now();
 
-console.log(`reading ${SOURCES.length} boards…`);
-const { jobs, errors } = await fetchAll(SOURCES, { pauseMs: 150 });
+console.log(`reading ${BOARDS.length} boards…`);
+const { jobs, errors } = await fetchAll(BOARDS, { pauseMs: 150 });
 for (const e of errors) console.warn('  ! ' + e.source + ': ' + e.error);
 console.log(`  ${jobs.length} postings`);
 
