@@ -88,6 +88,9 @@ function tabReady(tabId, timeoutMs = 45000) {
 }
 
 async function applyOne(item, profile, settings, session) {
+  // Whether to press submit is decided by the database, not here: the caps and the
+  // first-three rule have to hold no matter what this copy of the extension believes.
+  const submit = item.submit === true && settings.autoSubmit !== false;
   await markApplication(session, item.application_id, { auto_status: 'filling', auto_at: new Date().toISOString() });
 
   // Opened in the background so a run does not steal focus while you work.
@@ -96,7 +99,7 @@ async function applyOne(item, profile, settings, session) {
 
   let result;
   try {
-    result = await chrome.tabs.sendMessage(tab.id, { type: 'qaddim:apply', profile, autoSubmit: settings.autoSubmit });
+    result = await chrome.tabs.sendMessage(tab.id, { type: 'qaddim:apply', profile, autoSubmit: submit });
   } catch {
     result = { status: 'needs_you', reason: 'الصفحة لم تستجب' };
   }
@@ -109,17 +112,26 @@ async function applyOne(item, profile, settings, session) {
     auto_reason: result?.reason ?? (status === 'needs_you' ? 'الاستمارة مفتوحة وتنتظرك' : null),
     auto_at: new Date().toISOString(),
     auto_report: result?.report ?? null,
+    auto_attempts: (item.auto_attempts ?? 0) + 1,
     ...(status === 'submitted' ? { status: 'applied' } : {})
   });
   await note({ job: item, status, reason: result?.reason ?? '', report: result?.report ?? null });
 
   if (status === 'submitted') {
     setTimeout(() => chrome.tabs.remove(tab.id).catch(() => { }), 2500);
+  } else if (submit) {
+    // Running unattended: leave the tab closed and the reason on the row. Twenty half-filled
+    // tabs across the screen is not "automatic", it is a mess to clean up later.
+    setTimeout(() => chrome.tabs.remove(tab.id).catch(() => { }), 1500);
+    chrome.notifications.create({
+      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — يحتاجك',
+      message: (result?.reason || 'سؤال بلا إجابة') + '\nافتح «طلباتي» وأجب مرة واحدة.'
+    });
   } else {
     await chrome.tabs.update(tab.id, { active: true }).catch(() => { });
     chrome.notifications.create({
-      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — يحتاجك',
-      message: (result?.reason || 'أكمل الاستمارة المفتوحة') +
+      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — راجع وأرسل',
+      message: (result?.reason || 'الاستمارة معبّأة وتنتظر ضغطتك') +
         (result?.report?.missing?.length ? '\n' + result.report.missing.map((m) => m.q).slice(0, 2).join(' · ') : '')
     });
   }
@@ -145,7 +157,9 @@ async function run() {
       const s = await state();
       if (!s.running) break;
       const status = await applyOne(item, profile, settings, session);
-      if (status === 'needs_you') break;              // stop the run; a human is needed
+      // One form nobody can answer should not hold up the nineteen that are fine. Before
+      // the first three are approved we still stop, because each of those wants a person.
+      if (status === 'needs_you' && !item.submit) break;
       await new Promise((r) => setTimeout(r, settings.delayMs));   // be a polite visitor
     }
   } finally {

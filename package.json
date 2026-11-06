@@ -15,7 +15,8 @@
     "test:rls": "node supabase/tests/rls.test.mjs",
     "test:auth": "node apps/web/tests/auth.test.mjs",
     "test:flow": "node apps/web/tests/flow.test.mjs",
-    "test:ext": "node apps/web/tests/extension.test.mjs"
+    "test:ext": "node apps/web/tests/extension.test.mjs",
+    "test:auto": "node supabase/tests/auto.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

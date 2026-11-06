@@ -131,7 +131,7 @@ export default function App() {
     <>
       <Hero title={title} />
       <div className="wrap">
-        {route === 'applications' ? <Applications user={session.user} profile={profile} />
+        {route === 'applications' ? <Applications user={session.user} profile={profile} onProfile={setProfile} />
           : route === 'profile' ? <ApplyProfile user={session.user} profile={profile} onDone={setProfile} />
             : route === 'settings' ? <Settings user={session.user} profile={profile} onDone={setProfile} />
               : <Jobs user={session.user} profile={profile} onProfile={setProfile} />}
@@ -396,6 +396,8 @@ function Settings({ user, profile, onDone }) {
     cities: profile.cities ?? [], accept_remote: profile.accept_remote ?? true,
     avoid_software_roles: profile.avoid_software_roles ?? false,
     auto_apply: profile.auto_apply ?? false,
+    auto_submit: profile.auto_submit ?? false,
+    daily_cap: profile.daily_cap ?? 20,
     exclude_title_words: (profile.exclude_title_words ?? []).join('، '),
     exclude_companies: (profile.exclude_companies ?? []).join('، '),
     min_score: profile.min_score ?? 70
@@ -507,6 +509,23 @@ function Settings({ user, profile, onDone }) {
               </p>}
         </div>
 
+        {form.auto_apply && r.canApply && (
+          <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+            <label>
+              <input type="checkbox" checked={form.auto_submit}
+                onChange={(e) => set('auto_submit', e.target.checked)} /> <b>وأرسل بنفسك — لا تنتظر ضغطتي</b>
+            </label>
+            <p className="hint">
+              أول ثلاثة طلبات تُعبَّأ وتُترك لك مهما كان هذا المفتاح: ترى بعينك ما يخرج باسمك،
+              ثم يمشي وحده. وفي كل الأحوال لا يتجاوز {form.daily_cap} طلباً في اليوم،
+              وواحداً لكل شركة في الأسبوع.
+            </p>
+            <label htmlFor="cap" style={{ marginTop: 10 }}>أكثر عدد في اليوم — {form.daily_cap}</label>
+            <input id="cap" type="range" min="1" max="40" step="1" value={form.daily_cap}
+              onChange={(e) => set('daily_cap', Number(e.target.value))} />
+          </div>
+        )}
+
         {saved && <Banner kind="good">حُفظ ✓</Banner>}
         <button className="btn btn-go btn-lg" disabled={busy}>{busy ? '…' : 'احفظ'}</button>
       </form>
@@ -578,7 +597,8 @@ async function sendToExtension(profile) {
       current_title: profile.current_title, years_experience: String(profile.years_experience ?? ''),
       linkedin_url: profile.linkedin_url, education_degree: profile.education_degree,
       university: profile.university, graduation_year: String(profile.graduation_year ?? ''),
-      answers: profile.answers ?? {}
+      answers: profile.answers ?? {},
+      auto_submit: !!profile.auto_submit
     }
   }, '*');
 }
@@ -742,16 +762,83 @@ function Jobs({ user, profile, onProfile }) {
   );
 }
 
+/**
+ * The questions that stopped an application, answered once.
+ *
+ * This is the difference between a robot that works and one that nags: an unanswered
+ * question is not a failure of this application, it is a gap in the profile. Answer it here
+ * and it is stored for every form that ever asks it again, and this one goes back in the queue.
+ */
+function Blocked({ row, profile, onProfile, onDone }) {
+  const qs = (row.auto_report?.missing ?? []).filter((m) => m.q);
+  const [draft, setDraft] = useState({});
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    const answers = { ...(profile.answers ?? {}) };
+    for (const [q, a] of Object.entries(draft)) if (String(a).trim()) answers[q] = String(a).trim();
+    const { data } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
+    if (data) onProfile(data);
+    await supabase.rpc('retry_application', { app_id: row.id });
+    setBusy(false);
+    onDone();
+  }
+
+  if (!qs.length) {
+    return (
+      <button className="btn btn-go" onClick={async () => {
+        await supabase.rpc('retry_application', { app_id: row.id }); onDone();
+      }}>أعد المحاولة</button>
+    );
+  }
+
+  return (
+    <div className="blocked">
+      <p className="blocked-h">أجب مرة واحدة، وتُستخدم في كل استمارة تسأل نفس السؤال</p>
+      {qs.map((m, i) => (
+        <div className="field" key={i}>
+          <label htmlFor={`b${row.id}${i}`}>{m.q}</label>
+          {m.why && <p className="hint">{m.why}</p>}
+          <input id={`b${row.id}${i}`} type="text" value={draft[m.q] ?? ''}
+            onChange={(e) => setDraft((d) => ({ ...d, [m.q]: e.target.value }))} />
+        </div>
+      ))}
+      <button className="btn btn-go" disabled={busy || !Object.values(draft).some((v) => String(v).trim())}
+        onClick={save}>{busy ? '…' : 'احفظ وأعد المحاولة'}</button>
+    </div>
+  );
+}
+
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 
-function Applications({ user, profile }) {
+/** What the robot is doing right now, in the user's own words. */
+function RunBar({ stats }) {
+  if (!stats) return null;
+  const { queued, sent_today, cap, approved, auto_submit, submitting } = stats;
+  return (
+    <div className="runbar">
+      <span><b>{sent_today}</b> من {cap} أُرسلت اليوم</span>
+      {queued > 0 && <span><b>{queued}</b> في الطابور</span>}
+      {!auto_submit
+        ? <span className="off">الإرسال التلقائي مطفأ — <a href="#settings">شغّله</a></span>
+        : submitting
+          ? <span className="on"><span className="dot" /> يرسل وحده</span>
+          : <span className="off">يعبّي ويتركها لك · {3 - approved} باقية قبل أن يرسل وحده</span>}
+    </div>
+  );
+}
+
+function Applications({ user, profile, onProfile }) {
   const [rows, setRows] = useState(null);
+  const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all');
   const [sheetFor, setSheetFor] = useState(null);
 
   useEffect(() => { load(); }, [user.id]);
   async function load() {
+    supabase.rpc('my_apply_stats').then(({ data }) => setStats(data?.[0] ?? null));
     const { data } = await supabase
       .from('applications')
       .select('id, status, notes, applied_on, follow_up_on, auto_status, auto_reason, job:jobs(*)')
@@ -807,6 +894,9 @@ function Applications({ user, profile }) {
         <textarea id={`n${row.id}`} rows={2} defaultValue={row.notes ?? ''}
           onBlur={(e) => setNotes(row, e.target.value)} />
       </div>
+      {(row.auto_status === 'needs_you' || row.auto_status === 'failed') && (
+        <Blocked row={row} profile={profile} onProfile={onProfile} onDone={load} />
+      )}
       <div style={{ marginTop: 12 }}>
         <button className="btn btn-go" onClick={() => setSheetFor(row.job)}>ورقة التعبئة</button>
         {row.job?.url && <a className="btn" href={row.job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a>}
@@ -816,6 +906,7 @@ function Applications({ user, profile }) {
 
   return (
     <>
+      <RunBar stats={stats} />
       {!!urgent.length && (
         <>
           <p className="section">يحتاج منك شيئاً · {urgent.length}</p>
