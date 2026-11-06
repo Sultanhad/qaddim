@@ -340,7 +340,9 @@ function SignIn({ t, loading, compact }) {
     e.preventDefault();
     setBusy(true); setError('');
     const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(), options: { emailRedirectTo: location.origin }
+      // Back to this page, not to the origin: the site may live under a sub-path,
+      // and the hash is dropped so the link lands on the app rather than a stale route.
+      email: email.trim(), options: { emailRedirectTo: location.href.split('#')[0] }
     });
     setBusy(false);
     if (error) setError(error.message); else setSent(true);
