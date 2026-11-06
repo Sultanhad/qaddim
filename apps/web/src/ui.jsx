@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const L = {
-  brand: 'فرصة',
+  brand: 'قدّم',
   tagline: 'وظائف جديدة في السعودية والمنطقة',
   signIn: 'ادخل', signOut: 'خروج',
   today: 'وظائف اليوم', applications: 'طلباتي', settings: 'ملفي',

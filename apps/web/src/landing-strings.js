@@ -13,7 +13,7 @@ export const COUNTRY = {
 
 export const S = {
   ar: {
-    dir: 'rtl', brand: 'فرصة', howItWorks: 'كيف تعمل', faq: 'أسئلة شائعة', cta: 'ابدأ',
+    dir: 'rtl', brand: 'قدّم', howItWorks: 'كيف تعمل', faq: 'أسئلة شائعة', cta: 'ابدأ',
     heroA: 'وظائف جديدة في', heroB: 'ونقدّم عنك',
     sub: 'كل ١٥ دقيقة نقرأ صفحات التوظيف في الشركات ونرتّب الجديد حسب ملفك. فعّل التقديم التلقائي فيقدّم عنك — وأول ثلاثة تعتمدها بنفسك.',
     meta: ['تُقرأ كل ١٥ دقيقة', 'بالعربي والإنجليزي', 'مجانية'],
@@ -26,7 +26,7 @@ export const S = {
     orderH: 'بحثك مرتّب',
     orderP: 'احفظ الوظائف، سجّل ما قدّمت عليه، واكتب ملاحظاتك. وبعد أسبوعين من التقديم نذكّرك بالمتابعة.',
     sample: 'بيانات توضيحية',
-    wordEn: 'means opportunity.', amongCompanies: 'من الشركات التي نقرؤها',
+    wordEn: 'means: apply.', amongCompanies: 'من الشركات التي نقرؤها',
     standH: 'اعرف أين وصل كل طلب.',
     standP: 'أنظمة التوظيف نادراً ما تخبرك بما حدث بعد أن قدّمت. نحفظ حالاتك وملاحظاتك في قائمة واحدة، ونريك متى تتابع.',
     nav: ['اليوم', 'وظائف لك', 'طلباتي', 'بحث', 'الإعدادات'],
@@ -39,16 +39,16 @@ export const S = {
       'يرسل سيرتك كما هي — ولا يضيف إليها حقيقة لم تقلها.',
       'أول ثلاثة تعتمدها بنفسك. بعدها يمشي وحده.'
     ],
-    closing: 'فرصتك القادمة.', free: 'فرصة · مجانية لمن يبحث عن عمل.',
+    closing: 'قدّم على القادمة.', free: 'قدّم · مجانية لمن يبحث عن عمل.',
     privacy: 'الخصوصية', emailPh: 'you@example.com', sentTo: 'أرسلنا رسالة الدخول إلى',
     sentHint: 'افتح الرابط في الرسالة، أو اكتب الرمز هنا لتبقى في هذا المتصفح. وإن لم تجدها، انظر في «المهملات».',
     codePh: 'الرمز', codeGo: 'ادخل', resend: 'أعد الإرسال', changeEmail: 'غيّر البريد',
     signingIn: 'جارٍ الدخول…', linkExpired: 'انتهت صلاحية الرابط. اطلب رسالة جديدة.'
   },
   en: {
-    dir: 'ltr', brand: 'Fursa', howItWorks: 'How it works', faq: 'FAQ', cta: 'Get started',
-    heroA: 'New jobs in', heroB: 'Fursa applies for you',
-    sub: 'Every 15 minutes Fursa reads company hiring pages and ranks the new jobs against your profile. Turn on Autopilot and it applies for you. You approve the first three.',
+    dir: 'ltr', brand: 'Qaddim', howItWorks: 'How it works', faq: 'FAQ', cta: 'Get started',
+    heroA: 'New jobs in', heroB: 'and we apply for you',
+    sub: 'Every 15 minutes Qaddim reads company hiring pages and ranks the new jobs against your profile. Turn on Autopilot and it applies for you. You approve the first three.',
     meta: ['Checked every 15 minutes', 'Arabic and English', 'Free'],
     openJobs: 'open jobs', updated: 'Updated', loading: 'Loading…',
     sourceH: 'We go to the source',
@@ -57,11 +57,11 @@ export const S = {
     scoreP: 'Tell us your roles, country and level. Each job gets a match score. Companies and title words you exclude disappear.',
     scoreRows: [['Product Designer', 92], ['UX Researcher', 74], ['Data Analyst', 38]],
     orderH: 'Your search stays in order',
-    orderP: 'Save jobs, mark what you applied to and keep notes. Two weeks after you apply, Fursa shows you a follow-up date.',
+    orderP: 'Save jobs, mark what you applied to and keep notes. Two weeks after you apply, Qaddim shows you a follow-up date.',
     sample: 'Sample data',
-    wordEn: 'means opportunity.', amongCompanies: 'Among the companies we read',
+    wordEn: 'means: apply.', amongCompanies: 'Among the companies we read',
     standH: 'Know where every application stands.',
-    standP: 'Hiring systems rarely tell you what happened after you applied. Fursa keeps your statuses and notes in one list, and shows you when to follow up.',
+    standP: 'Hiring systems rarely tell you what happened after you applied. Qaddim keeps your statuses and notes in one list, and shows you when to follow up.',
     nav: ['Today', 'Jobs for you', 'Applications', 'Search', 'Settings'],
     statuses: { saved: 'Saved', applied: 'Applied', interview: 'Interview', offer: 'Offer', closed: 'Closed', all: 'All' },
     appsTitle: 'Applications', notes: 'Notes', followBy: 'Follow up by 19 Nov',
@@ -72,7 +72,7 @@ export const S = {
       'It sends your CV as it is, and never adds a fact you did not state.',
       'The first 3 wait for your approval. After that it runs on its own.'
     ],
-    closing: 'Your next opportunity.', free: 'Fursa. Free for job seekers.',
+    closing: 'Apply to the next one.', free: 'Qaddim. Free for job seekers.',
     privacy: 'Privacy', emailPh: 'you@example.com', sentTo: 'We sent a sign-in email to',
     sentHint: 'Open the link in the email, or type the code here to stay in this browser. If it is not there, check your spam folder.',
     codePh: 'Code', codeGo: 'Sign in', resend: 'Resend', changeEmail: 'Change email',
@@ -95,7 +95,7 @@ export const FAQS = {
     ['كم تكلفتها؟', 'مجانية لمن يبحث عن عمل.']
   ],
   en: [
-    ['Does Fursa apply for me?',
+    ['Does Qaddim apply for me?',
       'Yes — through your own browser. You press “interested”, and the form opens, fills from your profile and submits. Every hiring system puts a “verify you are human” check before submit, and that check judges the browser rather than the click: a browser running on a server fails it, yours passes. If a CAPTCHA does challenge you, or a question appears that you have not answered, it stops and asks you instead of inventing an answer.'],
     ['Where do the jobs come from?',
       'From the hiring systems companies use themselves: Greenhouse, Lever, Ashby, Workable and SmartRecruiters. We read them every 15 minutes. No reposts — every job links back to the employer.'],

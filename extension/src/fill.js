@@ -211,7 +211,7 @@
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
-    if (msg?.type !== 'fursa:apply') return;
+    if (msg?.type !== 'qaddim:apply') return;
     (async () => {
       const report = await fill(msg.profile);
       if (report.missing.length) {

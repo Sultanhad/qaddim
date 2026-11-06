@@ -8,7 +8,7 @@ import { Hero } from './ui.jsx';
 export default function Privacy() {
   return (
     <>
-      <Hero title="الخصوصية" eyebrow="فرصة" />
+      <Hero title="الخصوصية" eyebrow="قدّم" />
       <div className="wrap">
         <div className="card">
           <p className="muted" style={{ marginTop: 0 }}>

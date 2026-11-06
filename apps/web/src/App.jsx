@@ -47,7 +47,7 @@ async function loadPool(countries) {
   // many rows carry them. Someone looking for work in Riyadh has no use for two hundred jobs
   // in Dubai, and downloading them on a phone is the difference between a second and five.
   // A job with no country is remote and open from anywhere, so it stays.
-  const cacheKey = 'fursa:pool:' + key;
+  const cacheKey = 'qaddim:pool:' + key;
   if (POOL_FOR !== key || !POOL) {
     try {
       const c = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
@@ -159,7 +159,7 @@ function SigningIn() {
 function Help() {
   return (
     <>
-      <Hero title="التقديم التلقائي" eyebrow="فرصة" />
+      <Hero title="التقديم التلقائي" eyebrow="قدّم" />
       <div className="wrap">
         <div className="card">
           <h2 style={{ marginTop: 0 }}>لماذا يحتاج إضافة؟</h2>
@@ -541,11 +541,11 @@ function DangerZone({ user, profile }) {
 function useExtension() {
   const [version, setVersion] = useState(null);
   useEffect(() => {
-    const on = (e) => { if (e.source === window && e.data?.type === 'fursa:extension-ready') setVersion(e.data.version); };
+    const on = (e) => { if (e.source === window && e.data?.type === 'qaddim:extension-ready') setVersion(e.data.version); };
     addEventListener('message', on);
     // The extension announces itself at document_idle, which is usually before this effect
     // runs — so asking is what actually finds it. A couple of retries cover a slow start.
-    const ask = () => postMessage({ type: 'fursa:extension-hello' }, '*');
+    const ask = () => postMessage({ type: 'qaddim:extension-hello' }, '*');
     ask();
     const t1 = setTimeout(ask, 400), t2 = setTimeout(ask, 1500);
     return () => { removeEventListener('message', on); clearTimeout(t1); clearTimeout(t2); };
@@ -558,7 +558,7 @@ async function sendToExtension(profile) {
   const { data } = await supabase.auth.getSession();
   if (!data.session) return;
   postMessage({
-    type: 'fursa:sync',
+    type: 'qaddim:sync',
     session: {
       url: import.meta.env.VITE_SUPABASE_URL,
       key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,

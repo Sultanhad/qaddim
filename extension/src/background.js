@@ -96,7 +96,7 @@ async function applyOne(item, profile, settings, session) {
 
   let result;
   try {
-    result = await chrome.tabs.sendMessage(tab.id, { type: 'fursa:apply', profile, autoSubmit: settings.autoSubmit });
+    result = await chrome.tabs.sendMessage(tab.id, { type: 'qaddim:apply', profile, autoSubmit: settings.autoSubmit });
   } catch {
     result = { status: 'needs_you', reason: 'الصفحة لم تستجب' };
   }
@@ -153,13 +153,13 @@ async function run() {
   }
 }
 
-chrome.alarms.create('fursa:poll', { periodInMinutes: POLL_MINUTES });
-chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'fursa:poll') run(); });
+chrome.alarms.create('qaddim:poll', { periodInMinutes: POLL_MINUTES });
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'qaddim:poll') run(); });
 
 chrome.runtime.onMessage.addListener((msg, _s, reply) => {
-  if (msg?.type === 'fursa:run') { run().then(() => reply({ ok: true })); return true; }
-  if (msg?.type === 'fursa:stop') { chrome.storage.local.set({ running: false }).then(() => reply({ ok: true })); return true; }
-  if (msg?.type === 'fursa:sync') {
+  if (msg?.type === 'qaddim:run') { run().then(() => reply({ ok: true })); return true; }
+  if (msg?.type === 'qaddim:stop') { chrome.storage.local.set({ running: false }).then(() => reply({ ok: true })); return true; }
+  if (msg?.type === 'qaddim:sync') {
     chrome.storage.local.set({ session: msg.session, profile: msg.profile })
       .then(() => run())
       .then(() => reply({ ok: true }));

@@ -33,7 +33,7 @@ $('auto').addEventListener('change', async (e) => {
   await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSubmit: e.target.checked } });
   render();
 });
-$('run').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'fursa:run' }));
-$('stop').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'fursa:stop' }));
+$('run').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'qaddim:run' }));
+$('stop').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'qaddim:stop' }));
 chrome.storage.onChanged.addListener(render);
 render();

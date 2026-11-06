@@ -46,8 +46,8 @@ const ago = (iso, lang) => {
 };
 
 export default function Landing({ loading, authError }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('fursa:lang') || 'ar');
-  const [theme, setTheme] = useState(() => localStorage.getItem('fursa:theme') || 'dark');
+  const [lang, setLang] = useState(() => localStorage.getItem('qaddim:lang') || 'ar');
+  const [theme, setTheme] = useState(() => localStorage.getItem('qaddim:theme') || 'dark');
   const t = S[lang];
   const city = useRotating(CITIES[lang]);
 
@@ -59,8 +59,8 @@ export default function Landing({ loading, authError }) {
     document.documentElement.lang = lang;
     document.documentElement.dir = t.dir;
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('fursa:lang', lang);
-    localStorage.setItem('fursa:theme', theme);
+    localStorage.setItem('qaddim:lang', lang);
+    localStorage.setItem('qaddim:theme', theme);
   }, [lang, theme, t.dir]);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ export default function Landing({ loading, authError }) {
       {/* ── the word ───────────────────────────────────────────── */}
       <section className="lp-sec">
         <div className="word">
-          <p className="ar">فرصة</p>
+          <p className="ar">قدّم</p>
           <p className="en">{t.wordEn}</p>
           <p className="cap">{t.amongCompanies}</p>
           <div className="marquee" dir="ltr">
@@ -349,7 +349,7 @@ function authErrorAr(message) {
   return m;
 }
 
-const LAST_EMAIL = 'fursa:last-email';
+const LAST_EMAIL = 'qaddim:last-email';
 
 /**
  * Signing in by email, without the trap that email sign-in usually sets.

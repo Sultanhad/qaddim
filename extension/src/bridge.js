@@ -9,13 +9,13 @@
 // there. It announces on load *and* answers whenever the page asks.
 
 const announce = () => window.postMessage(
-  { type: 'fursa:extension-ready', version: chrome.runtime.getManifest().version }, '*');
+  { type: 'qaddim:extension-ready', version: chrome.runtime.getManifest().version }, '*');
 
 window.addEventListener('message', (e) => {
   if (e.source !== window) return;
-  if (e.data?.type === 'fursa:extension-hello') { announce(); return; }
-  if (e.data?.type === 'fursa:sync') {
-    chrome.runtime.sendMessage({ type: 'fursa:sync', session: e.data.session, profile: e.data.profile });
+  if (e.data?.type === 'qaddim:extension-hello') { announce(); return; }
+  if (e.data?.type === 'qaddim:sync') {
+    chrome.runtime.sendMessage({ type: 'qaddim:sync', session: e.data.session, profile: e.data.profile });
   }
 });
 
