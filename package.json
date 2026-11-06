@@ -10,7 +10,8 @@
     "test": "node scripts/sync-engine.mjs --check && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js",
     "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
-    "deploy": "sh scripts/deploy-pages.sh"
+    "deploy": "npm run build && node scripts/deploy-netlify.mjs",
+    "deploy:pages": "sh scripts/deploy-pages.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

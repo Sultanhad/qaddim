@@ -78,11 +78,19 @@ npm run dev                  # http://localhost:5190
 
 ### ٤. النشر
 
-الموقع منشور على GitHub Pages: **<https://sultanhad.github.io/qaddim/>**
+الموقع منشور على Netlify: **<https://qaddim.netlify.app>**
 
 ```bash
-npm run deploy      # يبني ويدفع الناتج إلى فرع gh-pages
+npm run deploy      # يبني ثم يرفع عبر واجهة Netlify
 ```
+
+النشر يقرأ الرمز الذي خزّنه `netlify` CLI في
+`~/Library/Preferences/netlify/config.json`، فلا يحتاج تثبيتاً ولا تسجيل دخول.
+والرفع بالبصمة: يُعلن عن كل ملف بـSHA1 ويُرسل ما لا تملكه Netlify فقط.
+
+نسخة ثانية على GitHub Pages عبر `npm run deploy:pages`
+(<https://sultanhad.github.io/qaddim/>). خطوة النشر عند GitHub بطيئة — تجلس
+ست إلى عشر دقائق. أطلقها مرة واحدة واتركها: أي إطلاق جديد يلغي الذي قبله.
 
 مسارات الأصول نسبية والتنقّل بالـ hash، فالموقع يعمل في جذر نطاق أو تحت مسار فرعي
 بالبناء نفسه. البناء يقرأ `.env.local`؛ المفتاح العام وحده يدخل حزمة المتصفح،
@@ -92,12 +100,12 @@ npm run deploy      # يبني ويدفع الناتج إلى فرع gh-pages
 > لرمز GitHub: `gh auth refresh -s workflow` مرة واحدة، ثم يمكن إضافة سير عمل
 > يبني من `main`. الرابط والمفتاح العام مضافان أصلاً في **Variables** للمستودع.
 
-وبعد أي تغيير للعنوان، أضفه في Supabase → Authentication → URL Configuration
-تحت **Redirect URLs**، وإلا ارتدّت روابط الدخول إلى مكان آخر.
+وكل عنوان يُنشر عليه الموقع يجب أن يكون في Supabase → Authentication →
+URL Configuration تحت **Redirect URLs**، وإلا ارتدّت روابط الدخول إلى مكان آخر.
 
-للنشر على Netlify بدلاً من ذلك: `base = apps/web` · `build = npm run build` ·
-`publish = apps/web/dist`، وأضف `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY`
-في إعدادات الموقع.
+ولربط المستودع بـNetlify ليبني تلقائياً عند كل دفعة بدل الرفع اليدوي:
+`base = apps/web` · `build = npm run build` · `publish = apps/web/dist`،
+مع `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY` في إعدادات الموقع.
 
 ---
 
