@@ -40,15 +40,25 @@ export function Live({ open, updatedAt }) {
   );
 }
 
-/** A choice that can be ranked: tapping adds it to the end, tapping again removes it. */
-export function RankedChips({ options, value, onChange, labelKey = 'label_ar' }) {
+/**
+ * A choice that can be ranked: tapping adds it to the end, tapping again removes it.
+ *
+ * `limit` shows only the first few and hides the rest behind one more tap. Twenty options
+ * laid out at once read as a form to be endured; eight read as a question to be answered.
+ * Anything already chosen stays visible whether or not it falls inside the limit.
+ */
+export function RankedChips({ options, value, onChange, labelKey = 'label_ar', limit }) {
+  const [all, setAll] = React.useState(false);
   const toggle = (id) => {
     const i = value.indexOf(id);
     onChange(i >= 0 ? value.filter((x) => x !== id) : [...value, id]);
   };
+  const shown = !limit || all
+    ? options
+    : options.filter((o, i) => i < limit || value.includes(o.id));
   return (
     <div>
-      {options.map((o) => {
+      {shown.map((o) => {
         const i = value.indexOf(o.id);
         return (
           <button key={o.id} type="button" className="chip" aria-pressed={i >= 0} onClick={() => toggle(o.id)}>
@@ -57,6 +67,11 @@ export function RankedChips({ options, value, onChange, labelKey = 'label_ar' })
           </button>
         );
       })}
+      {shown.length < options.length && (
+        <button type="button" className="chip chip-more" onClick={() => setAll(true)}>
+          + {options.length - shown.length} غيرها
+        </button>
+      )}
     </div>
   );
 }
@@ -67,4 +82,49 @@ export function Banner({ kind = 'warn', children }) {
 
 export function Skeleton({ lines = 3 }) {
   return <div className="card">{Array.from({ length: lines }, (_, i) => <div key={i} className="skeleton" style={{ width: `${90 - i * 18}%` }} />)}</div>;
+}
+
+/** One question from APPLY_FIELDS, rendered as the right control for its type. */
+export function Field({ field, value, onChange, autoFocus }) {
+  const id = `f_${field.key}`;
+  const common = {
+    id, value: value ?? '', autoFocus,
+    onChange: (e) => onChange(e.target.value),
+    dir: field.dir, placeholder: field.ph
+  };
+  return (
+    <div className="field">
+      <label htmlFor={id}>
+        {field.label}
+        {field.need === 'apply' && <span className="req" title="بدونه لا يمكن إرسال أي طلب"> ·</span>}
+      </label>
+      {field.type === 'select'
+        ? <select {...common}>
+            <option value="">—</option>
+            {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+        : <input type={field.type} {...common} />}
+    </div>
+  );
+}
+
+/**
+ * How far this profile has climbed, and the one thing to do next.
+ * A ladder rather than a percentage: each rung unlocks something real, and says what.
+ */
+export function Ladder({ rungs, done, onNext, nextLabel }) {
+  const n = done.filter(Boolean).length;
+  if (n === rungs.length) return null;
+  return (
+    <button type="button" className="ladder" onClick={onNext}>
+      <span className="ladder-bars" aria-hidden="true">
+        {done.map((d, i) => <i key={i} data-on={d ? '' : undefined} />)}
+      </span>
+      <span className="ladder-text">
+        <b>{nextLabel}</b>
+        <small>{n} من {rungs.length} · {rungs[done.findIndex((d) => !d)]}</small>
+      </span>
+      <span className="ladder-go" aria-hidden="true">←</span>
+    </button>
+  );
 }

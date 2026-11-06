@@ -127,3 +127,46 @@ ul.reasons { margin: 12px 0 0; padding-inline-start: 20px; font-size: 14px; line
 ul.reasons li { margin: 4px 0; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ── the readiness ladder ─────────────────────────────────────────────
+   One row that says how far the profile has climbed and what the next rung
+   unlocks. It disappears once every rung is done, rather than lingering as a
+   permanent 100% badge. */
+.ladder {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0 0 14px; padding: 12px 14px; text-align: start;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.ladder:hover { border-color: var(--blue); }
+.ladder-bars { display: flex; gap: 4px; flex: none; }
+.ladder-bars i { width: 16px; height: 5px; border-radius: 3px; background: var(--line); }
+.ladder-bars i[data-on] { background: var(--good); }
+.ladder-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.ladder-text b { color: var(--text); font-size: 15px; }
+.ladder-text small { color: var(--faint); font-size: 12.5px; }
+.ladder-go { color: var(--blue-soft); font-size: 18px; flex: none; }
+
+/* A count that answers back while a control is being used. */
+.tally {
+  margin: 0 0 16px; padding: 10px 14px; border-radius: 12px;
+  background: rgba(47, 107, 255, .12); border: 1px solid rgba(47, 107, 255, .3);
+  color: var(--dim); font-size: 14px;
+}
+.tally b { color: #fff; font-size: 19px; font-weight: 800; }
+
+/* Undo for a dismissal, which is otherwise the one irreversible tap on the page. */
+.snack {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 0 14px; padding: 10px 14px; border-radius: 12px;
+  background: #18203a; border: 1px solid var(--line); color: var(--dim); font-size: 14px;
+}
+.snack .btn { margin: 0; padding: 6px 14px; font-size: 13px; }
+
+.section { margin: 0 0 10px; color: var(--warn); font-size: 13px; font-weight: 800; letter-spacing: .04em; }
+.rule { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.req { color: var(--blue-soft); font-weight: 900; }
+
+input[type="range"] { width: 100%; accent-color: var(--blue); }
+.chip-more { opacity: .72; font-weight: 600; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }

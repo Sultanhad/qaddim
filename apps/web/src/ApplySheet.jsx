@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { supabase } from './supabase.js';
+import { APPLY_FIELDS } from './profile-fields.js';
+
+// The same list the editor collects, so the sheet can never ask for something nothing fills.
+const FIELDS = APPLY_FIELDS.map((f) => [f.key, f.label]);
 
 /**
  * The practical half of applying.
@@ -11,23 +15,6 @@ import { supabase } from './supabase.js';
  * Nothing on this panel is generated. Blank stays blank, and says so.
  */
 
-const FIELDS = [
-  ['full_name', 'الاسم الكامل'],
-  ['email_for_applications', 'البريد للتقديم'],
-  ['phone', 'الجوال'],
-  ['nationality', 'الجنسية'],
-  ['work_authorization', 'الوضع النظامي للعمل'],
-  ['current_title', 'المسمّى الحالي'],
-  ['current_company', 'جهة العمل الحالية'],
-  ['years_experience', 'سنوات الخبرة'],
-  ['salary_expectation', 'الراتب المتوقع'],
-  ['current_salary', 'الراتب الحالي'],
-  ['notice_period', 'فترة الإشعار'],
-  ['education_degree', 'المؤهل'],
-  ['university', 'الجامعة'],
-  ['graduation_year', 'سنة التخرج'],
-  ['linkedin_url', 'لينكدإن']
-];
 
 function Copy({ value, children }) {
   const [done, setDone] = useState(false);

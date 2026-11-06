@@ -64,7 +64,7 @@ check('Honesty', 'Skills the user never confirmed are listed as gaps',
 check('Honesty', 'The same skills are not gaps for someone who listed them',
   !scoreJob(sqlJob, engineer, TODAY).gaps.includes('SQL'));
 check('Honesty', 'A missing description is flagged, and caps the skill points',
-  scoreJob(job({ title: 'Product Analyst' }), sultan, TODAY).flags.some((f) => /No description/.test(f)));
+  scoreJob(job({ title: 'Product Analyst' }), sultan, TODAY).flags.some((f) => /No description/.test(f.text)));
 check('Honesty', 'A required certificate the user lacks costs points and is named',
   scoreJob(job({ title: 'Business Analyst', description: 'PMP certification is required. Business requirements, user stories.'.repeat(4) }), sultan, TODAY)
     .gaps.some((g) => /PMP/.test(g)));
@@ -72,7 +72,7 @@ check('Honesty', 'A job asking far more years than you have is penalised',
   scoreJob(job({ title: 'Product Analyst', description: 'We need 8+ years of experience in product analytics and stakeholder management.'.repeat(4) }), sultan, TODAY)
     .breakdown.penalties >= 15);
 check('Honesty', 'An unpublished salary is flagged, never estimated',
-  sultanPM.flags.includes('Salary not published') && !JSON.stringify(sultanPM).match(/estimated salary/i));
+  sultanPM.flags.some((f) => f.text === 'Salary not published') && !JSON.stringify(sultanPM).match(/estimated salary/i));
 
 // ── location is the user's own list ──────────────────────────────────────────
 const jeddahJob = job({ title: 'Business Analyst', location: 'Jeddah, Saudi Arabia', description: 'business requirements and user stories, process mapping'.repeat(4) });

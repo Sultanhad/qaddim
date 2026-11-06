@@ -159,7 +159,7 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   const extraHit = p.extra_skills.some((x) => x && has(allN, x));
   let skills = Math.min(WEIGHTS.skills, Math.round(WEIGHTS.skills * (matched.length + (extraHit ? 1 : 0)) / 4));
   if (!hasDesc) {
-    flags.push('No description published — scored from the title and location only');
+    flags.push({ code: 'no_description', text: 'No description published — scored from the title and location only' });
     skills = Math.min(skills + 6, 18);
   }
 
@@ -199,8 +199,8 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   let location = { target_city: 9, remote_ok: 8, country_only: 6, remote_unknown: 5, unknown: 4, other_city: 0, elsewhere: 0 }[L.cls];
   if (L.cls === 'target_city' && L.arrangement === 'Hybrid') location = 10;
   if (L.cls === 'target_city' && L.arrangement === 'Remote') location = 10;
-  if (L.cls === 'remote_unknown') flags.push('Remote — confirm you are eligible from where you live');
-  if (L.cls === 'unknown') flags.push('Location not stated');
+  if (L.cls === 'remote_unknown') flags.push({ code: 'remote_confirm', text: 'Remote — confirm you are eligible from where you live' });
+  if (L.cls === 'unknown') flags.push({ code: 'location_unknown', text: 'Location not stated' });
 
   // Coding load.
   const heavy = HEAVY_CODE.filter((x) => has(descN, x)).length;
@@ -238,27 +238,36 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   if (certPenalty) { penalties += certPenalty; penaltyNotes.push('Required certificate you have not listed'); }
 
   if (/saudi nationals? only|saudi national|for saudi nationals|سعودي(ين)? فقط/i.test(job.title + ' ' + job.description)) {
-    flags.push('Mentions a Saudi-national requirement — check you are eligible');
+    flags.push({ code: 'saudi_only', text: 'Mentions a Saudi-national requirement — check you are eligible' });
   }
-  if (!job.salary) flags.push('Salary not published');
+  if (!job.salary) flags.push({ code: 'no_salary', text: 'Salary not published' });
 
   const total = Math.max(0, Math.min(100, skills + path + seniority + location + codingPts + evidence - penalties));
 
   // The three strongest true statements about this match.
+  // Each reason carries a code and the ids behind it, so a screen can say it in its own
+  // language. `text` is the English rendering, kept so anything reading the raw score still
+  // has a sentence to print.
   const candidates = [];
-  if (rank >= 0) candidates.push([path / WEIGHTS.path, pathLabel]);
+  if (rank >= 0) candidates.push([path / WEIGHTS.path, { code: 'path', rank, familyId: family.id, text: pathLabel }]);
   if (matched.length) {
-    candidates.push([skills / WEIGHTS.skills,
-      `Uses ${matched.length} of your confirmed skill areas: ${matched.map((id) => areaById[id].label.split(' (')[0]).join(', ')}`]);
+    candidates.push([skills / WEIGHTS.skills, {
+      code: 'skills', areaIds: matched,
+      text: `Uses ${matched.length} of your confirmed skill areas: ${matched.map((id) => areaById[id].label.split(' (')[0]).join(', ')}`
+    }]);
   }
   if (location >= 8) {
-    candidates.push([location / 10, L.cls === 'target_city'
-      ? `${L.city.replace(/\b\w/g, (c) => c.toUpperCase())}${L.arrangement !== 'Not stated' ? ', ' + L.arrangement : ''}`
-      : 'Remote and open to where you are']);
+    const inCity = L.cls === 'target_city';
+    candidates.push([location / 10, {
+      code: inCity ? 'in_city' : 'remote_ok', city: L.city, arrangement: L.arrangement,
+      text: inCity
+        ? `${String(L.city).replace(/\b\w/g, (c) => c.toUpperCase())}${L.arrangement !== 'Not stated' ? ', ' + L.arrangement : ''}`
+        : 'Remote and open to where you are'
+    }]);
   }
-  if (p.avoid_software_roles && coding === 'Low') candidates.push([0.95, 'Low coding requirement']);
-  if (seniority >= 14) candidates.push([seniority / 15, 'Seniority fits your experience']);
-  if (evidence >= 6) candidates.push([evidence / 10, `Strong evidence: ${evidenceNotes.join(', ')}`]);
+  if (p.avoid_software_roles && coding === 'Low') candidates.push([0.95, { code: 'coding_low', text: 'Low coding requirement' }]);
+  if (seniority >= 14) candidates.push([seniority / 15, { code: 'seniority_fit', text: 'Seniority fits your experience' }]);
+  if (evidence >= 6) candidates.push([evidence / 10, { code: 'evidence', notes: evidenceNotes, text: `Strong evidence: ${evidenceNotes.join(', ')}` }]);
   candidates.sort((a, b) => b[0] - a[0]);
 
   return {
