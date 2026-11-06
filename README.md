@@ -76,8 +76,28 @@ npm install --prefix apps/web
 npm run dev                  # http://localhost:5190
 ```
 
-للنشر على Netlify: `base = apps/web` · `build = npm run build` · `publish = apps/web/dist`
-وأضف `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY` في إعدادات الموقع.
+### ٤. النشر
+
+الموقع منشور على GitHub Pages: **<https://sultanhad.github.io/qaddim/>**
+
+```bash
+npm run deploy      # يبني ويدفع الناتج إلى فرع gh-pages
+```
+
+مسارات الأصول نسبية والتنقّل بالـ hash، فالموقع يعمل في جذر نطاق أو تحت مسار فرعي
+بالبناء نفسه. البناء يقرأ `.env.local`؛ المفتاح العام وحده يدخل حزمة المتصفح،
+ومفتاح الخدمة لا يصل إليها أبداً.
+
+> للنشر التلقائي عند كل دفعة (بدل `npm run deploy`) تحتاج صلاحية `workflow`
+> لرمز GitHub: `gh auth refresh -s workflow` مرة واحدة، ثم يمكن إضافة سير عمل
+> يبني من `main`. الرابط والمفتاح العام مضافان أصلاً في **Variables** للمستودع.
+
+وبعد أي تغيير للعنوان، أضفه في Supabase → Authentication → URL Configuration
+تحت **Redirect URLs**، وإلا ارتدّت روابط الدخول إلى مكان آخر.
+
+للنشر على Netlify بدلاً من ذلك: `base = apps/web` · `build = npm run build` ·
+`publish = apps/web/dist`، وأضف `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY`
+في إعدادات الموقع.
 
 ---
 
