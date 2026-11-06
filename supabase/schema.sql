@@ -1,4 +1,4 @@
--- Fursa-style job platform — database schema.
+-- قدّم — database schema.
 -- Run once in the Supabase SQL editor of a NEW project (nothing here touches any other project).
 --
 -- Shape of the thing:

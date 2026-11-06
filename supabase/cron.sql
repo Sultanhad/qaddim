@@ -4,10 +4,10 @@
 --   select vault.create_secret('https://<project>.supabase.co/functions/v1/ingest', 'ingest_url');
 --   select vault.create_secret('<the INGEST_SECRET you set on the function>',        'ingest_secret');
 
-select cron.unschedule('fursa-ingest') where exists (select 1 from cron.job where jobname = 'fursa-ingest');
+select cron.unschedule('qaddim-ingest') where exists (select 1 from cron.job where jobname = 'qaddim-ingest');
 
 select cron.schedule(
-  'fursa-ingest',
+  'qaddim-ingest',
   '*/15 * * * *',
   $$
   select net.http_post(
