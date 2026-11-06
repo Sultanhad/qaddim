@@ -16,7 +16,9 @@
     "test:auth": "node apps/web/tests/auth.test.mjs",
     "test:flow": "node apps/web/tests/flow.test.mjs",
     "test:ext": "node apps/web/tests/extension.test.mjs",
-    "test:auto": "node supabase/tests/auto.test.mjs"
+    "test:auto": "node supabase/tests/auto.test.mjs",
+    "clean:tests": "node scripts/clean-test-users.mjs",
+    "test:all": "npm test && npm run test:rls && npm run test:auto && npm run clean:tests"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
