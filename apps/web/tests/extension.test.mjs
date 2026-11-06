@@ -102,6 +102,16 @@ check('لم تُرسل شيئاً (الإرسال مطفأ)', st !== 'submitted'
 const rep = row[0]?.auto_report;
 if (rep) console.log('    عبّأت:', (rep.filled || []).length, 'حقل · ناقص:', (rep.missing || []).length);
 
+// البوابة: ما دامت ثلاثة لم تُعتمد بيد صاحبها، القاعدة تقول «لا ترسل»
+const q = await fetch(`${URL_}/rest/v1/rpc/my_apply_queue`, { method: 'POST',
+  headers: { apikey: PUB, Authorization: `Bearer ${sess.access_token}`, 'content-type': 'application/json' }, body: '{}' })
+  .then((r) => r.json()).catch(() => []);
+const stats = await fetch(`${URL_}/rest/v1/rpc/my_apply_stats`, { method: 'POST',
+  headers: { apikey: PUB, Authorization: `Bearer ${sess.access_token}`, 'content-type': 'application/json' }, body: '{}' })
+  .then((r) => r.json()).then((d) => d?.[0]).catch(() => null);
+check('القاعدة هي التي تقرّر الإرسال، لا الامتداد', stats && stats.submitting === false,
+  stats ? `auto_submit=${stats.auto_submit} approved=${stats.approved}` : 'لا إحصاء');
+
 await ctx.close();
 await rm(dir, { recursive: true, force: true });
 await admin(`/auth/v1/admin/users/${made.id}`, { method: 'DELETE' });

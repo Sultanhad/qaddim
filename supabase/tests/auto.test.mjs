@@ -28,11 +28,13 @@ await admin(`/rest/v1/profiles?id=eq.${me.id}`, { method: 'PATCH',
   body: JSON.stringify({ onboarded: true, auto_apply: true, auto_submit: true, daily_cap: 3 }) });
 
 // وظائف من شركتين: اثنتان من نفس الشركة وواحدة من غيرها
-const jobs = await admin('/rest/v1/jobs?select=id,company&is_open=eq.true&order=company&limit=40').then((r) => r.json());
+const jobs = await admin('/rest/v1/jobs?select=id,company&is_open=eq.true&limit=400').then((r) => r.json());
 const byCo = {};
 for (const j of jobs) (byCo[j.company] ??= []).push(j.id);
-const twoSame = Object.values(byCo).find((v) => v.length >= 2);
-const other = Object.entries(byCo).find(([c, v]) => v !== twoSame)?.[1];
+const pairs = Object.entries(byCo);
+const twoSameEntry = pairs.find(([, v]) => v.length >= 2);
+const twoSame = twoSameEntry?.[1];
+const other = pairs.find(([c]) => c !== twoSameEntry?.[0])?.[1];
 check('وجدنا وظيفتين من شركة وواحدة من أخرى', !!twoSame && !!other);
 
 const queueJob = (id) => admin('/rest/v1/applications', { method: 'POST',
