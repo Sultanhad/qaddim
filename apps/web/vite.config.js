@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 // The scoring engine is shared with the ingestion worker; the app imports it directly.
 export default defineConfig({
+  // Relative asset paths, so the built site works at a domain root or under a
+  // repository sub-path on GitHub Pages without rebuilding. Routing is by hash.
+  base: './',
   plugins: [react()],
   envDir: fileURLToPath(new URL('../../', import.meta.url)),
   resolve: {
