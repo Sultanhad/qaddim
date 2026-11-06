@@ -8,7 +8,7 @@
 // It never invents an answer. An unanswered required question stops the submission and tells you which.
 
 (function () {
-  const F = FursaFields;
+  const F = QaddimFields;
   const CAPTCHA_SEL = [
     'iframe[src*="challenges.cloudflare.com"]', '.cf-turnstile', '[class*="turnstile" i]',
     'input[name="cf-turnstile-response"]', 'iframe[src*="recaptcha"]', '.g-recaptcha',

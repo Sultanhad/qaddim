@@ -5,7 +5,7 @@
 //
 // Plain script (no modules) because content scripts share one global scope.
 
-var FursaFields = (function () {
+var QaddimFields = (function () {
   function norm(s) {
     return String(s == null ? '' : s)
       .replace(/ /g, ' ')
