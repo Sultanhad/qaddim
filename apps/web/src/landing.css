@@ -216,3 +216,34 @@
 :root[data-theme="light"] .btn-white { background: var(--blue); border-color: var(--blue); color: #fff; }
 :root[data-theme="light"] .sky-city { fill: #0a1230; }
 :root[data-theme="light"] .pin { background: #fff; border-color: var(--line); color: var(--text); }
+
+/* ── the "check your email" step ──────────────────────────────────────
+   The half of email sign-in that usually gets one line of text. It carries the
+   address back, a code box for people who would rather stay in this browser,
+   a resend that cannot be hammered, and a way out of a typo. */
+.sent { max-width: 460px; }
+.sent-h { margin: 0 0 6px; font-size: 17px; font-weight: 700; color: #fff; }
+.sent-p { margin: 0 0 14px; font-size: 14px; line-height: 1.7; color: var(--dim); }
+.code-row { display: flex; gap: 8px; }
+.code-row input {
+  flex: 1; min-width: 0; padding: 14px 16px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--raise); color: #fff;
+  font-size: 18px; letter-spacing: .3em; text-align: center;
+}
+.code-row input:focus { outline: none; border-color: var(--blue-soft); }
+.sent-actions { margin: 12px 0 0; font-size: 14px; }
+.linklike {
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+  color: var(--blue-soft); text-decoration: underline; text-underline-offset: 3px;
+}
+.linklike:disabled { color: var(--faint); cursor: default; text-decoration: none; }
+
+/* The moment between clicking the link in the email and the app appearing. */
+.signing { display: grid; place-items: center; min-height: 70vh; gap: 14px; text-align: center; }
+.spinner {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--blue-soft);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }

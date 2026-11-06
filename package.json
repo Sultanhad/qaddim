@@ -11,7 +11,10 @@
     "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
     "deploy": "npm run build && node scripts/deploy-netlify.mjs",
-    "deploy:pages": "sh scripts/deploy-pages.sh"
+    "deploy:pages": "sh scripts/deploy-pages.sh",
+    "test:rls": "node supabase/tests/rls.test.mjs",
+    "test:auth": "node apps/web/tests/auth.test.mjs",
+    "test:flow": "node apps/web/tests/flow.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

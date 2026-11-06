@@ -40,7 +40,10 @@ export const S = {
       'أول ثلاثة تعتمدها بنفسك. بعدها يمشي وحده.'
     ],
     closing: 'فرصتك القادمة.', free: 'فرصة · مجانية لمن يبحث عن عمل.',
-    privacy: 'الخصوصية', emailPh: 'you@example.com', sentTo: 'أرسلنا رابط الدخول إلى'
+    privacy: 'الخصوصية', emailPh: 'you@example.com', sentTo: 'أرسلنا رسالة الدخول إلى',
+    sentHint: 'افتح الرابط في الرسالة، أو اكتب الرمز هنا لتبقى في هذا المتصفح. وإن لم تجدها، انظر في «المهملات».',
+    codePh: 'الرمز', codeGo: 'ادخل', resend: 'أعد الإرسال', changeEmail: 'غيّر البريد',
+    signingIn: 'جارٍ الدخول…', linkExpired: 'انتهت صلاحية الرابط. اطلب رسالة جديدة.'
   },
   en: {
     dir: 'ltr', brand: 'Fursa', howItWorks: 'How it works', faq: 'FAQ', cta: 'Get started',
@@ -70,7 +73,10 @@ export const S = {
       'The first 3 wait for your approval. After that it runs on its own.'
     ],
     closing: 'Your next opportunity.', free: 'Fursa. Free for job seekers.',
-    privacy: 'Privacy', emailPh: 'you@example.com', sentTo: 'We sent a sign-in link to'
+    privacy: 'Privacy', emailPh: 'you@example.com', sentTo: 'We sent a sign-in email to',
+    sentHint: 'Open the link in the email, or type the code here to stay in this browser. If it is not there, check your spam folder.',
+    codePh: 'Code', codeGo: 'Sign in', resend: 'Resend', changeEmail: 'Change email',
+    signingIn: 'Signing you in…', linkExpired: 'That link has expired. Ask for a new one.'
   }
 };
 

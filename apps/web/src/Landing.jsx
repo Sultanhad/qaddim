@@ -45,7 +45,7 @@ const ago = (iso, lang) => {
   return h < 24 ? `قبل ${h} ساعة` : `قبل ${Math.round(h / 24)} يوم`;
 };
 
-export default function Landing({ loading }) {
+export default function Landing({ loading, authError }) {
   const [lang, setLang] = useState(() => localStorage.getItem('fursa:lang') || 'ar');
   const [theme, setTheme] = useState(() => localStorage.getItem('fursa:theme') || 'dark');
   const t = S[lang];
@@ -109,7 +109,7 @@ export default function Landing({ loading }) {
           <br /><span className="soft">{t.heroB}</span>
         </h1>
         <p className="lp-sub">{t.sub}</p>
-        <div className="lp-cta" id="start"><SignIn t={t} loading={loading} /></div>
+        <div className="lp-cta" id="start"><SignIn t={t} loading={loading} notice={authError} /></div>
         <p className="lp-meta">{t.meta.map((m) => <span key={m}>{m}</span>)}</p>
       </header>
 
@@ -330,31 +330,114 @@ function Skyline({ lang }) {
   );
 }
 
-function SignIn({ t, loading, compact }) {
-  const [email, setEmail] = useState('');
+/** Supabase answers in English; these are the ones a person actually hits. */
+function authErrorAr(message) {
+  const m = String(message || '');
+  if (/only request this after (\d+)/i.test(m)) {
+    return `انتظر ${m.match(/after (\d+)/i)[1]} ثانية قبل إرسال رسالة أخرى.`;
+  }
+  if (/rate limit|too many|email rate/i.test(m)) return 'محاولات كثيرة. انتظر دقيقة ثم أعد المحاولة.';
+  // Order matters: an expired link also says "invalid" and "email", and would otherwise be
+  // reported as a bad address — sending the reader to fix something that is not wrong.
+  if (/link is invalid or has expired|access_denied|otp_expired/i.test(m)) {
+    return 'انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رسالة جديدة.';
+  }
+  if (/expired|invalid token|invalid otp|token has expired/i.test(m)) return 'الرمز غير صحيح أو انتهت صلاحيته.';
+  if (/signups not allowed|disabled/i.test(m)) return 'التسجيل مغلق حالياً.';
+  if (/invalid|unable to validate/i.test(m) && /email/i.test(m)) return 'البريد غير صحيح.';
+  if (/failed to fetch|network/i.test(m)) return 'تعذّر الاتصال. تأكّد من الشبكة.';
+  return m;
+}
+
+const LAST_EMAIL = 'fursa:last-email';
+
+/**
+ * Signing in by email, without the trap that email sign-in usually sets.
+ *
+ * A link in an email opens in whatever browser the mail app owns — on a phone that is rarely
+ * the one the person started in, so the session lands somewhere they are not looking. The
+ * code they can type keeps them here. Both are offered; whichever they use, they end up
+ * signed in on this screen.
+ */
+function SignIn({ t, loading, compact, notice }) {
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem(LAST_EMAIL) || ''; } catch { return ''; }
+  });
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  // `notice` arrives a render after this mounts (the session check has to finish first), so
+  // it is read on every render rather than copied into state once and missed.
+  const [dismissed, setDismissed] = useState(false);
+  const shown = error || (!dismissed && notice ? authErrorAr(notice) : '');
 
-  async function submit(e) {
-    e.preventDefault();
-    setBusy(true); setError('');
+  useEffect(() => {
+    if (!cooldown) return;
+    const id = setTimeout(() => setCooldown((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  async function send(e) {
+    e?.preventDefault();
+    setBusy(true); setError(''); setDismissed(true);
+    const address = email.trim().toLowerCase();
     const { error } = await supabase.auth.signInWithOtp({
       // Back to this page, not to the origin: the site may live under a sub-path,
       // and the hash is dropped so the link lands on the app rather than a stale route.
-      email: email.trim(), options: { emailRedirectTo: location.href.split('#')[0] }
+      email: address, options: { emailRedirectTo: location.href.split('#')[0] }
     });
     setBusy(false);
-    if (error) setError(error.message); else setSent(true);
+    if (error) { setError(authErrorAr(error.message)); return; }
+    try { localStorage.setItem(LAST_EMAIL, address); } catch { /* private window */ }
+    setSent(true); setCooldown(45);
   }
 
-  if (sent) return <p style={{ color: 'var(--good)', fontWeight: 700 }}>{t.sentTo} {email}</p>;
+  async function verify(e) {
+    e.preventDefault();
+    setBusy(true); setError('');
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(), token: code.trim(), type: 'email'
+    });
+    setBusy(false);
+    if (error) setError(authErrorAr(error.message));
+    // On success the session arrives through onAuthStateChange and the app swaps itself out.
+  }
+
+  if (sent) {
+    return (
+      <div className="sent">
+        <p className="sent-h">{t.sentTo} <b dir="ltr">{email.trim()}</b></p>
+        <p className="sent-p">{t.sentHint}</p>
+
+        <form onSubmit={verify} className="code-row">
+          <input inputMode="numeric" pattern="[0-9]*" maxLength={8} dir="ltr" value={code}
+            placeholder={t.codePh} aria-label={t.codePh}
+            onChange={(ev) => setCode(ev.target.value.replace(/\D/g, ''))} />
+          <button className="btn btn-white" disabled={busy || code.trim().length < 6}>{busy ? '…' : t.codeGo}</button>
+        </form>
+
+        {shown && <p className="err">{shown}</p>}
+        <p className="sent-actions">
+          <button type="button" className="linklike" disabled={!!cooldown || busy} onClick={send}>
+            {cooldown ? `${t.resend} (${cooldown})` : t.resend}
+          </button>
+          <span className="faint"> · </span>
+          <button type="button" className="linklike" onClick={() => { setSent(false); setCode(''); setError(''); }}>
+            {t.changeEmail}
+          </button>
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={submit} className="signin" data-compact={compact ? '' : undefined}>
-      <input type="email" required dir="ltr" value={email} placeholder={t.emailPh}
+    <form onSubmit={send} className="signin" data-compact={compact ? '' : undefined}>
+      <input type="email" required dir="ltr" value={email} placeholder={t.emailPh} autoComplete="email"
         onChange={(e) => setEmail(e.target.value)} aria-label={t.emailPh} />
       <button className="btn btn-white btn-lg" disabled={busy || loading || !email.trim()}>{busy ? '…' : t.cta}</button>
-      {error && <p className="err">{error}</p>}
+      {shown && <p className="err">{shown}</p>}
     </form>
   );
 }

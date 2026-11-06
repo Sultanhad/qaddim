@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { supabase, cvPathFor } from './supabase.js';
+import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, L } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
@@ -28,13 +28,25 @@ export const START_SCORE = 45;
 // same scores to `matches`, but waiting for it would mean a new account sees an empty screen
 // for fifteen minutes — and changing a city would do nothing until the next sweep. Scoring
 // locally makes every choice answer back immediately, which is the whole feel of the product.
+const POOL_KEY = 'fursa:pool';
+const POOL_TTL = 300000;                 // the worker sweeps every 15 minutes; 5 is well inside that
 let POOL = null, POOL_AT = 0;
+
 async function loadPool() {
-  if (POOL && Date.now() - POOL_AT < 300000) return POOL;
+  if (POOL && Date.now() - POOL_AT < POOL_TTL) return POOL;
+  // Descriptions are most of the weight, and the scorer needs them. Carrying the pool across
+  // reloads keeps a phone from paying for it twice in the same few minutes.
+  if (!POOL) {
+    try {
+      const c = JSON.parse(sessionStorage.getItem(POOL_KEY) || 'null');
+      if (c && Date.now() - c.at < POOL_TTL) { POOL = c.rows; POOL_AT = c.at; return POOL; }
+    } catch { /* private window, or a quota that filled */ }
+  }
   const { data } = await supabase.from('jobs')
     .select('id,title,company,location,city,country,arrangement,salary_published,description,url,published_at,last_seen')
     .eq('is_open', true).order('last_seen', { ascending: false }).limit(250);
   POOL = data ?? []; POOL_AT = Date.now();
+  try { sessionStorage.setItem(POOL_KEY, JSON.stringify({ at: POOL_AT, rows: POOL })); } catch { /* over quota */ }
   return POOL;
 }
 
@@ -60,12 +72,20 @@ function scoreAll(pool, profile) {
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = still checking
   const [profile, setProfile] = useState(null);
-  const [route, setRoute] = useState(() => location.hash.replace('#', '') || 'jobs');
+  const [route, setRoute] = useState(() => {
+    const h = location.hash.replace('#', '');
+    // A sign-in redirect can leave its tokens in the hash; that is not a route.
+    return !h || h.includes('=') ? 'jobs' : h;
+  });
+  const back = authReturn;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    const onHash = () => setRoute(location.hash.replace('#', '') || 'jobs');
+    const onHash = () => {
+      const h = location.hash.replace('#', '');
+      setRoute(!h || h.includes('=') ? 'jobs' : h);
+    };
     addEventListener('hashchange', onHash);
     return () => { sub.subscription.unsubscribe(); removeEventListener('hashchange', onHash); };
   }, []);
@@ -78,8 +98,11 @@ export default function App() {
 
   if (route === 'privacy') return <Privacy />;
   if (route === 'help') return <Help />;
-  if (session === undefined) return <Landing loading />;
-  if (!session) return <Landing />;
+  // Between the click in the email and the session arriving, say so. Showing the sign-in
+  // form in that gap reads as "your link did not work".
+  const linkError = back.state === 'error' ? back.message : undefined;
+  if (session === undefined) return back.state === 'signing' ? <SigningIn /> : <Landing loading authError={linkError} />;
+  if (!session) return <Landing authError={linkError} />;
   if (!profile) return <Landing loading />;
   if (!profile.onboarded) return <FirstRun user={session.user} profile={profile} onDone={setProfile} />;
 
@@ -101,6 +124,15 @@ export default function App() {
         </nav>
       </div>
     </>
+  );
+}
+
+function SigningIn() {
+  return (
+    <div className="signing">
+      <div className="spinner" />
+      <p className="muted" style={{ margin: 0 }}>جارٍ الدخول…</p>
+    </div>
   );
 }
 
