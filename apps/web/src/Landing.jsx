@@ -10,8 +10,8 @@ const Pin = () => (
     <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z" />
   </svg>
 );
-const Mark = ({ size = 64, radius = 18 }) => (
-  <span className="mark" style={{ width: size, height: size, borderRadius: radius }} aria-hidden="true">
+const Mark = ({ size = 64, radius = 18, className = '' }) => (
+  <span className={'mark ' + className} style={{ width: size, height: size, borderRadius: radius }} aria-hidden="true">
     <i style={{ width: size * .4, height: Math.max(3, size * .078) }} />
     <i style={{ width: size * .28, height: Math.max(3, size * .078) }} />
   </span>
@@ -102,7 +102,7 @@ export default function Landing({ loading, authError }) {
 
       {/* ── hero ───────────────────────────────────────────────── */}
       <header className="lp-hero" id="top">
-        <Mark />
+        <Mark className="lp-mark" />
         <h1 className="lp-h1">
           {t.heroA}{' '}
           <span className="city-chip"><Pin /><span className="name" key={city}>{city}</span></span>
