@@ -68,7 +68,7 @@ await page.evaluate(([k, v]) => localStorage.setItem(k, v),
 // The announcement fires on load, so the listener has to be in place before the page runs.
 await page.addInitScript(() => {
   addEventListener('message', (e) => {
-    if (e.data?.type === 'fursa:extension-ready') window.__extVersion = e.data.version;
+    if (e.data?.type === 'qaddim:extension-ready') window.__extVersion = e.data.version;
   });
 });
 await page.reload({ waitUntil: 'networkidle' });
