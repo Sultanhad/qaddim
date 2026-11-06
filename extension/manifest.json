@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "قدّم — تعبئة وإرسال طلبات التوظيف",
+  "version": "1.0.0",
+  "description": "يعبّي استمارات التوظيف من ملفك ويرسلها، داخل متصفحك أنت.",
+  "default_locale": "ar",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "notifications",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://apply.workable.com/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://*.greenhouse.io/*",
+    "https://jobs.smartrecruiters.com/*",
+    "http://localhost:5190/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "قدّم"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://apply.workable.com/*",
+        "https://jobs.lever.co/*",
+        "https://jobs.ashbyhq.com/*",
+        "https://*.greenhouse.io/*",
+        "https://jobs.smartrecruiters.com/*"
+      ],
+      "js": [
+        "src/fields.js",
+        "src/fill.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "http://localhost:5190/*"
+      ],
+      "js": [
+        "src/bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

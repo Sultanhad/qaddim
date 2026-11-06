@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.fursa.ingest</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh" &gt;/dev/null 2&gt;&amp;1; nvm use default &gt;/dev/null 2&gt;&amp;1; cd "$HOME/Downloads/fursa-platform" &amp;&amp; node scripts/ingest-once.mjs</string>
+  </array>
+  <key>StartInterval</key><integer>900</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/tmp/fursa-ingest.log</string>
+  <key>StandardErrorPath</key><string>/tmp/fursa-ingest.err</string>
+</dict>
+</plist>
