@@ -113,7 +113,11 @@
 .wordmark { font-size: 22px; font-weight: 800; letter-spacing: -.02em; color: #e8eeff; opacity: .92; white-space: nowrap; }
 
 /* ── skyline ──────────────────────────────────────────────────────────── */
-.sky { position: relative; margin-top: 72px; border-radius: 22px 22px 0 0; overflow: hidden; background: linear-gradient(180deg, #070b18 0%, #14308f 55%, #2f6bff 100%); }
+.sky {
+  position: relative; margin-top: 72px; border-radius: 22px 22px 0 0; overflow: hidden;
+  /* night overhead, the city's own glow at the horizon */
+  background: linear-gradient(180deg, #04060f 0%, #081235 34%, #12308f 68%, #2f5fe0 88%, #4a7bff 100%);
+}
 .sky svg { display: block; width: 100%; height: auto; }
 .pin {
   position: absolute; translate: -50% -50%;
@@ -125,6 +129,27 @@
 .pin svg { width: 11px; height: 11px; }
 .pin b { color: var(--blue-soft); }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+.sky-star { fill: #fff; }
+.sky-star circle { opacity: .75; }
+.sky-moon { fill: #f4f7ff; }
+/* the distant band reads as depth only if it never competes with the foreground */
+.sky-back { fill: #3f61c8; opacity: .42; }
+.sky-city { fill: #05070f; }
+.sky-palm { fill: #05070f; }
+.sky-win { fill: #cfe0ff; }
+
+@media (prefers-reduced-motion: reduce) { .pin { animation: none; } }
+
+/* Six labels across a phone will sit on top of each other at the heights that suit a wide
+   screen. They stagger into two rows instead, and shrink — the skyline is only 111px tall
+   there, so the pins are most of what is visible anyway. */
+@media (max-width: 680px) {
+  .pin { padding: 5px 9px; font-size: 11px; gap: 4px; }
+  .pin svg { width: 9px; height: 9px; }
+  .pin[data-row="0"] { top: 14% !important; }
+  .pin[data-row="1"] { top: 46% !important; }
+}
 
 /* ── faq ──────────────────────────────────────────────────────────────── */
 .faq details { border-top: 1px solid var(--line); padding: 18px 0; }
@@ -202,8 +227,6 @@
 .mock-note { margin-top: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: var(--dim); }
 @media (max-width: 760px) { .mock { grid-template-columns: 1fr; } .mock-side { flex-direction: row; overflow-x: auto; border-inline-end: none; border-bottom: 1px solid var(--line); } .mock-side .brand { display: none; } }
 
-.sky-city { fill: #060912; }
-.sky-lights { fill: var(--blue); opacity: .55; }
 
 /* ── light theme: same shapes, inverted ground ────────────────────────── */
 :root[data-theme="light"] {

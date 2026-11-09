@@ -297,33 +297,144 @@ function AppMockup({ t }) {
   );
 }
 
+/**
+ * The skyline, as the cities it actually reads.
+ *
+ * Three depths: a sky with stars and a moon, a pale band of distant blocks, and black
+ * silhouettes in front carrying lit windows. The landmarks are the ones a reader here
+ * recognises without being told — the pyramids, the Kingdom Centre's arch, a sail on the
+ * Jeddah coast — so each pin sits above a building that explains it.
+ */
+// x is the centre of that city's landmark in the viewBox, as a percentage; y clears its roof.
+const SKY_CITIES = [
+  { id: 'cairo',  x: 17, y: 24 },
+  { id: 'amman',  x: 29, y: 48 },
+  { id: 'riyadh', x: 46, y: 21 },
+  { id: 'dubai',  x: 64, y: 13 },
+  { id: 'doha',   x: 78, y: 26 },
+  { id: 'jeddah', x: 91, y: 31 }
+];
+const SKY_NAMES = {
+  ar: { cairo: 'القاهرة', amman: 'عمّان', riyadh: 'الرياض', dubai: 'دبي', doha: 'الدوحة', jeddah: 'جدة' },
+  en: { cairo: 'Cairo', amman: 'Amman', riyadh: 'Riyadh', dubai: 'Dubai', doha: 'Doha', jeddah: 'Jeddah' }
+};
+
+// Fixed so the sky does not reshuffle on every render.
+const STARS = [
+  [34, 22], [96, 58], [152, 31], [188, 96], [243, 44], [301, 18], [338, 73], [392, 36],
+  [427, 102], [481, 25], [526, 64], [575, 14], [613, 88], [668, 41], [712, 20], [757, 69],
+  [803, 33], [847, 95], [892, 27], [938, 57], [981, 16], [1024, 80], [1069, 38], [1113, 63],
+  [1158, 23], [1186, 90], [63, 84], [219, 67], [455, 78], [736, 52], [1003, 46], [1142, 50]
+];
+
+// x, y, width, height of every black building that should show light.
+const LIT = [
+  [240, 276, 42, 64], [304, 290, 88, 50], [442, 268, 32, 72],
+  [502, 160, 36, 180], [560, 160, 36, 180], [624, 232, 34, 108], [680, 274, 36, 66],
+  [750, 206, 32, 134], [804, 254, 38, 86], [860, 280, 30, 60],
+  [910, 196, 48, 144], [980, 262, 34, 78], [1154, 250, 30, 90]
+];
+
+/** A grid of windows inside one footprint, with a scatter of unlit ones. */
+function windowsIn([x, y, w, h], seed) {
+  const W = 5, H = 8, gapX = 13, gapY = 17;
+  const cols = Math.max(1, Math.floor((w - 6) / gapX));
+  const rows = Math.max(1, Math.floor((h - 10) / gapY));
+  const left = x + (w - (cols * gapX - (gapX - W))) / 2;
+  const out = [];
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const n = seed * 31 + c * 7 + r * 13;
+      if (n % 5 === 0) continue;                       // nobody is home
+      out.push(
+        <rect key={`${seed}-${c}-${r}`} x={left + c * gapX} y={y + 8 + r * gapY}
+          width={W} height={H} rx="1" opacity={n % 4 === 0 ? 0.45 : 0.92} />
+      );
+    }
+  }
+  return out;
+}
+
 function Skyline({ lang }) {
-  const pins = CITIES[lang].map((name, i) => [name, [18, 33, 50, 70, 83, 94][i]]);
+  const names = SKY_NAMES[lang] ?? SKY_NAMES.ar;
   return (
     <div className="sky">
-      {pins.map(([name, x], i) => (
-        <span className="pin" key={name} style={{ left: `${x}%`, top: `${34 + (i % 3) * 10}%`, animationDelay: `${i * .4}s` }}>
-          <Pin />{name}
+      {SKY_CITIES.map((c, i) => (
+        <span className="pin" key={c.id} data-row={i % 2}
+          style={{ left: `${c.x}%`, top: `${c.y}%`, animationDelay: `${i * .45}s` }}>
+          <Pin />{names[c.id]}
         </span>
       ))}
-      <svg viewBox="0 0 1200 320" preserveAspectRatio="none" role="img" aria-hidden="true">
-        <g className="sky-city">
-          <path d="M0 320V214h58v106zM70 320V182h44v138zM126 320V236h70v84z" />
-          <path d="M210 320V150c0-22 12-40 26-40s26 18 26 40v170z" />
-          <path d="M276 320V198h52v122zM340 320V244h40v76z" />
-          <path d="M392 320V120l26-54 26 54v200z" />
-          <path d="M456 320V206h64v114zM532 320V176h38v144z" />
-          <path d="M584 320V96c0-30 16-56 32-56s32 26 32 56v224z" />
-          <path d="M660 320V188h54v132zM726 320V232h44v88z" />
-          <path d="M782 320V140l30-46 30 46v180z" />
-          <path d="M854 320V204h58v116zM924 320V168h40v152z" />
-          <path d="M976 320V108c0-26 14-48 30-48s30 22 30 48v212z" />
-          <path d="M1048 320V196h52v124zM1112 320V240h52v80zM1176 320V210h24v110z" />
+
+      {/* `none` with an auto height keeps the drawing's own proportions, so a pin placed at
+          46% of the box lands at 46% of the viewBox — over the building it names. */}
+      <svg viewBox="0 0 1200 340" preserveAspectRatio="none" role="img" aria-hidden="true">
+        <g className="sky-star">
+          {STARS.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i % 5 === 0 ? 1.8 : 1.1} />)}
         </g>
-        <g className="sky-lights">
-          {Array.from({ length: 64 }, (_, i) => (
-            <rect key={i} x={40 + (i * 19) % 1130} y={172 + ((i * 37) % 118)} width="5" height="7" />
-          ))}
+        <circle className="sky-moon" cx="690" cy="96" r="13" />
+
+        {/* the pale band behind everything: distance, not detail */}
+        <g className="sky-back">
+          <path d="M0 340V232h46v108zM58 340V252h38v88zM108 340V214h54v126zM176 340V246h40v94z" />
+          <path d="M232 340V222h50v118zM296 340V258h36v82zM346 340V206h58v134zM418 340V240h44v100z" />
+          <path d="M474 340V226h40v114zM528 340V262h34v78zM576 340V200h56v140zM646 340V244h42v96z" />
+          <path d="M702 340V218h48v122zM762 340V256h36v84zM812 340V210h54v130zM880 340V238h42v102z" />
+          <path d="M936 340V224h46v116zM994 340V260h34v80zM1042 340V204h56v136zM1112 340V242h44v98zM1170 340V222h30v118z" />
+        </g>
+
+        <g className="sky-city">
+          {/* Giza */}
+          <path d="M8 340 92 232l84 108z" />
+          <path d="M150 340 212 258l62 82z" />
+          {/* Cairo tower: a lattice shaft with its crown */}
+          <path d="M198 340V140h12v200z" />
+          <path d="M190 148c0-12 8-22 14-22s14 10 14 22-8 20-14 20-14-8-14-20z" />
+          <path d="M196 126h16v-18h-16z" />
+          {/* a low Cairo block */}
+          <path d="M236 340V272h46v68z" />
+
+          {/* Amman: dome and minaret */}
+          <path d="M300 340V282h96v58z" />
+          <path d="M300 286c0-30 22-52 48-52s48 22 48 52z" />
+          <path d="M344 234h8v-16h-8z" />
+          <path d="M412 340V206h14v134z" />
+          <path d="M406 214c0-14 6-24 13-24s13 10 13 24z" />
+          <path d="M438 340V262h40v78z" />
+
+          {/* Riyadh: the Kingdom Centre, with the gap under its arch */}
+          <path d="M498 340V150c0-26 10-44 22-44s22 18 22 44v190z" />
+          <path d="M556 340V150c0-26 10-44 22-44s22 18 22 44v190z" />
+          <rect x="512" y="186" width="76" height="9" rx="4" />
+          {/* Al Faisaliah: the pointed one beside it */}
+          <path d="M620 340V198l22-56 22 56v142z" />
+          <path d="M676 340V268h44v72z" />
+
+          {/* Dubai: Burj Khalifa's stepped spire */}
+          <path d="M746 340V196h40v144z" />
+          <path d="M754 196V150h24v46z" />
+          <path d="M760 150V104h12v46z" />
+          <path d="M764 104V62h4v42z" />
+          <path d="M800 340V248h46v92zM856 340V274h38v66z" />
+
+          {/* Doha: a rounded tower, and a palm */}
+          <path d="M904 340V176c0-34 14-58 30-58s30 24 30 58v164z" />
+          <path d="M976 340V256h42v84z" />
+          <g className="sky-palm">
+            <path d="M1038 340v-54h5v54z" />
+            <path d="M1040 288c-14-10-28-10-36-2 10-2 24 2 36 6zM1041 288c14-10 28-10 36-2-10-2-24 2-36 6zM1040 286c-6-14-2-26 8-32-4 10-6 22-8 32zM1042 286c6-14 14-22 26-22-10 6-20 14-26 22z" />
+          </g>
+
+          {/* Jeddah: the sail */}
+          <path d="M1092 340V300c0-78 26-136 56-166-10 42-14 102-14 166v40z" />
+          <path d="M1150 340V244h38v96zM1196 340V276h4v64z" />
+        </g>
+
+        {/* Lit windows belong to the black towers, not to the pale band behind them — scattering
+            them by formula put rectangles in the open sky and on the distant blocks. Each
+            building is filled on its own footprint, and some windows stay dark. */}
+        <g className="sky-win">
+          {LIT.flatMap((b, bi) => windowsIn(b, bi))}
         </g>
       </svg>
     </div>
