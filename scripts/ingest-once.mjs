@@ -9,7 +9,7 @@
 import { readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
-import { fetchAll } from '../packages/engine/src/sources.js';
+import { fetchAll, fingerprintOf } from '../packages/engine/src/sources.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 
@@ -79,6 +79,49 @@ if (stale?.length) {
   await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'expired', closed_at: now } : {}) })
     .in('id', stale.map((x) => x.id));
   console.log(`  ${stale.length} expired (unseen for ${STALE_DAYS} days)`);
+}
+
+// And postings the board still lists but published over a year ago. An applicant tracking
+// system rarely deletes anything, so an evergreen advert from 2021 sits there for ever — 27
+// of them were being offered as current openings.
+const AGE_LIMIT_DAYS = 365;
+const bornBefore = new Date(Date.now() - AGE_LIMIT_DAYS * 864e5).toISOString().slice(0, 10);
+const { data: ancient } = await db.from('jobs').select('id').eq('is_open', true).lt('published_at', bornBefore);
+if (ancient?.length) {
+  await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'expired', closed_at: now } : {}) })
+    .in('id', ancient.map((x) => x.id));
+  console.log(`  ${ancient.length} expired (published over a year ago)`);
+}
+
+// An employer that re-posts a role leaves the old advert on the board. Both are "open" and
+// both reach users, so the 2024 posting is offered beside the 2026 one. Only the newest of a
+// fingerprint stays open; the rest are closed as superseded, not deleted.
+const REPOST_GAP_DAYS = 45;
+const { data: openNow } = await db.from('jobs')
+  .select('id, title, company, city, published_at, first_seen')
+  .eq('is_open', true);
+const groups = new Map();
+for (const j of openNow ?? []) {
+  const k = fingerprintOf(j);
+  if (!groups.has(k)) groups.set(k, []);
+  groups.get(k).push(j);
+}
+const when = (j) => new Date(j.published_at || j.first_seen || 0).getTime();
+const superseded = [];
+for (const list of groups.values()) {
+  if (list.length < 2) continue;
+  const sorted = [...list].sort((a, b) => when(b) - when(a));
+  const newest = sorted[0];
+  for (const old of sorted.slice(1)) {
+    // Two genuine openings for the same title are posted around the same time; a gap of
+    // weeks is a re-post. Below the gap, both stay — being wrong here hides a real job.
+    if (when(newest) - when(old) >= REPOST_GAP_DAYS * 864e5) superseded.push(old.id);
+  }
+}
+if (superseded.length) {
+  await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'closed', closed_at: now } : {}) })
+    .in('id', superseded);
+  console.log(`  ${superseded.length} superseded by a newer posting of the same role`);
 }
 
 const { data: profiles } = await db.from('profiles').select('*').eq('onboarded', true);

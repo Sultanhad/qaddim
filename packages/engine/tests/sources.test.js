@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -78,6 +78,22 @@ const partial = await fetchAll(SOURCES, { fetchImpl: flaky });
 check('Resilience', 'A failing board is recorded and the others still load',
   partial.errors.length === 1 && partial.errors[0].source === 'lever:rewaatech' && partial.jobs.length === 4,
   JSON.stringify(partial.errors));
+
+// Re-posting. The same role comes back with a new id every year, and all of them were being
+// shown as current; the fingerprint is what lets the newest stand in for the rest.
+const fp = (t, c, city) => fingerprintOf({ title: t, company: c, city });
+check('Dedup', 'A re-posted role matches its earlier posting',
+  fp('Vice President - Development', 'Aldar', 'abu dhabi') === fp('Vice President - Development', 'Aldar', 'abu dhabi'));
+check('Dedup', 'Seniority words do not split one role in two',
+  fp('Senior Product Manager', 'Tamara', 'riyadh') === fp('Product Manager', 'Tamara', 'riyadh'));
+check('Dedup', 'A gender tag does not make a new job',
+  fp('Data Analyst (m/f/d)', 'Mozn', 'riyadh') === fp('Data Analyst', 'Mozn', 'riyadh'));
+check('Dedup', 'A legal suffix does not make a new company',
+  fp('Data Analyst', 'Mozn Inc', 'riyadh') === fp('Data Analyst', 'Mozn', 'riyadh'));
+check('Dedup', 'Different roles stay different',
+  fp('Data Analyst', 'Mozn', 'riyadh') !== fp('Data Engineer', 'Mozn', 'riyadh'));
+check('Dedup', 'The same role in another city stays separate',
+  fp('Data Analyst', 'Mozn', 'riyadh') !== fp('Data Analyst', 'Mozn', 'jeddah'));
 
 // The allowlist.
 let blocked = null;

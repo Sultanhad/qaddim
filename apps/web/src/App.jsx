@@ -24,6 +24,19 @@ const CITIES = Object.keys(CITY_ALIASES).map((id) => ({ id, label: id, label_ar:
 // The bar a match must clear to be worth showing. New accounts start here; الضبط moves it.
 export const START_SCORE = 45;
 
+/** How long a posting has been up, in the words a reader uses. */
+function ageOf(published) {
+  if (!published) return null;
+  const days = Math.floor((Date.now() - new Date(published).getTime()) / 864e5);
+  if (!Number.isFinite(days) || days < 0) return null;
+  if (days <= 1) return 'نُشرت اليوم';
+  if (days < 7) return `قبل ${days} أيام`;
+  if (days < 30) return `قبل ${Math.floor(days / 7)} أسابيع`;
+  if (days < 60) return 'قبل شهر';
+  if (days < 365) return `قبل ${Math.floor(days / 30)} أشهر`;
+  return 'قبل أكثر من سنة';
+}
+
 // ───────────────────────────────────────────────────────── the job pool ──
 // Scoring happens here, in the browser, against the open jobs. The nightly worker writes the
 // same scores to `matches`, but waiting for it would mean a new account sees an empty screen
@@ -839,6 +852,9 @@ function Jobs({ user, profile, onProfile }) {
           </p>
           <p className="faint" style={{ margin: '8px 0 0' }}>
             {job.salary_published ? `الراتب ${job.salary_published}` : L.noSalary}
+            {/* A board rarely deletes anything, so an advert can sit there for months. How
+                old it is changes whether it is worth an application. */}
+            {ageOf(job.published_at) && <> · {ageOf(job.published_at)}</>}
           </p>
           {!!reasons?.length && <ul className="reasons">{reasons.map((r, i) => <li key={i}>{reasonAr(r)}</li>)}</ul>}
           {!!gaps?.length && (

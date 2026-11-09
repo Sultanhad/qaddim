@@ -190,6 +190,23 @@ export async function fetchSource(source, opts = {}) {
   return adapter(source.slug, { ...opts, label: source.label, eu: source.eu, country: source.country });
 }
 
+/**
+ * One posting, named by what it is rather than where it was found.
+ *
+ * The canonical URL already stops the same page being stored twice. It cannot see the other
+ * shape of duplication: an employer re-posting the same role, which arrives with a brand new
+ * id every time. Aldar's "Vice President - Development" was on the board three times — 2024,
+ * 2025 and 2026 — and all three were offered to users as current.
+ */
+export function fingerprintOf(job) {
+  const title = norm(job.title || '')
+    .replace(/\b(senior|sr|junior|jr|lead|principal|staff)\b/g, ' ')   // the same role, graded
+    .replace(/\b(m\s*f\s*d|m\s*w\s*d|all genders)\b/g, ' ')          // "(m/f/d)" and friends
+    .replace(/\s+/g, ' ').trim();
+  const company = norm(job.company || '').replace(/\b(inc|llc|ltd|gmbh|co|company|group)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  return [title, company, job.city || ''].join('|');
+}
+
 /** The countries this board serves. */
 export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
 
