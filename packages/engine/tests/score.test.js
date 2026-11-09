@@ -57,6 +57,19 @@ check('Places', 'Spelling variants of on-site agree',
 check('Places', 'No declaration falls back to the location text',
   classifyLocation({ location: 'Remote - EMEA', arrangement: null, description: '' }, sultan).remote === true);
 
+// The same posting read from a board and read back from the database must score the same.
+// It did not: the database shape uses different names and the scorer only knew the board's.
+const fromBoard = { title: 'Product Manager', company: 'Acme', location: 'Riyadh', arrangement: null,
+  description: 'product roadmap and user stories '.repeat(30), salary: 'SAR 20,000', publication_date: TODAY,
+  official: true, source_type: 'ats' };
+const fromDb = { title: 'Product Manager', company: 'Acme', location: 'Riyadh', arrangement: null,
+  description: fromBoard.description, salary_published: 'SAR 20,000', published_at: TODAY, source_type: 'ats' };
+check('Consistency', 'A job scores the same from a board and from the database',
+  scoreJob(fromBoard, sultan, TODAY).total === scoreJob(fromDb, sultan, TODAY).total,
+  `${scoreJob(fromBoard, sultan, TODAY).total} vs ${scoreJob(fromDb, sultan, TODAY).total}`);
+check('Consistency', 'A published salary is seen in the stored shape too',
+  !scoreJob(fromDb, sultan, TODAY).flags.some((f) => f.code === 'no_salary'));
+
 // ── reasons always accompany the number ──────────────────────────────────────
 check('Explainability', 'Every score comes with reasons', sultanPM.reasons.length > 0 && sultanPM.reasons.length <= 3, JSON.stringify(sultanPM.reasons));
 check('Explainability', 'The breakdown adds up to the total',

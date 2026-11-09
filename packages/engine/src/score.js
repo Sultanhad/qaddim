@@ -230,11 +230,20 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
 
   // Evidence — how much this posting actually tells us. Never a judgement about the employer.
   let evidence = 0; const evidenceNotes = [];
-  if (job.official) { evidence += 4; evidenceNotes.push('official employer board'); }
+  // A job arrives here two ways: straight from a board adapter during a sweep, or read back
+  // out of the database. Those shapes differ — `salary_published`, `published_at` and no
+  // `official` column — and reading only the adapter's names meant the browser scored every
+  // stored job as having no salary, no publication date and no official source, while the
+  // worker scored the same job higher. Same engine, two answers. Both shapes are read now.
+  const salary = job.salary ?? job.salary_published;
+  const posted = job.publication_date ?? job.published_at;
+  const official = job.official ?? (job.source_type ? job.source_type === 'ats' : false);
+
+  if (official) { evidence += 4; evidenceNotes.push('official employer board'); }
   else { evidence += 2; evidenceNotes.push(job.source_type === 'email' ? 'job-alert email' : 'feed'); }
   if (String(job.description || '').length >= 600) { evidence += 2; evidenceNotes.push('full description'); }
-  if (job.salary) { evidence += 2; evidenceNotes.push('salary published'); }
-  const age = job.publication_date ? daysBetween(job.publication_date, today) : null;
+  if (salary) { evidence += 2; evidenceNotes.push('salary published'); }
+  const age = posted ? daysBetween(posted, today) : null;
   if (age !== null && age <= 21) { evidence += 2; evidenceNotes.push(`posted ${age}d ago`); }
 
   // Gaps and required certificates.
@@ -258,7 +267,7 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   if (/saudi nationals? only|saudi national|for saudi nationals|سعودي(ين)? فقط/i.test(job.title + ' ' + job.description)) {
     flags.push({ code: 'saudi_only', text: 'Mentions a Saudi-national requirement — check you are eligible' });
   }
-  if (!job.salary) flags.push({ code: 'no_salary', text: 'Salary not published' });
+  if (!salary) flags.push({ code: 'no_salary', text: 'Salary not published' });
 
   const total = Math.max(0, Math.min(100, skills + path + seniority + location + codingPts + evidence - penalties));
 
