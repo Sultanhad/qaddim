@@ -14,8 +14,16 @@
     'input[name="cf-turnstile-response"]', 'iframe[src*="recaptcha"]', '.g-recaptcha',
     'iframe[src*="hcaptcha"]', 'iframe[title*="challenge" i]'
   ];
-  const SUBMIT_RE = /^\s*(submit application|submit my application|send application|submit|apply|إرسال الطلب|إرسال)\s*$/i;
-  const OPEN_RE = /^\s*(apply for this job|apply now|apply|i am interested|تقديم)\s*$/i;
+  // Ordered from most specific to least. Greenhouse puts an "Apply" button at the top of the
+  // page that scrolls to the form, and a "Submit application" at the bottom that sends it —
+  // matching "apply" first meant the robot clicked the scroll button for ever and reported
+  // the form as unsent.
+  const SUBMIT_PATTERNS = [
+    /^\s*(submit application|submit my application|send application|إرسال الطلب)\s*$/i,
+    /^\s*(submit|send|إرسال)\s*$/i,
+    /^\s*(apply|تقديم)\s*$/i
+  ];
+  const OPEN_RE = /^\s*(apply for this job|apply now|apply|i am interested|i'?m interested|تقديم|قدّم الآن)\s*$/i;
 
   const visible = (el) => !!(el.offsetParent || el.getClientRects().length) && !el.disabled;
   const txt = (s) => String(s || '').replace(/\s+/g, ' ').trim();
@@ -108,7 +116,17 @@
     if (document.querySelectorAll('input:not([type=hidden]), textarea').length >= 3) return;
     const btn = Array.from(document.querySelectorAll('button, a[role=button]'))
       .find((b) => OPEN_RE.test(txt(b.textContent)) && visible(b));
-    if (btn) { btn.click(); await new Promise((r) => setTimeout(r, 2500)); }
+    if (!btn) return;
+    btn.click();
+    // SmartRecruiters' "I'm interested" navigates to a separate application page rather than
+    // revealing a form in place; waiting a fixed moment lands on a half-loaded document.
+    const before = location.href;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      const fields = document.querySelectorAll('input:not([type=hidden]), textarea').length;
+      if (fields >= 3 && document.readyState === 'complete') break;
+      if (location.href !== before && document.readyState === 'complete') break;
+    }
   }
 
   async function fill(profile) {
@@ -147,15 +165,48 @@
 
       if (type === 'checkbox') {
         if (req && !el.checked) {
-          if (check(el)) report.agreed.push(q);
+          // A required checkbox is usually "I agree to the privacy policy". But a required
+          // *group* of checkboxes is a question — "which of these apply to you?" — and ticking
+          // one of those is claiming something about yourself that you never said. Only a lone
+          // box whose own words are a consent sentence gets ticked.
+          const group = el.name
+            ? document.querySelectorAll(`input[type=checkbox][name="${CSS.escape(el.name)}"]`).length
+            : 1;
+          const consent = /agree|consent|accept|acknowledge|confirm|privacy|terms|policy|gdpr|أوافق|أقر|الموافقة|الخصوصية|الشروط/i.test(q);
+          if (group > 1 || !consent) {
+            report.missing.push({ q, why: group > 1 ? 'سؤال خيارات إلزامي — اختر بنفسك' : 'مربع إلزامي ليس إقراراً — راجعه بنفسك' });
+          } else if (check(el)) report.agreed.push(q);
           else report.missing.push({ q, why: 'مربع إلزامي لم يستجب' });
         }
         continue;
       }
       if (type === 'file') {
-        // A CV has to be attached by you: an extension cannot put a file into a file input.
-        const wantsCv = /resume|cv|curriculum|السيرة/i.test(q);
-        if (wantsCv && el.files.length === 0) report.missing.push({ q, why: 'أرفق سيرتك يدوياً — المتصفح لا يسمح بذلك آلياً' });
+        // A file input cannot be *typed* into, but it can be given a real File through
+        // DataTransfer — the same object a drag-and-drop produces. The page cannot tell the
+        // difference, and nothing is fabricated: these are the bytes the user uploaded.
+        const wantsCv = /resume|cv|curriculum|السيرة|سيرة/i.test(q);
+        const wantsCover = /cover letter|motivation/i.test(q);
+        if (!(wantsCv || wantsCover) || el.files.length) continue;
+        if (!profile.cv_file) {
+          report.missing.push({ q, why: wantsCv ? 'سيرتك غير محمّلة — افتح المنصة مرة لمزامنتها' : 'لا خطاب تقديم في ملفك' });
+          continue;
+        }
+        if (!wantsCv) continue;
+        try {
+          const bin = atob(profile.cv_file.b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const file = new File([bytes], profile.cv_file.name, { type: profile.cv_file.type || 'application/pdf' });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          el.files = dt.files;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          if (el.files.length === 1) report.filled.push({ q, v: profile.cv_file.name });
+          else report.missing.push({ q, why: 'الصفحة رفضت المرفق — أرفق سيرتك بنفسك' });
+        } catch (e) {
+          report.missing.push({ q, why: 'تعذّر إرفاق سيرتك — أرفقها بنفسك' });
+        }
         continue;
       }
       if (el.value && String(el.value).trim() !== '') continue;  // the site already filled it
@@ -184,8 +235,19 @@
   }
 
   function submitButton() {
-    return Array.from(document.querySelectorAll('button, input[type=submit]'))
-      .find((b) => SUBMIT_RE.test(txt(b.textContent || b.value)) && visible(b));
+    const buttons = Array.from(document.querySelectorAll('button, input[type=submit]')).filter(visible);
+    // Prefer a real submit control inside the form that holds the fields, then fall back to
+    // any button whose words match — most specific wording first.
+    const form = document.querySelector('form input:not([type=hidden])')?.closest('form');
+    for (const re of SUBMIT_PATTERNS) {
+      const inForm = form && buttons.find((b) => form.contains(b) && re.test(txt(b.textContent || b.value)));
+      if (inForm) return inForm;
+    }
+    for (const re of SUBMIT_PATTERNS) {
+      const any = buttons.find((b) => re.test(txt(b.textContent || b.value)));
+      if (any) return any;
+    }
+    return null;
   }
 
   async function waitForOutcome(timeoutMs = 60000) {

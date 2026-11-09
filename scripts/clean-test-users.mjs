@@ -17,7 +17,14 @@ const api = (p, o = {}) => fetch(env.VITE_SUPABASE_URL + p, { ...o,
   headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
     'Content-Type': 'application/json', ...o.headers } });
 
-const users = (await api('/auth/v1/admin/users?per_page=200').then((r) => r.json())).users ?? [];
+// Every page. Reading only the first and calling everyone else an orphan is how a cleanup
+// script deletes real accounts once the project passes two hundred users.
+const users = [];
+for (let page = 1; ; page++) {
+  const batch = (await api(`/auth/v1/admin/users?page=${page}&per_page=200`).then((r) => r.json())).users ?? [];
+  users.push(...batch);
+  if (batch.length < 200) break;
+}
 const stale = users.filter((u) => TEST.some((re) => re.test(u.email ?? '')));
 
 for (const u of stale) {

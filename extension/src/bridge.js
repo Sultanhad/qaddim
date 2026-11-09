@@ -9,7 +9,7 @@
 // there. It announces on load *and* answers whenever the page asks.
 
 const announce = () => window.postMessage(
-  { type: 'qaddim:extension-ready', version: chrome.runtime.getManifest().version }, '*');
+  { type: 'qaddim:extension-ready', version: chrome.runtime.getManifest().version }, location.origin);
 
 window.addEventListener('message', (e) => {
   if (e.source !== window) return;

@@ -25,10 +25,16 @@ var QaddimFields = (function () {
     { key: 'cv', any: ['resume', 'cv', 'curriculum vitae', 'السيرة الذاتية'] },
     { key: 'first_name', any: ['first name', 'given name', 'forename', 'الاسم الأول'] },
     { key: 'last_name', any: ['last name', 'family name', 'surname', 'اسم العائلة'] },
+    // "name" alone is dangerous: forms ask for the name of a relative who works here, a
+    // referrer, an emergency contact. Answering those with your own name states a fact about
+    // you that you never stated — and the point of this file is that it never does that.
     { key: 'full_name', any: ['full name', 'your name', 'name', 'الاسم'],
-      not: ['company', 'employer', 'school', 'university', 'reference', 'file', 'user'] },
-    { key: 'email_for_applications', any: ['email', 'e mail', 'البريد'] },
-    { key: 'phone', any: ['phone', 'mobile', 'telephone', 'جوال', 'هاتف'] },
+      not: ['company', 'employer', 'school', 'university', 'reference', 'referral', 'referred',
+            'file', 'user', 'relative', 'friend', 'family member', 'spouse', 'guardian',
+            'emergency', 'contact person', 'manager', 'supervisor', 'recruiter', 'colleague',
+            'قريب', 'صديق', 'معرف', 'الطوارئ', 'مرجع'] },
+    { key: 'email_for_applications', any: ['email', 'e mail', 'البريد'], not: ['relative','friend','emergency','reference','referral','manager','company','الطوارئ','قريب'] },
+    { key: 'phone', any: ['phone', 'mobile', 'telephone', 'جوال', 'هاتف'], not: ['relative','friend','emergency','reference','referral','manager','company','الطوارئ','قريب'] },
     { key: 'linkedin_url', any: ['linkedin'] },
     { key: 'current_company', any: ['current company', 'current employer', 'present employer'] },
     { key: 'current_title', any: ['current title', 'current position', 'current job title'] },

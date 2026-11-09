@@ -25,7 +25,7 @@ const accountant = normaliseProfile({
 });
 
 const job = (o) => ({
-  title: '', company: 'Acme', location: 'Riyadh, Saudi Arabia', arrangement_raw: '',
+  title: '', company: 'Acme', location: 'Riyadh, Saudi Arabia', arrangement: null,
   description: '', official: true, source_type: 'ats', salary: '', publication_date: TODAY, ...o
 });
 
@@ -45,6 +45,17 @@ const devJob = job({ title: 'Senior Backend Engineer', description: 'Python, Dja
 check('Per-user', 'A software role is filtered out for someone avoiding them',
   filterReason(devJob, sultan)?.code === 'software_role');
 check('Per-user', 'The same role is welcome for the engineer', filterReason(devJob, engineer) === null);
+
+// The board's own word about where the job is worked. For a long time this was read from a
+// field name nothing produced, so "Remote" postings were judged from their location text only.
+check('Places', 'A board that says Remote is believed',
+  classifyLocation({ location: 'Dubai, United Arab Emirates', arrangement: 'Remote', description: '' }, sultan).remote === true);
+check('Places', 'A board that says onsite is not read as remote',
+  classifyLocation({ location: 'Riyadh', arrangement: 'onsite', description: '' }, sultan).arrangement === 'On-site');
+check('Places', 'Spelling variants of on-site agree',
+  classifyLocation({ location: 'Riyadh', arrangement: 'OnSite', description: '' }, sultan).arrangement === 'On-site');
+check('Places', 'No declaration falls back to the location text',
+  classifyLocation({ location: 'Remote - EMEA', arrangement: null, description: '' }, sultan).remote === true);
 
 // ── reasons always accompany the number ──────────────────────────────────────
 check('Explainability', 'Every score comes with reasons', sultanPM.reasons.length > 0 && sultanPM.reasons.length <= 3, JSON.stringify(sultanPM.reasons));
@@ -83,7 +94,7 @@ check('Location', 'Remote is recognised and kept', classifyLocation(job({ locati
 check('Location', 'Remote can be switched off',
   filterReason(job({ title: 'Product Analyst', location: 'Remote' }), normaliseProfile({ ...sultan, accept_remote: false }))?.code === 'remote_off');
 check('Location', 'Hybrid in your own city is the best case',
-  scoreJob(job({ title: 'Product Analyst', location: 'Riyadh', arrangement_raw: 'Hybrid', description: 'product adoption and user stories'.repeat(8) }), sultan, TODAY)
+  scoreJob(job({ title: 'Product Analyst', location: 'Riyadh', arrangement: 'Hybrid', description: 'product adoption and user stories'.repeat(8) }), sultan, TODAY)
     .breakdown.location === 10);
 
 // ── the user's exclusion lists ───────────────────────────────────────────────

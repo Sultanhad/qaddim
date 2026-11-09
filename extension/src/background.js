@@ -87,6 +87,30 @@ function tabReady(tabId, timeoutMs = 45000) {
   });
 }
 
+/**
+ * The CV, as bytes the content script can hand to a file input.
+ *
+ * Every board we read demands a resume, so without this every queued application stopped at
+ * "attach it yourself" and unattended sending was unreachable. Fetched once per run through
+ * the user's own token from their own private folder.
+ */
+async function fetchCv(session, profile) {
+  if (!profile?.cv_path) return null;
+  const r = await fetch(`${session.url}/storage/v1/object/cvs/${profile.cv_path}`, {
+    headers: { apikey: session.key, Authorization: 'Bearer ' + session.token }
+  });
+  if (!r.ok) return null;
+  const buf = new Uint8Array(await r.arrayBuffer());
+  if (!buf.length || buf.length > 8 * 1024 * 1024) return null;
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  return {
+    name: profile.cv_path.split('/').pop().replace(/^\d+_/, '') || 'cv.pdf',
+    type: r.headers.get('content-type') || 'application/pdf',
+    b64: btoa(bin)
+  };
+}
+
 async function applyOne(item, profile, settings, session) {
   // Whether to press submit is decided by the database, not here: the caps and the
   // first-three rule have to hold no matter what this copy of the extension believes.
@@ -153,10 +177,13 @@ async function run() {
 
   await chrome.storage.local.set({ running: true });
   try {
+    const cv_file = await fetchCv(session, profile).catch(() => null);
+    if (!cv_file && profile.cv_path) await note({ status: 'warn', reason: 'تعذّر تحميل سيرتك — ستتوقّف الطلبات عند المرفق' });
+    const withCv = { ...profile, cv_file };
     for (const item of queue.slice(0, settings.maxPerRun)) {
       const s = await state();
       if (!s.running) break;
-      const status = await applyOne(item, profile, settings, session);
+      const status = await applyOne(item, withCv, settings, session);
       // One form nobody can answer should not hold up the nineteen that are fine. Before
       // the first three are approved we still stop, because each of those wants a person.
       if (status === 'needs_you' && !item.submit) break;

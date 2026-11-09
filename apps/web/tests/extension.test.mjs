@@ -39,6 +39,11 @@ await admin(`/rest/v1/profiles?id=eq.${made.id}`, { method: 'PATCH', body: JSON.
   onboarded: true, auto_apply: true, min_score: 0, cv_path: `${made.id}/test.pdf`
 }) });
 
+// A real file in the user's own folder, so the attach path is exercised rather than assumed.
+const pdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF');
+await fetch(`${URL_}/storage/v1/object/cvs/${made.id}/test.pdf`, { method: 'POST',
+  headers: { apikey: SRV, Authorization: `Bearer ${SRV}`, 'Content-Type': 'application/pdf' }, body: pdf });
+
 // وظيفة حقيقية من لوحة ندعمها، لنرى التعبئة على استمارة فعلية
 const jobs = await admin('/rest/v1/jobs?select=id,url,company,title&is_open=eq.true&url=like.*apply.workable.com*&limit=1').then((r) => r.json());
 check('وُجدت وظيفة على لوحة مدعومة', jobs.length > 0, jobs[0]?.company || '');
@@ -101,6 +106,9 @@ check('تحرّكت الحالة عن «في الطابور»', st && st !== 'qu
 check('لم تُرسل شيئاً (الإرسال مطفأ)', st !== 'submitted', st || '');
 const rep = row[0]?.auto_report;
 if (rep) console.log('    عبّأت:', (rep.filled || []).length, 'حقل · ناقص:', (rep.missing || []).length);
+const cvAttached = (rep?.filled || []).some((f) => /\.pdf$/i.test(String(f.v || '')));
+const cvBlocked = (rep?.missing || []).some((m) => /سير|resume|cv/i.test(m.q || ''));
+check('أرفقت السيرة بنفسها', cvAttached || !cvBlocked, cvAttached ? 'نعم' : (cvBlocked ? 'ما زالت تطلبها منك' : 'الاستمارة لم تطلب مرفقاً'));
 
 // البوابة: ما دامت ثلاثة لم تُعتمد بيد صاحبها، القاعدة تقول «لا ترسل»
 const q = await fetch(`${URL_}/rest/v1/rpc/my_apply_queue`, { method: 'POST',

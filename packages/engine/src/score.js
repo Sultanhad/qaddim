@@ -68,12 +68,29 @@ export function yearsRequired(desc) {
   return max;
 }
 
+/**
+ * What a board says about where a job is worked, in the three words the rest of the code uses.
+ * Boards spell it their own way — 'onsite', 'OnSite', 'remote', 'Hybrid' — and most say nothing.
+ */
+export function normaliseArrangement(raw) {
+  const v = norm(String(raw || ''));
+  if (!v) return null;
+  if (has(v, 'remote') || has(v, 'عن بعد') || has(v, 'work from home')) return 'Remote';
+  if (has(v, 'hybrid') || has(v, 'هجين')) return 'Hybrid';
+  if (has(v, 'onsite') || has(v, 'on site') || has(v, 'in office') || has(v, 'in person')) return 'On-site';
+  return null;
+}
+
 /** Where a posting is, judged against the cities and countries this user accepts. */
 export function classifyLocation(job, profile) {
-  const t = norm([job.location, job.arrangement_raw].join(' '));
+  // `arrangement` is what the board declared; `arrangement_raw` was read here for a long time
+  // and no stored or fetched job has ever carried that name, so 49 postings that said
+  // "Remote" outright were classified from their location text alone — and filtered away.
+  const declared = normaliseArrangement(job.arrangement ?? job.arrangement_raw);
+  const t = norm([job.location, job.arrangement ?? job.arrangement_raw].join(' '));
   const d = norm(String(job.description || '').slice(0, 5000));
-  const remote = has(t, 'remote') || has(t, 'عن بعد') || has(t, 'work from home');
-  const hybrid = has(t, 'hybrid') || has(t, 'هجين');
+  const remote = declared === 'Remote' || has(t, 'remote') || has(t, 'عن بعد') || has(t, 'work from home');
+  const hybrid = declared === 'Hybrid' || has(t, 'hybrid') || has(t, 'هجين');
 
   let matchedCity = null;
   for (const want of profile.cities) {
@@ -104,7 +121,8 @@ export function classifyLocation(job, profile) {
 
   const arrangement = remote ? 'Remote'
     : hybrid ? 'Hybrid'
-      : (has(t, 'onsite') || has(t, 'on site') || has(t, 'in office')) ? 'On-site' : 'Not stated';
+      : declared === 'On-site' || has(t, 'onsite') || has(t, 'on site') || has(t, 'in office') ? 'On-site'
+        : 'Not stated';
   return { cls, city: matchedCity, otherCity, country, arrangement, remote, hybrid };
 }
 

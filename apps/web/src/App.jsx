@@ -110,10 +110,30 @@ export default function App() {
     return () => { sub.subscription.unsubscribe(); removeEventListener('hashchange', onHash); };
   }, []);
 
-  useEffect(() => {
+  const [profileError, setProfileError] = useState('');
+
+  function loadProfile() {
     if (!session?.user) { setProfile(null); return; }
+    setProfileError('');
     supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle()
-      .then(({ data }) => setProfile(data ?? { id: session.user.id }));
+      .then(({ data, error }) => {
+        // A failed read is not an empty profile. Treating it as one showed a returning user
+        // the first-run questions, and answering them again overwrote their settings.
+        if (error) { setProfileError(error.message); return; }
+        setProfile(data ?? { id: session.user.id });
+      });
+  }
+  useEffect(loadProfile, [session?.user?.id]);
+
+  // The landing page writes lang/dir/theme onto <html> and they outlive it. The signed-in app
+  // has only a dark Arabic palette — under the landing's light theme its job titles are white
+  // on white, and under English it lays out left-to-right. Claim the document back.
+  useEffect(() => {
+    if (!session?.user) return;
+    const el = document.documentElement;
+    const before = { lang: el.lang, dir: el.dir, theme: el.dataset.theme };
+    el.lang = 'ar'; el.dir = 'rtl'; el.dataset.theme = 'dark';
+    return () => { el.lang = before.lang; el.dir = before.dir; if (before.theme) el.dataset.theme = before.theme; };
   }, [session?.user?.id]);
 
   if (route === 'privacy') return <Privacy />;
@@ -123,6 +143,21 @@ export default function App() {
   const linkError = back.state === 'error' ? back.message : undefined;
   if (session === undefined) return back.state === 'signing' ? <SigningIn /> : <Landing loading authError={linkError} />;
   if (!session) return <Landing authError={linkError} />;
+  if (profileError) {
+    return (
+      <>
+        <Hero title="تعذّر تحميل ملفك" />
+        <div className="wrap">
+          <div className="card">
+            <p style={{ margin: 0 }}>حسابك وبياناتك سليمة — تعذّر الوصول إليها الآن فقط.</p>
+            <p className="faint" dir="ltr" style={{ fontSize: 12 }}>{profileError}</p>
+            <button className="btn btn-go" onClick={loadProfile}>أعد المحاولة</button>
+            <button className="btn" onClick={() => supabase.auth.signOut()}>{L.signOut}</button>
+          </div>
+        </div>
+      </>
+    );
+  }
   if (!profile) return <Landing loading />;
   if (!profile.onboarded) return <FirstRun user={session.user} profile={profile} onDone={setProfile} />;
 
@@ -535,21 +570,50 @@ function Settings({ user, profile, onDone }) {
   );
 }
 
+/**
+ * Deleting the account, and actually checking that it happened.
+ *
+ * This used to fire three calls and ignore all three answers, then sign the user out — so a
+ * failure looked exactly like a success: the page said the data was gone while every row and
+ * every file was still there. Postgres cannot delete storage objects at all (Supabase refuses
+ * it), so the files have to go through the Storage API from here, before the account itself.
+ */
 function DangerZone({ user, profile }) {
   const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
   async function wipe() {
-    if (profile?.cv_path) await supabase.storage.from('cvs').remove([profile.cv_path]);
-    await supabase.rpc('delete_my_account');
-    await supabase.auth.signOut();
+    setBusy(true); setError('');
+    try {
+      // Everything under this user's folder, not only the CV the profile happens to point at —
+      // an earlier upload that was replaced would otherwise outlive the account.
+      const { data: files, error: listErr } = await supabase.storage.from('cvs').list(user.id, { limit: 1000 });
+      if (listErr) throw listErr;
+      const paths = (files ?? []).map((f) => `${user.id}/${f.name}`);
+      if (paths.length) {
+        const { error: rmErr } = await supabase.storage.from('cvs').remove(paths);
+        if (rmErr) throw rmErr;
+      }
+      const { error: rpcErr } = await supabase.rpc('delete_my_account');
+      if (rpcErr) throw rpcErr;
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Still signed in, data still there, and now they know.
+      setError(e?.message ? `تعذّر الحذف: ${e.message}` : 'تعذّر الحذف. حاول مرة أخرى.');
+      setBusy(false);
+    }
   }
+
   return (
     <div className="card">
       <h2 style={{ marginTop: 0 }}>بياناتك</h2>
       <p className="muted">كل ما نحتفظ به: ملفك، سيرتك، وطلباتك. الحذف فوري ونهائي.</p>
+      {error && <Banner kind="bad">{error}</Banner>}
       {confirming
         ? <><Banner kind="bad">سيُحذف حسابك وسيرتك وكل طلباتك. لا يمكن التراجع.</Banner>
-          <button className="btn btn-no" onClick={wipe}>نعم، احذف كل شيء</button>
-          <button className="btn" onClick={() => setConfirming(false)}>تراجع</button></>
+          <button className="btn btn-no" disabled={busy} onClick={wipe}>{busy ? 'يُحذف…' : 'نعم، احذف كل شيء'}</button>
+          <button className="btn" disabled={busy} onClick={() => { setConfirming(false); setError(''); }}>تراجع</button></>
         : <button className="btn btn-no" onClick={() => setConfirming(true)}>احذف حسابي وبياناتي</button>}
     </div>
   );
@@ -564,7 +628,7 @@ function useExtension() {
     addEventListener('message', on);
     // The extension announces itself at document_idle, which is usually before this effect
     // runs — so asking is what actually finds it. A couple of retries cover a slow start.
-    const ask = () => postMessage({ type: 'qaddim:extension-hello' }, '*');
+    const ask = () => postMessage({ type: 'qaddim:extension-hello' }, location.origin);
     ask();
     const t1 = setTimeout(ask, 400), t2 = setTimeout(ask, 1500);
     return () => { removeEventListener('message', on); clearTimeout(t1); clearTimeout(t2); };
@@ -572,10 +636,19 @@ function useExtension() {
   return version;
 }
 
-/** Hands the extension this user's session and profile. Nothing else leaves this page. */
+/**
+ * Hands the extension this user's session and profile. Nothing else leaves this page.
+ *
+ * Supabase rotates refresh tokens, so a copy handed over once goes stale the first time this
+ * tab refreshes — and a stale refresh token is worse than none, because presenting it can end
+ * the whole session. The page therefore re-sends on every token refresh (see the effect in
+ * Jobs), which keeps the extension on a live access token and makes its own refresh a fallback
+ * rather than the normal path.
+ */
 async function sendToExtension(profile) {
   const { data } = await supabase.auth.getSession();
   if (!data.session) return;
+  // Same document only; a page on another origin was never a listener here.
   postMessage({
     type: 'qaddim:sync',
     session: {
@@ -598,9 +671,11 @@ async function sendToExtension(profile) {
       linkedin_url: profile.linkedin_url, education_degree: profile.education_degree,
       university: profile.university, graduation_year: String(profile.graduation_year ?? ''),
       answers: profile.answers ?? {},
-      auto_submit: !!profile.auto_submit
+      auto_submit: !!profile.auto_submit,
+      // where the CV lives; the extension fetches the bytes itself with this same token
+      cv_path: profile.cv_path ?? null
     }
-  }, '*');
+  }, location.origin);
 }
 
 function Jobs({ user, profile, onProfile }) {
@@ -621,6 +696,16 @@ function Jobs({ user, profile, onProfile }) {
 
   useEffect(() => { if (ext && profile.auto_apply) sendToExtension(profile); }, [ext, profile.auto_apply]);
 
+  // Every time this tab gets a new access token, hand it over. Without this the extension
+  // works from a copy that ages out in an hour and then has to spend its refresh token.
+  useEffect(() => {
+    if (!ext || !profile.auto_apply) return;
+    const { data } = supabase.auth.onAuthStateChange((e) => {
+      if (e === 'TOKEN_REFRESHED' || e === 'SIGNED_IN') sendToExtension(profile);
+    });
+    return () => data.subscription.unsubscribe();
+  }, [ext, profile.auto_apply, profile.id]);
+
   const scored = useMemo(() => scoreAll(pool, profile), [pool, profile]);
   // An empty screen is never the right answer to "show me jobs". If the threshold clears the
   // page, we show the closest we have and say so, rather than implying nothing exists.
@@ -640,7 +725,9 @@ function Jobs({ user, profile, onProfile }) {
     if (status === 'saved' && !readiness(me, { extension: !!ext }).canApply) { setNeedFor(job); return; }
     setBusyId(job.id);
     const row = { user_id: user.id, job_id: job.id, status };
-    if (status === 'saved' && me.auto_apply) row.auto_status = 'queued';
+    // Only queue when something will actually drain the queue. Without the extension these
+    // rows sit at "في الطابور" for ever while the bar counts them as pending work.
+    if (status === 'saved' && me.auto_apply && ext) row.auto_status = 'queued';
     await supabase.from('applications').upsert(row, { onConflict: 'user_id,job_id' });
     setBusyId(null);
     setActedOn((s) => new Set(s).add(job.id));
@@ -678,6 +765,17 @@ function Jobs({ user, profile, onProfile }) {
           <span className="dot" /> التقديم التلقائي يعمل · الإضافة {ext}
           {queued > 0 && <> · {queued} في الطابور</>}
         </p>
+      )}
+
+      {profile.auto_apply && !ext && (
+        <div className="card" style={{ borderColor: 'var(--warn)' }}>
+          <p style={{ margin: 0, fontWeight: 700 }}>التقديم التلقائي مفعّل — والإضافة غير متصلة</p>
+          <p className="faint" style={{ margin: '6px 0 0' }}>
+            «يهمني» الآن يحفظ الوظيفة ويفتح لك ورقة التعبئة، ولا يدخل الطابور — لأن لا شيء
+            سيُفرغه. افتح <span dir="ltr">قدّم.command</span> أو ثبّت الإضافة، ثم ارجع لهذه الصفحة.
+            {' '}<a href="#help">كيف</a>
+          </p>
+        </div>
       )}
 
       {undo && (
