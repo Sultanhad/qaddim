@@ -5,6 +5,7 @@ import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
+import { useToast, errorAr, useOnline } from './toast.jsx';
 import ApplySheet from './ApplySheet.jsx';
 import Privacy from './Privacy.jsx';
 import Landing from './Landing.jsx';
@@ -292,7 +293,7 @@ function FirstRun({ user, profile, onDone }) {
     const { data, error: dbErr } = await supabase.from('profiles')
       .update(patch).eq('id', user.id).select().single();
     setBusy(false);
-    if (dbErr) setError(dbErr.message); else onDone(data);
+    if (dbErr) setError(errorAr(dbErr)); else onDone(data);
   }
 
   return (
@@ -388,7 +389,7 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
       if (dbErr) throw dbErr;
       onDone(data); setCv(null); setSaved(true);
       onSaved?.(data);
-    } catch (err) { setError(err.message ?? String(err)); }
+    } catch (err) { setError(errorAr(err)); }
     finally { setBusy(false); }
   }
 
@@ -425,6 +426,7 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
 // ───────────────────────────────────────────────────────────────── settings ──
 /** What you want to see, and how far the robot may go. Separate from who you are. */
 function Settings({ user, profile, onDone }) {
+  const toast = useToast();
   const [form, setForm] = useState({
     roles: profile.roles ?? [], skill_areas: profile.skill_areas ?? [],
     extra_skills: (profile.extra_skills ?? []).join('، '),
@@ -460,10 +462,11 @@ function Settings({ user, profile, onDone }) {
   async function save(e) {
     e.preventDefault();
     setBusy(true);
-    const { data } = await supabase.from('profiles')
+    const { data, error } = await supabase.from('profiles')
       .update({ ...patch, updated_at: new Date().toISOString() }).eq('id', user.id).select().single();
     setBusy(false);
-    if (data) { onDone(data); setSaved(true); }
+    if (error) { toast.fail(errorAr(error), () => save(e)); return; }
+    onDone(data); setSaved(true);
   }
 
   return (
@@ -679,6 +682,8 @@ async function sendToExtension(profile) {
 }
 
 function Jobs({ user, profile, onProfile }) {
+  const toast = useToast();
+  const online = useOnline();
   const pool = useJobPool(profile);
   const [actedOn, setActedOn] = useState(null);   // job ids already saved or dismissed
   const [busyId, setBusyId] = useState(null);
@@ -728,8 +733,9 @@ function Jobs({ user, profile, onProfile }) {
     // Only queue when something will actually drain the queue. Without the extension these
     // rows sit at "في الطابور" for ever while the bar counts them as pending work.
     if (status === 'saved' && me.auto_apply && ext) row.auto_status = 'queued';
-    await supabase.from('applications').upsert(row, { onConflict: 'user_id,job_id' });
+    const { error } = await supabase.from('applications').upsert(row, { onConflict: 'user_id,job_id' });
     setBusyId(null);
+    if (error) { toast.fail(errorAr(error), () => act(job, status, fresh)); return; }
     setActedOn((s) => new Set(s).add(job.id));
     if (status === 'closed') {
       setUndo(job);
@@ -742,7 +748,8 @@ function Jobs({ user, profile, onProfile }) {
   }
 
   async function undoReject(job) {
-    await supabase.from('applications').delete().eq('user_id', user.id).eq('job_id', job.id);
+    const { error } = await supabase.from('applications').delete().eq('user_id', user.id).eq('job_id', job.id);
+    if (error) { toast.fail(errorAr(error), () => undoReject(job)); return; }
     setActedOn((s) => { const n = new Set(s); n.delete(job.id); return n; });
     setUndo(null);
   }
@@ -755,6 +762,7 @@ function Jobs({ user, profile, onProfile }) {
 
   return (
     <>
+      {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
       <Live open={pool?.length ?? null} updatedAt={pool?.[0]?.last_seen} />
 
       <Ladder rungs={RUNGS} done={r.done} nextLabel={nextStep}
@@ -773,7 +781,7 @@ function Jobs({ user, profile, onProfile }) {
           <p className="faint" style={{ margin: '6px 0 0' }}>
             «يهمني» الآن يحفظ الوظيفة ويفتح لك ورقة التعبئة، ولا يدخل الطابور — لأن لا شيء
             سيُفرغه. افتح <span dir="ltr">قدّم.command</span> أو ثبّت الإضافة، ثم ارجع لهذه الصفحة.
-            {' '}<a href="#help">كيف</a>
+            {' '}<a href="#help">كيف أثبّتها</a>
           </p>
         </div>
       )}
@@ -868,6 +876,7 @@ function Jobs({ user, profile, onProfile }) {
  * and it is stored for every form that ever asks it again, and this one goes back in the queue.
  */
 function Blocked({ row, profile, onProfile, onDone }) {
+  const toast = useToast();
   const qs = (row.auto_report?.missing ?? []).filter((m) => m.q);
   const [draft, setDraft] = useState({});
   const [busy, setBusy] = useState(false);
@@ -876,17 +885,21 @@ function Blocked({ row, profile, onProfile, onDone }) {
     setBusy(true);
     const answers = { ...(profile.answers ?? {}) };
     for (const [q, a] of Object.entries(draft)) if (String(a).trim()) answers[q] = String(a).trim();
-    const { data } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
+    const { data, error } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
+    if (error) { setBusy(false); toast.fail(errorAr(error), save); return; }
     if (data) onProfile(data);
-    await supabase.rpc('retry_application', { app_id: row.id });
+    const { error: rErr } = await supabase.rpc('retry_application', { app_id: row.id });
     setBusy(false);
+    if (rErr) { toast.fail(errorAr(rErr), save); return; }
+    toast.ok('حُفظت الإجابة وعاد الطلب للطابور');
     onDone();
   }
 
   if (!qs.length) {
     return (
       <button className="btn btn-go" onClick={async () => {
-        await supabase.rpc('retry_application', { app_id: row.id }); onDone();
+        const { error } = await supabase.rpc('retry_application', { app_id: row.id });
+        if (error) toast.fail(errorAr(error)); else { toast.ok('عاد للطابور'); onDone(); }
       }}>أعد المحاولة</button>
     );
   }
@@ -929,6 +942,7 @@ function RunBar({ stats }) {
 }
 
 function Applications({ user, profile, onProfile }) {
+  const toast = useToast();
   const [rows, setRows] = useState(null);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -945,11 +959,20 @@ function Applications({ user, profile, onProfile }) {
     setRows(data ?? []);
   }
   async function setStatus(row, status) {
-    await supabase.from('applications').update({ status }).eq('id', row.id);
-    load();
+    const prev = row.status;
+    // Move the list now so the screen answers the tap, but put it back if the write failed.
+    setRows((xs) => xs.map((x) => (x.id === row.id ? { ...x, status } : x)));
+    const { error } = await supabase.from('applications').update({ status }).eq('id', row.id);
+    if (error) {
+      setRows((xs) => xs.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
+      toast.fail(errorAr(error), () => setStatus(row, status));
+    } else load();
   }
   async function setNotes(row, notes) {
-    await supabase.from('applications').update({ notes }).eq('id', row.id);
+    if ((row.notes ?? '') === notes) return;
+    const { error } = await supabase.from('applications').update({ notes }).eq('id', row.id);
+    if (error) toast.fail(errorAr(error), () => setNotes(row, notes));
+    else toast.ok('حُفظت الملاحظة');
   }
 
   if (rows === null) return <Skeleton />;

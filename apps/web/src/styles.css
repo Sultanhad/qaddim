@@ -237,3 +237,27 @@ input[type="file"] { max-width: 100%; }
 
 /* "/100" was the one piece of text under the readable floor. */
 .score small { font-size: 13px; }
+
+/* What happened, said once. Sits above the bottom nav so it never covers it. */
+.toasts {
+  position: fixed; inset-inline: 12px; bottom: 14px; z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  max-width: 560px; width: 100%;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--raise); border: 1px solid var(--line);
+  color: var(--text); font-size: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .5);
+}
+.toast span { flex: 1; min-width: 0; }
+.toast-good { border-color: rgba(53, 208, 127, .45); }
+.toast-bad { border-color: rgba(255, 107, 107, .55); }
+.toast .btn { margin: 0; padding: 7px 12px; font-size: 13px; flex: none; }
+.toast-x {
+  flex: none; background: none; border: 0; color: var(--faint);
+  font-size: 20px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+@media (pointer: coarse) { .toast-x { min-width: 44px; min-height: 44px; } }

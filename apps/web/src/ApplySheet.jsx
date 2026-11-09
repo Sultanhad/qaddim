@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { supabase } from './supabase.js';
 import { APPLY_FIELDS } from './profile-fields.js';
+import { useToast, errorAr } from './toast.jsx';
 
 // The same list the editor collects, so the sheet can never ask for something nothing fills.
 const FIELDS = APPLY_FIELDS.map((f) => [f.key, f.label]);
@@ -38,14 +39,17 @@ export default function ApplySheet({ profile, job, onClose }) {
   const [newA, setNewA] = useState('');
   const [cvUrl, setCvUrl] = useState(null);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   const filled = useMemo(() => FIELDS.filter(([k]) => String(profile[k] ?? '').trim() !== ''), [profile]);
   const missing = useMemo(() => FIELDS.filter(([k]) => String(profile[k] ?? '').trim() === ''), [profile]);
 
   async function openCv() {
     if (!profile.cv_path) return;
-    const { data } = await supabase.storage.from('cvs').createSignedUrl(profile.cv_path, 300);
-    if (data?.signedUrl) { setCvUrl(data.signedUrl); open(data.signedUrl, '_blank', 'noopener'); }
+    const { data, error } = await supabase.storage.from('cvs').createSignedUrl(profile.cv_path, 300);
+    if (error || !data?.signedUrl) { toast.fail(errorAr(error) || 'تعذّر فتح سيرتك', openCv); return; }
+    setCvUrl(data.signedUrl);
+    open(data.signedUrl, '_blank', 'noopener');
   }
 
   async function saveAnswer() {
@@ -55,13 +59,16 @@ export default function ApplySheet({ profile, job, onClose }) {
     const next = { ...answers, [q]: a };
     const { error } = await supabase.from('profiles').update({ answers: next }).eq('id', profile.id);
     setBusy(false);
-    if (!error) { setAnswers(next); setNewQ(''); setNewA(''); }
+    if (error) { toast.fail(errorAr(error), saveAnswer); return; }
+    setAnswers(next); setNewQ(''); setNewA('');
+    toast.ok('حُفظت الإجابة');
   }
 
   async function removeAnswer(q) {
     const next = { ...answers };
     delete next[q];
-    await supabase.from('profiles').update({ answers: next }).eq('id', profile.id);
+    const { error } = await supabase.from('profiles').update({ answers: next }).eq('id', profile.id);
+    if (error) { toast.fail(errorAr(error), () => removeAnswer(q)); return; }
     setAnswers(next);
   }
 

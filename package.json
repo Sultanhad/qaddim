@@ -20,7 +20,8 @@
     "clean:tests": "node scripts/clean-test-users.mjs",
     "test:all": "npm test && npm run test:rls && npm run test:auto && npm run clean:tests",
     "test:sql": "sh scripts/check-migrations.sh",
-    "clean:cvs": "node scripts/clean-orphan-cvs.mjs"
+    "clean:cvs": "node scripts/clean-orphan-cvs.mjs",
+    "test:states": "node apps/web/tests/states.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
