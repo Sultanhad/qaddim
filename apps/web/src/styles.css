@@ -189,3 +189,51 @@ input[type="range"] { width: 100%; accent-color: var(--blue); }
 .runbar b { color: var(--text); font-weight: 800; }
 .runbar .on { color: var(--good); }
 .runbar .off { color: var(--faint); }
+
+/* ── what the phone actually does ────────────────────────────────────────
+   Measured at 360 / 390 / 430 / 768 against the live build, not guessed.
+   Nothing here changes a colour, a radius, or where anything sits — it fixes
+   things that were wrong at narrow widths and targets too small to hit. */
+
+/* A file input carries an intrinsic width wider than its box; at 360 it pushed
+   the whole page 10px sideways and the layout scrolled horizontally. */
+input[type="file"] { max-width: 100%; }
+
+/* Fingers, not cursors. Anything you tap should be reachable without aiming:
+   44px is Apple's figure, 48 is Google's — 44 is the one that fits this layout. */
+@media (pointer: coarse) {
+  .btn, .chip, .nav a, .status-pill, .linklike, .linkish,
+  select, input[type="text"], input[type="email"], input[type="tel"],
+  input[type="url"], input[type="number"], input[type="file"] {
+    min-height: 44px;
+  }
+  select, .status-pill { padding-block: 10px; }
+  /* a bare inline link inside a paragraph gets its own tap box */
+  .card a:not(.btn):not(.chip),
+  .hint a, .faint a, .runbar a, .muted a, .banner a {
+    display: inline-flex; align-items: center; min-height: 44px;
+  }
+  /* a 13px checkbox is a dot; the label beside it stays exactly where it was */
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--blue); }
+  .field label > input[type="checkbox"] { margin-inline-end: 8px; vertical-align: -4px; }
+  /* the whole row toggles the box, so the row is the target */
+  .field label:has(> input[type="checkbox"]) { display: flex; align-items: center; min-height: 44px; }
+  /* 16px is what stops iOS zooming the page when a field takes focus */
+  input, select, textarea { font-size: 16px; }
+  /* a 16px-tall slider is unusable with a thumb; give it a real grab area */
+  input[type="range"] { height: 44px; }
+}
+
+/* Five tabs would not fit on a 360px row, so "خروج" dropped alone onto a
+   second line. Tighter spacing keeps the row intact; the shapes are unchanged. */
+@media (max-width: 420px) {
+  .nav { gap: 6px; justify-content: center; }
+  .nav a { padding: 9px 10px; font-size: 13.5px; }
+}
+
+/* The status menu belongs beside the job title, not stranded on its own line. */
+.row > :first-child { min-width: 0; }
+.row > select { flex: none; }
+
+/* "/100" was the one piece of text under the readable floor. */
+.score small { font-size: 13px; }

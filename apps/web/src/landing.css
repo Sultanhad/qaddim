@@ -253,3 +253,15 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+/* Tap targets on a phone. Sizes and spacing are untouched — only the invisible
+   box you have to hit grows, by centring the same content in a taller row. */
+@media (pointer: coarse) {
+  .lp-nav .brand,
+  .lp-nav .icon,
+  .lp-nav button,
+  .lp-sec footer a, footer .linkish,
+  .linkish, .linklike { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .lp-nav .icon { width: 44px; }
+  footer a, footer button { min-height: 44px; display: inline-flex; align-items: center; }
+}

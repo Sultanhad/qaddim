@@ -870,7 +870,9 @@ function Applications({ user, profile, onProfile }) {
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>{row.job?.title}</p>
-          <p className="muted" style={{ margin: '4px 0 0' }}>{row.job?.company} · {row.job?.location}</p>
+          <p className="muted" style={{ margin: '4px 0 0' }}>
+            {row.job?.company} · {AR_CITY[row.job?.city] || row.job?.location}
+          </p>
         </div>
         <select className="status-pill" value={row.status} onChange={(e) => setStatus(row, e.target.value)}
           style={{ width: 'auto' }}>
