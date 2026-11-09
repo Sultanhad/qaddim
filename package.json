@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "sync:engine": "node scripts/sync-engine.mjs",
-    "test": "node scripts/sync-engine.mjs --check && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js",
+    "test": "node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js",
     "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
     "deploy": "npm run build && node scripts/deploy-netlify.mjs",
@@ -18,7 +18,9 @@
     "test:ext": "node apps/web/tests/extension.test.mjs",
     "test:auto": "node supabase/tests/auto.test.mjs",
     "clean:tests": "node scripts/clean-test-users.mjs",
-    "test:all": "npm test && npm run test:rls && npm run test:auto && npm run clean:tests"
+    "test:all": "npm test && npm run test:rls && npm run test:auto && npm run clean:tests",
+    "test:sql": "sh scripts/check-migrations.sh",
+    "clean:cvs": "node scripts/clean-orphan-cvs.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

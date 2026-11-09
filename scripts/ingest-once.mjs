@@ -50,12 +50,36 @@ const { error: upErr } = await db.from('jobs').upsert(rows, { onConflict: 'id' }
 if (upErr) { console.error('upsert failed:', upErr.message); process.exit(1); }
 console.log(`  stored`);
 
+// A posting the board still lists is a posting that still exists — that is what verifies it.
+// Rows carrying the lifecycle columns are only written when the database has them, so this
+// worker keeps running against a project where migration 007 has not been pasted yet.
+const HAS_LIFECYCLE = await db.from('jobs').select('status').limit(1)
+  .then(({ error }) => !error).catch(() => false);
+if (HAS_LIFECYCLE) {
+  await db.from('jobs').update({ status: 'verified', verified_at: now, checked_at: now, check_status: 200 })
+    .in('id', rows.map((r) => r.id));
+}
+
 // Close anything that has disappeared from a board that did answer us.
 const lived = new Set(jobs.map((j) => j.source));
 const seen = new Set(jobs.map((j) => j.id));
 const { data: known } = await db.from('jobs').select('id, source').eq('is_open', true);
 const gone = (known ?? []).filter((k) => lived.has(k.source) && !seen.has(k.id)).map((k) => k.id);
-if (gone.length) await db.from('jobs').update({ is_open: false }).in('id', gone);
+if (gone.length) {
+  await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'closed', closed_at: now } : {}) }).in('id', gone);
+}
+
+// Postings whose board stopped answering are not closed — we simply did not hear. But one
+// that has not been seen for a month is not a live vacancy either, and 94 of them were being
+// offered to users, some dated 2021.
+const STALE_DAYS = 30;
+const staleBefore = new Date(Date.now() - STALE_DAYS * 864e5).toISOString();
+const { data: stale } = await db.from('jobs').select('id').eq('is_open', true).lt('last_seen', staleBefore);
+if (stale?.length) {
+  await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'expired', closed_at: now } : {}) })
+    .in('id', stale.map((x) => x.id));
+  console.log(`  ${stale.length} expired (unseen for ${STALE_DAYS} days)`);
+}
 
 const { data: profiles } = await db.from('profiles').select('*').eq('onboarded', true);
 console.log(`scoring for ${profiles?.length ?? 0} user(s)…`);
@@ -78,4 +102,25 @@ for (const p of profiles ?? []) {
   console.log(`  ${p.full_name || p.id}: ${batch.length} new match(es)`);
 }
 
+// Tables that migration 007 adds. Until it is pasted these writes fail, and saying so once
+// is more useful than two stack-shaped warnings in a cron log.
+const pending = [];
+
+// A pulse, so a stall is visible. The worker ran only three times in 46 hours while the Mac
+// slept and nothing said so; anything that can read this row can now tell how long it has been.
+await db.from('ops_heartbeat').upsert({
+  name: 'ingest',
+  at: new Date().toISOString(),
+  detail: { boards: BOARDS.length, jobs: jobs.length, closed: gone.length, matches: written,
+            errors: errors.map((e) => e.source), seconds: +((Date.now() - t0) / 1000).toFixed(1) }
+}, { onConflict: 'name' }).then(({ error }) => { if (error) pending.push('ops_heartbeat'); });
+
+// Keep the editable source list in step with the code's list, so an admin screen has rows to
+// show the day it exists. Does nothing until migration 007 is applied.
+await db.from('job_sources').upsert(
+  BOARDS.map((b) => ({ system: b.system, slug: b.slug, label: b.label, country: b.country ?? null })),
+  { onConflict: 'system,slug', ignoreDuplicates: true }
+).then(({ error }) => { if (error) pending.push('job_sources'); });
+
+if (pending.length) console.log(`  (${pending.join(' + ')} not in the database yet — apply migration 007)`);
 console.log(`\ndone in ${((Date.now() - t0) / 1000).toFixed(1)}s · ${jobs.length} jobs · ${gone.length} closed · ${written} matches`);

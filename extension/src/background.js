@@ -163,9 +163,22 @@ async function applyOne(item, profile, settings, session) {
 }
 
 // ── the run ──────────────────────────────────────────────────────────────────
+/**
+ * MV3 kills an idle service worker after about thirty seconds. If it dies mid-run the
+ * `running` flag stays true in storage, and every later run returns here immediately — auto
+ * apply stops for good, silently, until someone finds the stop button. A flag that cannot be
+ * cleared by a crash is not a lock; this one expires.
+ */
+const RUN_STALE_MS = 10 * 60 * 1000;
+
 async function run() {
   const { session, profile, settings, running } = await state();
-  if (running) return;
+  if (running) {
+    const { running_since = 0 } = await chrome.storage.local.get('running_since');
+    if (Date.now() - running_since < RUN_STALE_MS) return;
+    await note({ status: 'warn', reason: 'دورة سابقة توقّفت دون أن تُغلق — استؤنف العمل' });
+    await chrome.storage.local.set({ running: false });
+  }
   if (!session || !profile) { await note({ status: 'error', reason: 'افتح المنصة مرة لمزامنة حسابك' }); return; }
 
   let queue = [];
@@ -175,7 +188,7 @@ async function run() {
   }
   if (!queue.length) return;
 
-  await chrome.storage.local.set({ running: true });
+  await chrome.storage.local.set({ running: true, running_since: Date.now() });
   try {
     const cv_file = await fetchCv(session, profile).catch(() => null);
     if (!cv_file && profile.cv_path) await note({ status: 'warn', reason: 'تعذّر تحميل سيرتك — ستتوقّف الطلبات عند المرفق' });
@@ -190,9 +203,13 @@ async function run() {
       await new Promise((r) => setTimeout(r, settings.delayMs));   // be a polite visitor
     }
   } finally {
-    await chrome.storage.local.set({ running: false });
+    await chrome.storage.local.set({ running: false, running_since: 0 });
   }
 }
+
+const clearStale = () => chrome.storage.local.set({ running: false, running_since: 0 });
+chrome.runtime.onStartup.addListener(clearStale);
+chrome.runtime.onInstalled.addListener(clearStale);
 
 chrome.alarms.create('qaddim:poll', { periodInMinutes: POLL_MINUTES });
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'qaddim:poll') run(); });

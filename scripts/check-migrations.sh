@@ -46,3 +46,32 @@ for f in "$HERE"/supabase/migrations/*.sql; do
   fi
 done
 echo "$ok migration(s) apply cleanly in order"
+
+# schema.sql exists so a new project can be stood up in one paste. It drifted three migrations
+# behind, so anyone following the README got a database the app 400s against. It is now
+# generated from the chain, and this check fails when the two disagree.
+GEN="$HERE/supabase/schema.sql"
+TMP=$(mktemp)
+{
+  echo "-- قدّم — database schema."
+  echo "--"
+  echo "-- GENERATED: the migrations in supabase/migrations are the source of truth."
+  echo "-- Regenerate with: sh scripts/check-migrations.sh --write"
+  echo "-- Paste this into a brand-new project; an existing one takes the migrations instead."
+  echo
+  for f in "$HERE"/supabase/migrations/*.sql; do
+    echo "-- ───────────────────────────────────────────── $(basename "$f") ──"
+    cat "$f"
+    echo
+  done
+} > "$TMP"
+
+if [ "$1" = "--write" ]; then
+  cp "$TMP" "$GEN"; echo "  schema.sql regenerated from $ok migration(s)"
+elif ! diff -q "$TMP" "$GEN" >/dev/null 2>&1; then
+  echo "  ✗ schema.sql is behind the migrations — run: sh scripts/check-migrations.sh --write"
+  rm -f "$TMP"; exit 1
+else
+  echo "  schema.sql matches the migrations"
+fi
+rm -f "$TMP"
