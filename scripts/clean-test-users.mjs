@@ -11,7 +11,11 @@ const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).spl
   .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 
 // The prefixes every suite uses. A real address never starts with one.
-const TEST = [/^exttest\+/, /^flowtest\+/, /^authtest\+/, /^rls-/, /^auto-/, /^loop-/, /^probe-/];
+const TEST = [
+  /^exttest\+/, /^flowtest\+/, /^authtest\+/, /^rls-/, /^auto-/, /^loop-/, /^probe-/, /^audit-/,
+  // Resend's own sink address, used when checking that sign-in mail actually goes out.
+  /^delivered(\+[^@]*)?@resend\.dev$/
+];
 
 const api = (p, o = {}) => fetch(env.VITE_SUPABASE_URL + p, { ...o,
   headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,

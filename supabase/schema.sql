@@ -562,3 +562,142 @@ language sql security invoker stable as $$
 $$;
 grant execute on function public.board_summary() to anon, authenticated;
 
+-- ───────────────────────────────────────────── 008_application_timeline.sql ──
+-- A job application has a life, and right now it has five words and no memory.
+--
+-- The five statuses skip the two stages people actually wait in — a recruiter screen and an
+-- assessment — and they cannot tell "I withdrew" from "they said no", which is the one
+-- distinction a person looking back at their search wants. And nothing records *when* any of
+-- it happened, so "قدّمت" could be yesterday or in March.
+
+do $$ begin
+  alter type application_status add value if not exists 'under_review' after 'applied';
+exception when others then null; end $$;
+do $$ begin
+  alter type application_status add value if not exists 'assessment' after 'under_review';
+exception when others then null; end $$;
+do $$ begin
+  alter type application_status add value if not exists 'rejected' after 'offer';
+exception when others then null; end $$;
+do $$ begin
+  alter type application_status add value if not exists 'withdrawn' after 'rejected';
+exception when others then null; end $$;
+
+-- `closed` stays as it is: a job dismissed before applying ("لا يناسبني"), which is not the
+-- same thing as an employer saying no.
+comment on type application_status is
+  'saved → applied → under_review → assessment → interview → offer, ending in rejected or withdrawn. closed means dismissed before applying.';
+
+create table if not exists public.application_events (
+  id             bigserial primary key,
+  application_id uuid not null references public.applications (id) on delete cascade,
+  user_id        uuid not null references auth.users (id) on delete cascade,
+  at             timestamptz not null default now(),
+  kind           text not null check (kind in ('status', 'note', 'auto', 'reminder')),
+  from_status    application_status,
+  to_status      application_status,
+  detail         text check (coalesce(length(detail), 0) <= 2000)
+);
+create index if not exists application_events_app_idx on public.application_events (application_id, at desc);
+create index if not exists application_events_user_idx on public.application_events (user_id, at desc);
+
+alter table public.application_events enable row level security;
+drop policy if exists application_events_own on public.application_events;
+create policy application_events_own on public.application_events for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Written by the database, not by whichever screen happened to make the change — the browser,
+-- the extension and the worker all move these rows, and a history only one of them maintains
+-- is a history with holes.
+create or replace function public.log_application_change() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.application_events (application_id, user_id, kind, to_status, detail)
+    values (new.id, new.user_id, 'status', new.status, null);
+    return new;
+  end if;
+
+  if new.status is distinct from old.status then
+    insert into public.application_events (application_id, user_id, kind, from_status, to_status)
+    values (new.id, new.user_id, 'status', old.status, new.status);
+  end if;
+
+  if new.auto_status is distinct from old.auto_status then
+    insert into public.application_events (application_id, user_id, kind, detail)
+    values (new.id, new.user_id, 'auto', coalesce(new.auto_status::text, '—') ||
+      case when new.auto_reason is not null then ' — ' || new.auto_reason else '' end);
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists applications_log on public.applications;
+create trigger applications_log after insert or update on public.applications
+  for each row execute function public.log_application_change();
+
+-- Backfill: every application that exists got there somehow, and its row already knows when.
+insert into public.application_events (application_id, user_id, at, kind, to_status, detail)
+select a.id, a.user_id, coalesce(a.created_at, now()), 'status', 'saved', 'قبل تسجيل الأحداث'
+from public.applications a
+where not exists (select 1 from public.application_events e where e.application_id = a.id);
+
+-- ───────────────────────────────────────────── 009_hands_off.sql ──
+-- Applying without being asked each time.
+--
+-- Until now the queue only ever filled by hand: a person read a card and pressed "يهمني".
+-- Everything downstream was automatic, but the first step was not — so the platform could
+-- only work as fast as its owner read. This lets the worker put strong matches in the queue
+-- itself, bounded by the same caps that already hold for everything else.
+--
+-- What it deliberately does NOT do: lower the bar. Below the user's own threshold nothing is
+-- queued, one per company per week still holds, the daily cap still holds, and the first
+-- three still wait for a person — because the first three are how someone finds out what
+-- goes out under their name.
+
+alter table public.profiles
+  add column if not exists auto_queue boolean not null default false,
+  add column if not exists auto_queue_above int not null default 75;
+
+comment on column public.profiles.auto_queue is
+  'When true, the worker queues strong matches itself instead of waiting for the user to press interested.';
+comment on column public.profiles.auto_queue_above is
+  'Only matches scoring at least this are queued without being asked. Deliberately higher than min_score, which only governs what is shown.';
+
+alter table public.profiles
+  drop constraint if exists profiles_auto_queue_above_range;
+alter table public.profiles
+  add constraint profiles_auto_queue_above_range check (auto_queue_above between 50 and 100);
+
+-- A row the user never touched, so it is worth saying who put it there.
+alter table public.applications
+  add column if not exists queued_by text not null default 'user' check (queued_by in ('user', 'auto'));
+
+comment on column public.applications.queued_by is
+  'user: they pressed interested. auto: the worker queued it from their rules.';
+
+-- How many went out today without being asked, so the site can say so plainly.
+-- Postgres will not let `create or replace` add a column to a function's result, so the old
+-- one goes first. (The same thing caught migration 005.)
+drop function if exists public.my_apply_stats();
+create or replace function public.my_apply_stats()
+returns table (
+  queued int, sent_today int, cap int, approved int, auto_submit boolean,
+  submitting boolean, needs_you int, auto_today int
+)
+language sql security invoker stable as $$
+  select
+    (select count(*)::int from public.applications where user_id = auth.uid() and auto_status = 'queued'),
+    (select count(*)::int from public.applications
+      where user_id = auth.uid() and auto_status = 'submitted' and auto_at >= date_trunc('day', now())),
+    (select coalesce(daily_cap, 20) from public.profiles where id = auth.uid()),
+    public.my_approved_count(),
+    (select coalesce(auto_submit, false) from public.profiles where id = auth.uid()),
+    (select coalesce(auto_submit, false) from public.profiles where id = auth.uid())
+      and public.my_approved_count() >= 3,
+    (select count(*)::int from public.applications where user_id = auth.uid() and auto_status = 'needs_you'),
+    (select count(*)::int from public.applications
+      where user_id = auth.uid() and queued_by = 'auto' and created_at >= date_trunc('day', now()));
+$$;
+grant execute on function public.my_apply_stats() to authenticated;
+

@@ -167,7 +167,29 @@ for (const p of profiles ?? []) {
     const { error } = await db.from('matches').upsert(batch, { onConflict: 'user_id,job_id' });
     if (error) console.warn('  ! matches:', error.message); else written += batch.length;
   }
-  console.log(`  ${p.full_name || p.id}: ${batch.length} new match(es)`);
+
+  // Queue the strong ones without being asked, if that is what they asked for. The caps that
+  // decide what actually gets sent live in my_apply_queue; this only decides what is offered
+  // to it, so over-queueing here cannot turn into over-applying.
+  let auto = 0;
+  if (p.auto_queue && p.auto_apply) {
+    const bar = Math.max(50, p.auto_queue_above ?? 75);
+    const strong = batch.filter((m) => m.score >= bar);
+    if (strong.length) {
+      const { data: have } = await db.from('applications').select('job_id').eq('user_id', p.id);
+      const seenJobs = new Set((have ?? []).map((a) => a.job_id));
+      const rows = strong.filter((m) => !seenJobs.has(m.job_id)).map((m) => ({
+        user_id: p.id, job_id: m.job_id, status: 'saved',
+        auto_status: 'queued', queued_by: 'auto'
+      }));
+      if (rows.length) {
+        const { error } = await db.from('applications').upsert(rows, { onConflict: 'user_id,job_id', ignoreDuplicates: true });
+        if (error) console.warn('  ! auto-queue:', error.message); else auto = rows.length;
+      }
+    }
+  }
+
+  console.log(`  ${p.full_name || p.id}: ${batch.length} new match(es)${auto ? ` · ${auto} queued automatically` : ''}`);
 }
 
 // Tables that migration 007 adds. Until it is pasted these writes fail, and saying so once

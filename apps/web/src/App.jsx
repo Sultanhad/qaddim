@@ -447,6 +447,8 @@ function Settings({ user, profile, onDone }) {
     avoid_software_roles: profile.avoid_software_roles ?? false,
     auto_apply: profile.auto_apply ?? false,
     auto_submit: profile.auto_submit ?? false,
+    auto_queue: profile.auto_queue ?? false,
+    auto_queue_above: profile.auto_queue_above ?? 75,
     daily_cap: profile.daily_cap ?? 20,
     exclude_title_words: (profile.exclude_title_words ?? []).join('، '),
     exclude_companies: (profile.exclude_companies ?? []).join('، '),
@@ -574,6 +576,30 @@ function Settings({ user, profile, onDone }) {
             <label htmlFor="cap" style={{ marginTop: 10 }}>أكثر عدد في اليوم — {form.daily_cap}</label>
             <input id="cap" type="range" min="1" max="40" step="1" value={form.daily_cap}
               onChange={(e) => set('daily_cap', Number(e.target.value))} />
+
+            <hr className="rule" />
+
+            <label>
+              <input type="checkbox" checked={form.auto_queue}
+                onChange={(e) => set('auto_queue', e.target.checked)} /> <b>ولا تنتظر ضغطة «يهمني»</b>
+            </label>
+            <p className="hint">
+              كل ١٥ دقيقة نقرأ اللوحات. ما تجاوز درجتك أدناه يدخل الطابور وحده، ومتصفّحك يقدّم
+              عليه. لا تفتح الموقع ولا تضغط شيئاً — افتح <span dir="ltr">قدّم.command</span> واتركه.
+            </p>
+            {form.auto_queue && (
+              <>
+                <label htmlFor="aq" style={{ marginTop: 10 }}>لا تقدّم عنّي إلا فوق — {form.auto_queue_above}</label>
+                <p className="hint">
+                  {scored
+                    ? <>بهذا الحدّ، <b>{scored.filter((r) => r.score >= form.auto_queue_above).length}</b> من
+                      وظائف اليوم كانت ستدخل الطابور وحدها.</>
+                    : 'يُحسب…'}
+                </p>
+                <input id="aq" type="range" min="50" max="100" step="5" value={form.auto_queue_above}
+                  onChange={(e) => set('auto_queue_above', Number(e.target.value))} />
+              </>
+            )}
           </div>
         )}
 
@@ -943,11 +969,12 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 /** What the robot is doing right now, in the user's own words. */
 function RunBar({ stats }) {
   if (!stats) return null;
-  const { queued, sent_today, cap, approved, auto_submit, submitting } = stats;
+  const { queued, sent_today, cap, approved, auto_submit, submitting, auto_today } = stats;
   return (
     <div className="runbar">
       <span><b>{sent_today}</b> من {cap} أُرسلت اليوم</span>
       {queued > 0 && <span><b>{queued}</b> في الطابور</span>}
+      {auto_today > 0 && <span><b>{auto_today}</b> دخلت وحدها اليوم</span>}
       {!auto_submit
         ? <span className="off">الإرسال التلقائي مطفأ — <a href="#settings">شغّله</a></span>
         : submitting
