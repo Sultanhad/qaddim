@@ -117,13 +117,19 @@ async function applyOne(item, profile, settings, session) {
   const submit = item.submit === true && settings.autoSubmit !== false;
   await markApplication(session, item.application_id, { auto_status: 'filling', auto_at: new Date().toISOString() });
 
+  // Where the job is decides what a truthful answer to "do you need sponsorship?" is. The
+  // queue does not carry it, so it is read here; if that read fails the question is simply
+  // left for the person, which is what happened to it before.
+  const job = await api(session, '/jobs?select=country&id=eq.' + encodeURIComponent(item.job_id))
+    .then((rows) => ({ country: rows?.[0]?.country ?? null })).catch(() => null);
+
   // Opened in the background so a run does not steal focus while you work.
   const tab = await chrome.tabs.create({ url: APPLY_URL(item.url), active: false });
   await tabReady(tab.id);
 
   let result;
   try {
-    result = await chrome.tabs.sendMessage(tab.id, { type: 'qaddim:apply', profile, autoSubmit: submit });
+    result = await chrome.tabs.sendMessage(tab.id, { type: 'qaddim:apply', profile, job, autoSubmit: submit });
   } catch {
     result = { status: 'needs_you', reason: 'الصفحة لم تستجب' };
   }

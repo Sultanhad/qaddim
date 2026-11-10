@@ -34,20 +34,31 @@ var QaddimFields = (function () {
             'emergency', 'contact person', 'manager', 'supervisor', 'recruiter', 'colleague',
             'قريب', 'صديق', 'معرف', 'الطوارئ', 'مرجع'] },
     { key: 'email_for_applications', any: ['email', 'e mail', 'البريد'], not: ['relative','friend','emergency','reference','referral','manager','company','الطوارئ','قريب'] },
-    { key: 'phone', any: ['phone', 'mobile', 'telephone', 'جوال', 'هاتف'], not: ['relative','friend','emergency','reference','referral','manager','company','الطوارئ','قريب'] },
+    { key: 'phone', any: ['phone', 'mobile', 'telephone', 'جوال', 'هاتف'], not: ['relative','friend','emergency','reference','referral','manager','company','country code','dial','الطوارئ','قريب'] },
     { key: 'linkedin_url', any: ['linkedin'] },
-    { key: 'current_company', any: ['current company', 'current employer', 'present employer'] },
-    { key: 'current_title', any: ['current title', 'current position', 'current job title'] },
+    { key: 'current_company', any: ['current company', 'current employer', 'present employer', 'most recent employer', 'most recent company'] },
+    { key: 'current_title', any: ['current title', 'current position', 'current job title', 'most recent title', 'most recent job title', 'most recent position'] },
     { key: 'years_experience', any: ['years of experience', 'years experience', 'total experience', 'سنوات الخبرة'] },
     { key: 'salary_expectation', any: ['salary expectation', 'expected salary', 'desired salary', 'salary requirement', 'الراتب المتوقع'] },
     { key: 'current_salary', any: ['current salary', 'present salary', 'الراتب الحالي'] },
     { key: 'notice_period', any: ['notice period', 'when can you start', 'start date', 'availability', 'فترة الإشعار'] },
+    // Asked as a yes/no, not as "what is your nationality" — the answer follows from it.
+    { key: 'saudi_national', any: ['saudi national', 'saudi citizen', 'are you saudi', 'هل أنت سعودي'] },
     { key: 'nationality', any: ['nationality', 'citizenship', 'الجنسية'] },
+    { key: 'date_of_birth', any: ['date of birth', 'birth date', 'birthdate', 'dob', 'تاريخ الميلاد'] },
+    // "Sex" also begins "sexual orientation", and a gender question is not an identity
+    // questionnaire: those are the reader's to answer, never ours.
+    { key: 'gender', any: ['gender', 'sex', 'الجنس'], not: ['sexual', 'orientation', 'identity', 'identify', 'pronoun', 'transgender', 'الجنسية'] },
+    { key: 'marital_status', any: ['marital status', 'الحالة الاجتماعية'] },
     { key: 'requires_sponsorship', any: ['sponsorship', 'require a visa', 'need a visa', 'visa support'] },
     { key: 'work_authorization', any: ['work authorization', 'authorized to work', 'legally authorized', 'right to work', 'eligible to work', 'iqama', 'الإقامة'] },
+    // Where you live, not where you are from: "home country", "country of birth" and the
+    // dialling code beside a phone box are different questions with different answers.
+    { key: 'country', any: ['country of residence', 'current country', 'where do you currently live', 'country', 'الدولة'],
+      not: ['home country', 'birth', 'citizenship', 'nationality', 'origin', 'passport', 'code', 'phone', 'countries', 'which country'] },
     { key: 'city', any: ['city', 'town', 'المدينة'] },
     { key: 'location', any: ['location', 'address', 'where are you based', 'العنوان'] },
-    { key: 'education_degree', any: ['degree', 'education level', 'highest qualification', 'المؤهل'] },
+    { key: 'education_degree', any: ['degree', 'education level', 'level of education', 'highest education', 'highest qualification', 'المؤهل'] },
     { key: 'university', any: ['university', 'school', 'college', 'institution', 'الجامعة'] },
     { key: 'graduation_year', any: ['graduation year', 'year of graduation', 'سنة التخرج'] }
   ];
@@ -66,9 +77,114 @@ var QaddimFields = (function () {
     return null;
   }
 
+  function matchAmong(label, keys) {
+    var t = ' ' + norm(label) + ' ';
+    for (var i = 0; i < RULES.length; i++) {
+      var r = RULES[i];
+      if (!keys[r.key]) continue;
+      for (var j = 0; j < r.any.length; j++) if (t.indexOf(' ' + norm(r.any[j])) >= 0) return r.key;
+    }
+    return null;
+  }
+
   // A long compound question ("how many years in PM, and how many in B2B SaaS?") is not answered
   // by a short stored key. Only something you wrote for that question counts.
   var SHORT_LIMIT = 70;
+  // Two questions are long by nature and still one question: "Will you now or in the future
+  // require employer sponsorship to work in the country where this role is based?" is asked in
+  // a dozen wordings, all over seventy characters, and it stopped more forms than any other.
+  var LONG_LIMIT = 240;
+  var LONG_OK = { requires_sponsorship: 1, work_authorization: 1 };
+
+  /** A label that swallowed its own help text: "Current location ✱No location found. Try…". */
+  function headOf(label) {
+    var parts = String(label).split(/[✱*]/).map(function (x) { return x.replace(/\s+/g, ' ').trim(); });
+    for (var i = 0; i < parts.length; i++) if (parts[i].length >= 3) return parts[i];
+    return '';
+  }
+
+  function keyFor(label) {
+    var t = norm(label);
+    if (t.length <= SHORT_LIMIT) return matchKey(label);
+    var head = headOf(label);
+    if (head && norm(head).length <= SHORT_LIMIT && norm(head) !== t) { var k = matchKey(head); if (k) return k; }
+    return t.length <= LONG_LIMIT ? matchAmong(label, LONG_OK) : null;
+  }
+
+  // ── your words, in the form's language ─────────────────────────────────────
+  // The profile is written in Arabic and its choices are Arabic words; the forms are in
+  // English. "بكالوريوس" is not an option in a list that offers "Bachelor's Degree", and
+  // typing "شهر" into "Notice period" tells a recruiter nothing. Each entry is the same
+  // answer said in English: the first is what gets typed, all of them are accepted when
+  // choosing from a list. Nothing here is a new fact — only a translation of one you gave.
+  var SAYS = {
+    'ثانوية': ['High school', 'High school diploma', 'Secondary', 'Secondary school'],
+    'دبلوم': ['Diploma', 'Associate degree', 'Associate', "Associate's degree"],
+    'بكالوريوس': ["Bachelor's degree", 'Bachelor', 'Bachelors', "Bachelor's", 'Bachelor degree', 'BSc', 'BA', 'Undergraduate'],
+    'ماجستير': ["Master's degree", 'Master', 'Masters', "Master's", 'Master degree', 'MSc', 'MBA', 'Postgraduate'],
+    'دكتوراه': ['Doctorate', 'PhD', 'Doctoral degree', 'Doctor of Philosophy'],
+    'فوراً': ['Immediately', 'Immediate', 'No notice', 'None', 'Available now'],
+    'أسبوعان': ['2 weeks', 'Two weeks', '14 days'],
+    'شهر': ['1 month', 'One month', '30 days', '4 weeks'],
+    'شهران': ['2 months', 'Two months', '60 days'],
+    'ثلاثة أشهر': ['3 months', 'Three months', '90 days'],
+    'ذكر': ['Male', 'Man'], 'أنثى': ['Female', 'Woman'],
+    'أعزب': ['Single', 'Never married', 'Unmarried'], 'عزباء': ['Single', 'Never married', 'Unmarried'],
+    'متزوج': ['Married'], 'متزوجة': ['Married'],
+    'مطلّق': ['Divorced'], 'مطلّقة': ['Divorced'], 'أرمل': ['Widowed'], 'أرملة': ['Widowed'],
+    'سعودي': ['Saudi', 'Saudi Arabian', 'Saudi Arabia', 'KSA'], 'سعودية': ['Saudi', 'Saudi Arabian', 'Saudi Arabia', 'KSA'],
+    'إماراتي': ['Emirati', 'United Arab Emirates', 'UAE'], 'مصري': ['Egyptian', 'Egypt'],
+    'أردني': ['Jordanian', 'Jordan'], 'كويتي': ['Kuwaiti', 'Kuwait'], 'بحريني': ['Bahraini', 'Bahrain'],
+    'قطري': ['Qatari', 'Qatar'], 'عماني': ['Omani', 'Oman'], 'يمني': ['Yemeni', 'Yemen'],
+    'سوري': ['Syrian', 'Syria'], 'لبناني': ['Lebanese', 'Lebanon'], 'سوداني': ['Sudanese', 'Sudan'],
+    'فلسطيني': ['Palestinian', 'Palestine'], 'هندي': ['Indian', 'India'], 'باكستاني': ['Pakistani', 'Pakistan'],
+    'Saudi Arabia': ['Saudi Arabia', 'Kingdom of Saudi Arabia', 'KSA', 'Saudi Arabia (KSA)'],
+    'United Arab Emirates': ['United Arab Emirates', 'UAE', 'United Arab Emirates (UAE)'],
+    'Egypt': ['Egypt'], 'Jordan': ['Jordan'], 'Kuwait': ['Kuwait'], 'Bahrain': ['Bahrain'],
+    'Qatar': ['Qatar'], 'Oman': ['Oman']
+  };
+  var SAYS_N = {};
+  Object.keys(SAYS).forEach(function (k) { SAYS_N[norm(k)] = SAYS[k]; });
+  var ARABIC = /[\u0600-\u06FF]/;
+
+  /** @returns {{typed:string, accept:string[]}} how this answer reads on this form. */
+  function wording(value, label) {
+    var said = SAYS_N[norm(value)];
+    var accept = [norm(value)];
+    if (said) said.forEach(function (x) { var n = norm(x); if (accept.indexOf(n) < 0) accept.push(n); });
+    // An Arabic form gets the answer as it was written.
+    return { typed: said && !ARABIC.test(label) ? said[0] : value, accept: accept };
+  }
+
+  /**
+   * Sponsorship and the right to work depend on where the job is, and the profile records
+   * one thing only: your standing in Saudi Arabia. For a job there, that is an answer. For a
+   * job anywhere else it is not — and "no sponsorship needed" used to be sent regardless,
+   * to Dubai and Cairo alike, on behalf of people who had never been asked.
+   */
+  function workFact(key, profile, ctx) {
+    var status = String(profile.work_authorization || '').trim();
+    if (!status) return { value: null, why: 'لم تكتب وضعك النظامي للعمل في ملفك' };
+    if (!ctx || ctx.country !== 'sa') return { value: null, why: 'يعتمد على بلد الوظيفة، وملفك يصف وضعك في السعودية فقط' };
+    var sponsor = key === 'requires_sponsorship';
+    if (status === 'مواطن') return { value: sponsor ? 'no' : 'yes', text: 'Saudi citizen' };
+    if (status === 'أحتاج تأشيرة عمل') return { value: sponsor ? 'yes' : 'no', text: 'Requires a work visa' };
+    return { value: null, why: 'الإقامة يختلف جوابها من صاحب عمل لآخر — أجب بنفسك' };
+  }
+
+  /**
+   * A date in the shape the form asks for. A form that does not say which shape gets no
+   * answer: 03/04/1995 is two different birthdays, and guessing between them is inventing one.
+   */
+  function dateFor(iso, label, inputType) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '').trim());
+    if (!m) return null;
+    if (inputType === 'date') return m[0];
+    var hint = /(dd|mm|yyyy)\s*([\/.\-])\s*(dd|mm|yyyy)\s*\2\s*(dd|mm|yyyy)/i.exec(label);
+    if (!hint) return null;
+    var part = { dd: m[3], mm: m[2], yyyy: m[1] };
+    return [hint[1], hint[3], hint[4]].map(function (p) { return part[p.toLowerCase()]; }).join(hint[2]);
+  }
   var UNFINISHED = /\[[^\]]*\]|⛔|TODO/;
   var CURRENCIES = [
     ['usd', 'dollar', 'dollars'], ['sar', 'riyal', 'riyals', 'ريال'], ['eur', 'euro'],
@@ -84,13 +200,20 @@ var QaddimFields = (function () {
     return null;
   }
 
-  /** @returns {{key,value,source,why}|null} — value null means "cannot answer this honestly". */
-  function answerFor(label, profile) {
+  /**
+   * @param ctx  what is known about the job itself — today only `country`, its ISO code.
+   * @returns {{key,value,accept,source,why}|null} — value null means "cannot answer this honestly".
+   */
+  function answerFor(label, profile, ctx) {
     var t = norm(label);
-    var key = t.length <= SHORT_LIMIT ? matchKey(label) : null;
+    var key = keyFor(label);
     var blocked = null;
 
-    if (key && profile[key] != null && String(profile[key]).trim() !== '') {
+    if (key && LONG_OK[key]) {
+      var fact = workFact(key, profile, ctx);
+      if (fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
+      blocked = { key: key, value: null, source: 'work_authorization', why: fact.why };
+    } else if (key && profile[key] != null && String(profile[key]).trim() !== '') {
       var value = String(profile[key]).trim();
       var asked = currencyOf(label), held = currencyOf(value);
       if ((key === 'salary_expectation' || key === 'current_salary') && asked && held && asked !== held) {
@@ -98,23 +221,25 @@ var QaddimFields = (function () {
       } else if (UNFINISHED.test(value)) {
         blocked = { key: key, value: null, source: key, why: 'إجابتك فيها فراغ لم تملأه' };
       } else {
-        return { key: key, value: value, source: key };
+        var w = wording(value, label);
+        return { key: key, value: w.typed, accept: w.accept, source: key };
       }
     }
 
     var extra = profile.answers || {};
     for (var q in extra) {
+      if (q.charAt(0) === '_') continue;          // the profile's own facts, not a saved question
       var nq = norm(q), v = String(extra[q] || '').trim();
       if (!nq || !v) continue;
       var fwd = nq.length >= 10 && t.indexOf(nq) >= 0;
       var back = t.length >= 14 && nq.indexOf(t) >= 0;
       if (!fwd && !back) continue;
       if (UNFINISHED.test(v)) return { key: 'answers', value: null, source: q, why: 'إجابتك فيها فراغ لم تملأه' };
-      return { key: 'answers', value: v, source: q };
+      return { key: 'answers', value: v, accept: [norm(v)], source: q };
     }
     if (blocked) return blocked;
     return key ? { key: key, value: null, source: key, why: 'لم تكتب هذه البيانات في ملفك' } : null;
   }
 
-  return { norm: norm, matchKey: matchKey, answerFor: answerFor };
+  return { norm: norm, matchKey: matchKey, keyFor: keyFor, answerFor: answerFor, dateFor: dateFor, wording: wording };
 })();

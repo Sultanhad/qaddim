@@ -119,7 +119,8 @@ export default function ApplySheet({ profile, job, onClose }) {
       <p className="faint" style={{ marginTop: 0 }}>
         اكتب الإجابة مرة واحدة — «لماذا هذه الشركة؟»، «احكِ عن مشروع أدرته» — وستجدها جاهزة في كل استمارة بعدها.
       </p>
-      {Object.entries(answers).map(([q, a]) => (
+      {/* keys that start with "_" are the profile's own facts, kept beside these — not questions */}
+      {Object.entries(answers).filter(([q]) => !q.startsWith('_')).map(([q, a]) => (
         <div key={q} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }} dir="auto">{q}</p>
           <p className="muted" style={{ margin: '4px 0 8px', fontSize: 14, whiteSpace: 'pre-wrap' }} dir="auto">{a}</p>

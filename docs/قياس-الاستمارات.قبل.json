@@ -1,0 +1,5625 @@
+{
+ "at": "2026-11-10T22:54:10.018Z",
+ "browser": "chromium",
+ "per": 20,
+ "summary": {
+  "smartrecruiters": {
+   "open_jobs": 130,
+   "measured": 20,
+   "read": 0,
+   "clear": 0,
+   "needs_answers": 0,
+   "silent_check": 0,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 0,
+   "unreadable": 20,
+   "gone": 0,
+   "error": 0,
+   "widget_pct": null,
+   "any_check_pct": null,
+   "no_check_pct": null,
+   "checks": [],
+   "all_answered_pct": null,
+   "median_unanswered": null
+  },
+  "workable": {
+   "open_jobs": 492,
+   "measured": 20,
+   "read": 20,
+   "clear": 0,
+   "needs_answers": 17,
+   "silent_check": 3,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 0,
+   "unreadable": 0,
+   "gone": 0,
+   "error": 0,
+   "widget_pct": 0,
+   "any_check_pct": 100,
+   "no_check_pct": 0,
+   "checks": [
+    "turnstile"
+   ],
+   "all_answered_pct": 15,
+   "median_unanswered": 6
+  },
+  "greenhouse": {
+   "open_jobs": 358,
+   "measured": 20,
+   "read": 20,
+   "clear": 0,
+   "needs_answers": 20,
+   "silent_check": 0,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 0,
+   "unreadable": 0,
+   "gone": 0,
+   "error": 0,
+   "widget_pct": 0,
+   "any_check_pct": 100,
+   "no_check_pct": 0,
+   "checks": [
+    "recaptcha"
+   ],
+   "all_answered_pct": 0,
+   "median_unanswered": 6
+  },
+  "ashby": {
+   "open_jobs": 32,
+   "measured": 20,
+   "read": 18,
+   "clear": 0,
+   "needs_answers": 8,
+   "silent_check": 10,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 0,
+   "unreadable": 0,
+   "gone": 2,
+   "error": 0,
+   "widget_pct": 0,
+   "any_check_pct": 100,
+   "no_check_pct": 0,
+   "checks": [
+    "recaptcha"
+   ],
+   "all_answered_pct": 56,
+   "median_unanswered": 0
+  },
+  "lever": {
+   "open_jobs": 42,
+   "measured": 20,
+   "read": 19,
+   "clear": 0,
+   "needs_answers": 11,
+   "silent_check": 8,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 0,
+   "unreadable": 1,
+   "gone": 0,
+   "error": 0,
+   "widget_pct": 0,
+   "any_check_pct": 100,
+   "no_check_pct": 0,
+   "checks": [
+    "hcaptcha"
+   ],
+   "all_answered_pct": 42,
+   "median_unanswered": 8
+  },
+  "recruitee": {
+   "open_jobs": 6,
+   "measured": 6,
+   "read": 2,
+   "clear": 0,
+   "needs_answers": 0,
+   "silent_check": 2,
+   "human_check": 0,
+   "wall": 0,
+   "shadow_dom": 0,
+   "behind_button": 4,
+   "unreadable": 0,
+   "gone": 0,
+   "error": 0,
+   "widget_pct": 0,
+   "any_check_pct": 100,
+   "no_check_pct": 0,
+   "checks": [],
+   "all_answered_pct": 100,
+   "median_unanswered": 0
+  }
+ },
+ "questions": [
+  {
+   "q": "Country*",
+   "kind": "text",
+   "forms": 18,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Gender✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Home Country✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Date of Birth (DD/MM/YYYY)✱",
+   "kind": "text",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Marital Status✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Have you been interviewed by Aldar before?✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+   "kind": "choice",
+   "forms": 10,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Performance Marketing",
+   "kind": "checkbox",
+   "forms": 9,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Current Salary",
+   "kind": "text",
+   "forms": 8,
+   "systems": [
+    "ashby",
+    "workable"
+   ]
+  },
+  {
+   "q": "Other",
+   "kind": "checkbox",
+   "forms": 8,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "SVGs not supported by this browser.",
+   "kind": "text",
+   "forms": 7,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Why Thndr?",
+   "kind": "text",
+   "forms": 7,
+   "systems": [
+    "ashby"
+   ]
+  },
+  {
+   "q": "Do you have a Family Book?✱",
+   "kind": "choice",
+   "forms": 6,
+   "systems": [
+    "lever"
+   ]
+  },
+  {
+   "q": "Headline",
+   "kind": "text",
+   "forms": 4,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Summary",
+   "kind": "text",
+   "forms": 3,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Where do you currently live?*",
+   "kind": "text",
+   "forms": 3,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Will you require employer sponsorship for a work visa or work permit in the country where you currently reside or are currently based?*",
+   "kind": "text",
+   "forms": 3,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Have you ever been employed at Binance before?*",
+   "kind": "text",
+   "forms": 3,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Target Job Title",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "*Age (Date of Birth)SVGs not supported by this browser.",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "*Last Monthly Salary USD",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "*Target Monthly Salary USD",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Will you now or in the future require employer sponsorship to work in the country where this role is located?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "*Are you a Saudi national?YESNO",
+   "kind": "choice",
+   "forms": 2,
+   "systems": [
+    "workable"
+   ]
+  },
+  {
+   "q": "Are you legally authorized to work in the country where this role is based?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "What is your current employment status?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "What is your highest level of education?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Please confirm that the information provided is true and complete.*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Have you previously worked for Everpure (formerly Pure Storage)?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Who is your current (or most recent) employer?",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "What is your current (or most recent) title?",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Does the deemed export rule affect your employment by Everpure?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Will you now or in the future require sponsorship for employment visa status?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I saw the job posting on Linkedin and decided to apply",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I saw the job posting on Careem’s Careers Page and decided to apply",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I saw the job posting on Localized and decide to apply",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "A recruiter from Careem reached out to me and encouraged me to apply",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "A recruiter external to Careem reached out to me and encouraged me to apply",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I had a conversation with a friend or acquaintance who works at Careem",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I attended a University event or career fair and met a representative from Careem",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "I read about Careem in the news",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Have you seen Careem's content on social media?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "LinkedIn",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Twitter",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "TikTok",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Instagram",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Careem’s purpose and values",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "The career growth and development opportunities offered at Careem",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Financial compensation and colleague benefits",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "The job description aligns with my skills and qualifications",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Working with top talent at the organisation",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Community of inspiring colleagues",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "The opportunity to drive impact",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Have you previously worked at Careem?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "Where are you currently located? (Country)*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "What is your current monthly salary (please specify gross in local currency)?",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "What are your monthly salary expectations (please specify gross in local currency)?*",
+   "kind": "text",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  },
+  {
+   "q": "English",
+   "kind": "checkbox",
+   "forms": 2,
+   "systems": [
+    "greenhouse"
+   ]
+  }
+ ],
+ "rows": [
+  {
+   "system": "lever",
+   "id": "jo2nq7q",
+   "company": "Incorta",
+   "title": "Principle Software Engineer",
+   "url": "https://jobs.lever.co/incorta/7637ea82-5651-4400-9b87-6da61f913e95/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/incorta/7637ea82-5651-4400-9b87-6da61f913e95/apply",
+   "inputs": 13,
+   "required": 8,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Do you have any Relatives inside Incorta?✱YesNo",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current location ✱No location found. Try entering a different locationLoading",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If yes, Who?✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 3268
+  },
+  {
+   "system": "workable",
+   "id": "jchlsvc",
+   "company": "Rotana Hotels & Resorts",
+   "title": "Painter",
+   "url": "https://apply.workable.com/j/FBA56DDCC2/apply/",
+   "http": 200,
+   "final": "https://careers.rotana.com/_/j/FBA56DDCC2/apply",
+   "inputs": 41,
+   "required": 12,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "Headline",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Target Job Title",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Age (Date of Birth)SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Last Monthly Salary USD",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Target Monthly Salary USD",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Summary",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 11,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 3778
+  },
+  {
+   "system": "greenhouse",
+   "id": "j125j8mc",
+   "company": "Alpaca",
+   "title": "Senior Business Architect",
+   "url": "https://job-boards.greenhouse.io/alpaca/jobs/6250954004",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/alpaca/jobs/6250954004",
+   "inputs": 36,
+   "required": 19,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require employer sponsorship to work in the country where this role is located?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you successfully completed the Canadian Securities Course (CSC)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have hands-on experience processing or overseeing Canadian corporate actions, such as dividends, stock splits, mergers, or reorganiza",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have hands-on experience with Canadian securities clearing and settlement processes, including CDS/CDSX?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have experience processing, overseeing, or managing Canadian registered accounts (e.g., TFSA, RRSP, RESP) and their associated tax an",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you worked within a self-clearing brokerage firm or carrying broker environment?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you worked in a CIRO-regulated investment dealer, carrying broker, clearing firm, custodian, or similar Canadian brokerage environment?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you designed, implemented, or improved brokerage operations workflows, controls, or automation solutions?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many years of hands-on experience do you have in Canadian brokerage, clearing, custody, or securities operations?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you comfortable working hours aligned with the Eastern Time Zone (ET)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 14,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 4544
+  },
+  {
+   "system": "recruitee",
+   "id": "j94ifo9",
+   "company": "Sahl",
+   "title": "Customer Experience Agent",
+   "url": "https://sahl.recruitee.com/o/customer-experience-agent",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/customer-experience-agent",
+   "inputs": 3,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 4954
+  },
+  {
+   "system": "ashby",
+   "id": "jr9niw8",
+   "company": "Lean Technologies",
+   "title": "Software Engineering Manager",
+   "url": "https://jobs.ashbyhq.com/LeanTech/3a4a08a0-5d53-4312-9214-8c3fa695b67d/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/LeanTech/3a4a08a0-5d53-4312-9214-8c3fa695b67d/application",
+   "inputs": 8,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 4954
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j13ijss7",
+   "company": "Delivery Hero",
+   "title": "Senior Product Designer (Saudi Nationals)",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160830109",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/c93a9eee-30a5-4744-8296-44f2d3430ac2?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 5326
+  },
+  {
+   "system": "lever",
+   "id": "jbu6jsl",
+   "company": "Aldar",
+   "title": "Senior Vice President - Development",
+   "url": "https://jobs.lever.co/aldar/e29e1a7d-7794-4de1-a9c4-b078058bc994/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/e29e1a7d-7794-4de1-a9c4-b078058bc994/apply",
+   "inputs": 18,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2057
+  },
+  {
+   "system": "workable",
+   "id": "j1q5gh5t",
+   "company": "Mozn",
+   "title": "Revenue Operations Analyst",
+   "url": "https://apply.workable.com/j/22EDF94D03/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/mozn-ai/j/22EDF94D03/apply",
+   "inputs": 15,
+   "required": 9,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Are you a Saudi national?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Have you personally managed or reported on a sales pipeline, including opportunities/deals, sales stages, conversion rates, or revenue fore",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Have you worked in a SaaS, software, technology, fintech, or AI company? (Yes/No)YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*How many years of experience do you have in Revenue Operations, Sales Operations, Commercial Operations, Sales Support, or a related functi",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What part of the quote-to-close process have you personally owned?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1906
+  },
+  {
+   "system": "greenhouse",
+   "id": "jnsythi",
+   "company": "Binance",
+   "title": "Binance Accelerator Program - Compliance Training (AI)",
+   "url": "https://job-boards.eu.greenhouse.io/binance/jobs/5024608101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/binance/jobs/5024608101",
+   "inputs": 14,
+   "required": 6,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Where do you currently live?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you require employer sponsorship for a work visa or work permit in the country where you currently reside or are currently based?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you ever been employed at Binance before?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 3,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2208
+  },
+  {
+   "system": "ashby",
+   "id": "j1vulu1b",
+   "company": "Thndr",
+   "title": "Senior DevOps/Infrastructure Engineer",
+   "url": "https://jobs.ashbyhq.com/thndr/706a3396-c21e-4803-8648-f6e590e41b08/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/706a3396-c21e-4803-8648-f6e590e41b08/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2162
+  },
+  {
+   "system": "recruitee",
+   "id": "j16quice",
+   "company": "Sahl",
+   "title": "Performance Marketing Senior Specialist",
+   "url": "https://sahl.recruitee.com/o/performance-marketing-senior-specialist",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/performance-marketing-senior-specialist",
+   "inputs": 2,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": true,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "behind_button",
+   "ms": 2250
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1at3r5j",
+   "company": "Roland Berger",
+   "title": "Partner - Oil & Gas",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000159789291",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/844f5097-0e01-4a49-a9b5-7e4bdf19d4e2?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2327
+  },
+  {
+   "system": "workable",
+   "id": "j396qxo",
+   "company": "Foodics",
+   "title": "Accountant-ERP",
+   "url": "https://apply.workable.com/j/FB74E1BE9C/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/foodics/j/FB74E1BE9C/apply",
+   "inputs": 19,
+   "required": 13,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "*Are you Saudi National ?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you currently based in Riyadh ?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Do you have +1 year of experience in SaaS or subscription-based business ?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you fluent to speak both in Arabic and English?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Do you have strong understanding of IFRS/GAAP accounting principles ?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you know anyone (family, relatives, friends) working with Foodics? If yes please elaborate.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Why Foodics? Why you?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1843
+  },
+  {
+   "system": "lever",
+   "id": "jiqk323",
+   "company": "Flow",
+   "title": "Brand Marketing Manager",
+   "url": "https://jobs.lever.co/flowlife/05af4735-5527-41d1-a741-775495ef69af/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/flowlife/05af4735-5527-41d1-a741-775495ef69af/apply",
+   "inputs": 8,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2513
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1r6j353",
+   "company": "Bybit",
+   "title": "(Principal) Backend Development Engineer",
+   "url": "https://job-boards.eu.greenhouse.io/bybit/jobs/5015081101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/bybit/jobs/5015081101",
+   "inputs": 21,
+   "required": 10,
+   "answered": 8,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you legally authorized to work in the country where this role is based?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current employment status?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your highest level of education?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Please confirm that the information provided is true and complete.*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 6,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1128
+  },
+  {
+   "system": "ashby",
+   "id": "j1t33h2u",
+   "company": "Ziina",
+   "title": "Head of Internal Audit",
+   "url": "https://jobs.ashbyhq.com/ziina/236f324a-acae-4fc0-bd2e-b63878b358ab/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/236f324a-acae-4fc0-bd2e-b63878b358ab/application",
+   "inputs": 9,
+   "required": 3,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1796
+  },
+  {
+   "system": "recruitee",
+   "id": "j1kb4iwl",
+   "company": "Sahl",
+   "title": "Senior Content Creator",
+   "url": "https://sahl.recruitee.com/o/senior-content-creator-1",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/senior-content-creator-1",
+   "inputs": 2,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": true,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "behind_button",
+   "ms": 2023
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1iej8u2",
+   "company": "Radisson Hotel Group",
+   "title": "EN - Chefs & Cooks_Commis Chef",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000157773309",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/6231a40d-4478-4cb6-82fc-ecc0d15e4a9d?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 3740
+  },
+  {
+   "system": "workable",
+   "id": "j10yidy7",
+   "company": "Lucidya",
+   "title": "Director of Products",
+   "url": "https://apply.workable.com/j/FF4ABEFE0D/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/lucidya/j/FF4ABEFE0D/apply",
+   "inputs": 13,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1883
+  },
+  {
+   "system": "greenhouse",
+   "id": "jrz9lmv",
+   "company": "Pure Storage",
+   "title": "Account Executive, SLED (Maryland)",
+   "url": "https://job-boards.greenhouse.io/purestorage/jobs/8353475",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/purestorage/jobs/8353475",
+   "inputs": 29,
+   "required": 13,
+   "answered": 10,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked for Everpure (formerly Pure Storage)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Who is your current (or most recent) employer?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current (or most recent) title?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Does the deemed export rule affect your employment by Everpure?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require sponsorship for employment visa status?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 6,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2333
+  },
+  {
+   "system": "ashby",
+   "id": "jn4yvxi",
+   "company": "Lean Technologies",
+   "title": "Talent Acquisition Manager",
+   "url": "https://jobs.ashbyhq.com/LeanTech/f8b5ef76-8cff-4057-992b-aad167dead14/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/LeanTech/f8b5ef76-8cff-4057-992b-aad167dead14/application",
+   "inputs": 7,
+   "required": 3,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1890
+  },
+  {
+   "system": "recruitee",
+   "id": "jgv6s8e",
+   "company": "Sahl",
+   "title": "Senior General Accountant",
+   "url": "https://sahl.recruitee.com/o/senior-general-accountant",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/senior-general-accountant",
+   "inputs": 2,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": true,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "behind_button",
+   "ms": 1911
+  },
+  {
+   "system": "workable",
+   "id": "j126ubkx",
+   "company": "Gathern",
+   "title": "Director of Growth",
+   "url": "https://apply.workable.com/j/D2A0518C61/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/gathern/j/D2A0518C61/apply",
+   "inputs": 22,
+   "required": 17,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Do you have hands-on experience developing and implementing customer or market segmentation strategies?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Why are you interested in joining Gathern, and what excites you most about this Director of Growth opportunity?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many years of experience do you have in Growth Marketing, Growth Strategy, or related leadership roles?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If yes, please briefly describe a segmentation strategy you developed, including your approach and the measurable business results achieved.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Performance Marketing",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.CRM / Lifecycle Marketing",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.SEO",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Marketing Automation",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Growth Analytics",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Briefly describe a successful growth initiative you led, highlighting its impact on customer acquisition, conversion, retention, or marketin",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "For alignment purposes, and to make sure we're not wasting your time please share with us your salary expectation range in SAR?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Thank you for your interest in joining Gathern! Please use the space below to share any additional information you believe would strengthen ",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1953
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jix55m",
+   "company": "Delivery Hero",
+   "title": "3PL Management Specialist",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160819099",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/97eb3d0d-7c2e-4464-baee-2b84419f14c8?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2588
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1csa5h5",
+   "company": "Careem",
+   "title": "Quality Specialist",
+   "url": "https://boards.greenhouse.io/careem/jobs/8916073002?gh_jid=8916073002",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/careem/jobs/8916073002?gh_jid=8916073002",
+   "inputs": 44,
+   "required": 36,
+   "answered": 8,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "I saw the job posting on Linkedin and decided to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I saw the job posting on Careem’s Careers Page and decided to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I saw the job posting on Localized and decide to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "A recruiter from Careem reached out to me and encouraged me to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "A recruiter external to Careem reached out to me and encouraged me to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I had a conversation with a friend or acquaintance who works at Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I attended a University event or career fair and met a representative from Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I read about Careem in the news",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Have you seen Careem's content on social media?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "LinkedIn",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Twitter",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "TikTok",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Instagram",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Careem’s purpose and values",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The career growth and development opportunities offered at Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Financial compensation and colleague benefits",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The job description aligns with my skills and qualifications",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Working with top talent at the organisation",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Community of inspiring colleagues",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The opportunity to drive impact",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Have you previously worked at Careem?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Where are you currently located? (Country)*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current monthly salary (please specify gross in local currency)?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What are your monthly salary expectations (please specify gross in local currency)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 5,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1766
+  },
+  {
+   "system": "ashby",
+   "id": "j1gppetn",
+   "company": "Thndr",
+   "title": "Senior Cyber Security Engineer / DevSecOps",
+   "url": "https://jobs.ashbyhq.com/thndr/463fccf3-46f7-4aae-b3d0-8646689e6427/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/463fccf3-46f7-4aae-b3d0-8646689e6427/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2322
+  },
+  {
+   "system": "recruitee",
+   "id": "j6ool58",
+   "company": "Sahl",
+   "title": "Junior Financial Operations Specialist",
+   "url": "https://sahl.recruitee.com/o/junior-financial-operations-specialist",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/junior-financial-operations-specialist",
+   "inputs": 2,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": true,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "behind_button",
+   "ms": 2081
+  },
+  {
+   "system": "workable",
+   "id": "j1a91mid",
+   "company": "Robusta",
+   "title": "Salesforce Marketing cloud - Mid Level - Remote - Octopus by RTG",
+   "url": "https://apply.workable.com/j/F7E46269F0/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/robusta/j/F7E46269F0/apply",
+   "inputs": 21,
+   "required": 11,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "*Current Net Salary",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Expected Net Salary",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*On a scale of 1 to 10, with 1 being basic and 10 being native-like fluency, how would you rate your English language proficiency?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many years of hands-on experience do you have with Salesforce Marketing Cloud, particularly Journey Builder and Automation Studio?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have hands-on experience creating dynamic/interactive content and building personalized customer journeys in SFMC?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have experience integrating Salesforce Marketing Cloud with third-party systems? Also, how many years have you worked in Agile/Scrum ",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1759
+  },
+  {
+   "system": "greenhouse",
+   "id": "j10he9pc",
+   "company": "Scale AI",
+   "title": "Full-Stack Software Engineer, (Forward Deployed), GPS",
+   "url": "https://job-boards.greenhouse.io/scaleai/jobs/4751645005",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/scaleai/jobs/4751645005",
+   "inputs": 24,
+   "required": 13,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What country are you located in?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you open to relocation to Kuwait?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your core technical stack?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you currently bound by any agreements with a current or former employer that may restrict your ability to work for Scale AI or perform t",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you legally authorized to work in the country where the job is located?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require company sponsorship to retain or extend your work authorization in the country where the job is locate",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Who is your current or most recent employer?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 5,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1635
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j14yu84h",
+   "company": "Roland Berger",
+   "title": "Partner - RPT",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000158241714",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/79caf0b1-fbb7-4317-a4e7-b741b65ee540?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2440
+  },
+  {
+   "system": "ashby",
+   "id": "j9ylner",
+   "company": "Ziina",
+   "title": "CRM & Lifecycle Specialist",
+   "url": "https://jobs.ashbyhq.com/ziina/29fac60d-e154-4eba-9fef-760c9a20115b/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/29fac60d-e154-4eba-9fef-760c9a20115b/application",
+   "inputs": 8,
+   "required": 3,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1858
+  },
+  {
+   "system": "recruitee",
+   "id": "j1idhvaz",
+   "company": "Sahl",
+   "title": "Software Development Engineer",
+   "url": "https://sahl.recruitee.com/o/software-development-engineer",
+   "http": 200,
+   "final": "https://sahl.recruitee.com/o/software-development-engineer",
+   "inputs": 3,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1882
+  },
+  {
+   "system": "workable",
+   "id": "j5k0441",
+   "company": "Mrsool",
+   "title": "Specialist, Courier Operations",
+   "url": "https://apply.workable.com/j/4658FD1CF6/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/mrsool-3/j/4658FD1CF6/apply",
+   "inputs": 13,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Headline",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Summary",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Cover letter",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1771
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1fnjhoc",
+   "company": "Tamara",
+   "title": "Tamara Builders Program - Data",
+   "url": "https://job-boards.eu.greenhouse.io/tamara/jobs/5028314101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/tamara/jobs/5028314101",
+   "inputs": 30,
+   "required": 20,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "This program requires you to be based out of Riyadh, Saudi Arabia. Are you able to work out of Riyadh?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Data Analytics",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Machine Learning",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Data Science",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Data Engineer",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Will you be able to join the January cohort*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What degree/field of study have you completed or are currently pursuing?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "When did you graduate/ plan to graduate? *",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Choose your current cumulative GPA in a 4 point System? *",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Choose your current cumulative GPA in a 5 point System?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Why are you applying to the Builders Program at Tamara?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Please provide details of any internships or co-op placements you have completed or are currently undertaking, including the company name, a",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 9,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1755
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "ju3emby",
+   "company": "Radisson Hotel Group",
+   "title": "Sous Chef - Hot Line",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000155628609",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/8e580cf6-e9dd-44fc-8da3-a3b74d646da5?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2575
+  },
+  {
+   "system": "ashby",
+   "id": "j1srjq9a",
+   "company": "Lean Technologies",
+   "title": "Senior Software Engineer",
+   "url": "https://jobs.ashbyhq.com/LeanTech/3e9d10c4-fd9c-4cc3-9fee-bfe6c15c76f0/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/LeanTech/3e9d10c4-fd9c-4cc3-9fee-bfe6c15c76f0/application",
+   "inputs": 8,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2045
+  },
+  {
+   "system": "lever",
+   "id": "jtx7l1d",
+   "company": "Incorta",
+   "title": "Senior Software Engineer",
+   "url": "https://jobs.lever.co/incorta/dc034adb-5dab-48cc-9c75-3433ddf5b2d6/apply",
+   "http": 502,
+   "final": "https://jobs.lever.co/incorta/dc034adb-5dab-48cc-9c75-3433ddf5b2d6/apply",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 18818
+  },
+  {
+   "system": "workable",
+   "id": "ji2sppb",
+   "company": "Salla",
+   "title": "Risk Manager - Paylink",
+   "url": "https://apply.workable.com/j/469561639D/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/salla/j/469561639D/apply",
+   "inputs": 19,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Have you led a risk management function or team?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Have you developed or implemented an Enterprise Risk Management framework?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    },
+    {
+     "q": "*How many years of relevant experience do you have in risk management, governance, or financial services?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Which areas have you directly worked on? ERM / RCSA / ... etc.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Briefly describe a material risk you identified, your recommendation, and how you followed up on mitigation.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1955
+  },
+  {
+   "system": "greenhouse",
+   "id": "j132u0xa",
+   "company": "OKX",
+   "title": "Senior Talent Acquisition Manager",
+   "url": "https://job-boards.greenhouse.io/okx/jobs/8170129003",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/okx/jobs/8170129003",
+   "inputs": 50,
+   "required": 41,
+   "answered": 8,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you require visa sponsorship to work in the location now or in the future?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Where are you currently employed or where were you last employed?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "English",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Mandarin Chinese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Spanish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "French",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Arabic",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Bengali",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Cantonese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Czech",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Dutch",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "German",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Greek",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hebrew",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hindi",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hungarian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Indonesian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Italian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Japanese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Korean",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Bahasa Malaysia",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Norwegian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Persian (Farsi)",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Polish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Portuguese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Romanian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Russian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Swedish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Thai",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Turkish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Ukrainian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Vietnamese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 5,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2042
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1ivk8xu",
+   "company": "Delivery Hero",
+   "title": "Junior 3PL Account Manager",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160579649",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/ee536b5f-a32c-477b-961f-30e7a368321d?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2591
+  },
+  {
+   "system": "ashby",
+   "id": "jguwf3i",
+   "company": "Thndr",
+   "title": "Head of Operations",
+   "url": "https://jobs.ashbyhq.com/thndr/3a8b18ce-b3f0-4192-8051-108706d44e1e/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/3a8b18ce-b3f0-4192-8051-108706d44e1e/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2070
+  },
+  {
+   "system": "lever",
+   "id": "j1lncg7o",
+   "company": "Aldar",
+   "title": "Assistant Vice President - PMO",
+   "url": "https://jobs.lever.co/aldar/f699c530-729c-4b66-bc6e-daff65469b7b/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/f699c530-729c-4b66-bc6e-daff65469b7b/apply",
+   "inputs": 18,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2071
+  },
+  {
+   "system": "workable",
+   "id": "j1h1ahya",
+   "company": "ZainTECH",
+   "title": "Service Desk Engineer",
+   "url": "https://apply.workable.com/j/E25FD957F9/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/zaintech/j/E25FD957F9/apply",
+   "inputs": 11,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1863
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1jpdxit",
+   "company": "Udacity",
+   "title": "Community Moderator (External Contractor) - India",
+   "url": "https://job-boards.greenhouse.io/udacity/jobs/8890895002",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/udacity/jobs/8890895002",
+   "inputs": 23,
+   "required": 12,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How did you hear about this job?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you residing in India?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have prior experience in community moderation?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you a current or former Udacity employee?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 6,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1559
+  },
+  {
+   "system": "ashby",
+   "id": "jeeyns7",
+   "company": "Ziina",
+   "title": "Talent Specialist",
+   "url": "https://jobs.ashbyhq.com/ziina/4f6abb30-f012-4b6f-ba8a-3e6b489de967/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/4f6abb30-f012-4b6f-ba8a-3e6b489de967/application",
+   "inputs": 9,
+   "required": 4,
+   "answered": 4,
+   "unanswered": [
+    {
+     "q": "What excites you about joining Ziina?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1807
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j7vvcfy",
+   "company": "Roland Berger",
+   "title": "Partner – Financial Services",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000158033176",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/fe8f84b3-e67f-4329-beec-7a62e852d4d0?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2430
+  },
+  {
+   "system": "greenhouse",
+   "id": "j111wdub",
+   "company": "Alpaca",
+   "title": "Staff Software Engineer - New Markets Singapore/SEA",
+   "url": "https://job-boards.greenhouse.io/alpaca/jobs/6172699004",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/alpaca/jobs/6172699004",
+   "inputs": 20,
+   "required": 12,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Github/Gitlab Profile URL",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What languages are you fluent in?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you based in APAC (+-3 hours from Singapore)*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require visa sponsorship to work in the country where you or this position is based?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 3,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1490
+  },
+  {
+   "system": "lever",
+   "id": "j3kd3zw",
+   "company": "Flow",
+   "title": "Senior Analyst, Real Estate",
+   "url": "https://jobs.lever.co/flowlife/c87f013f-6603-4746-bd6e-d6794880eb17/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/flowlife/c87f013f-6603-4746-bd6e-d6794880eb17/apply",
+   "inputs": 8,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2158
+  },
+  {
+   "system": "workable",
+   "id": "j8kszvn",
+   "company": "Baraka Investment",
+   "title": "HR Specialist",
+   "url": "https://apply.workable.com/j/BC1FBA992B/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/baraka-investment/j/BC1FBA992B/apply",
+   "inputs": 39,
+   "required": 31,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Bachelor's degree in Human Resources, Business Administration, or a related field.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Minimum 3–5 years of relevant HR experience, preferably in Saudi Arabia.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Experience in recruitment, HR operations, government relations, and employee engagement.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Experience working in a multi-company or group environment is preferred.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Professional HR certifications (SHRM, CIPD, or equivalent) are an advantage.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Strong knowledge of Saudi Labor Law and HR regulations.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Proficiency in government platforms: Qiwa, Mudad, Muqeem, Absher Business, and GOSI.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Experience in payroll coordination, employment contracts, and employee records.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Familiarity with HRMS, recruitment systems, and performance management.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Proficiency in Microsoft Office, particularly Excel.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Ability to prepare HR reports, dashboards, and KPIs.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Strong communication and interpersonal skills.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Excellent organizational and time-management abilities.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Problem-solving and decision-making skills.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*High level of confidentiality, integrity, and professionalism.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Ability to manage multiple priorities independently.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Strong negotiation and conflict-resolution skills.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Proactive approach to employee engagement and retention.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Arabic: Fluent.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*English: Good to excellent, both written and spoken.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Ability to work across multiple departments and companies.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Strong understanding of Saudi workplace culture and business practices.YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Headline",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*What is the current full salary? (Registered in GOSI)",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Joining?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many years of relevant work experience do you have?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2315
+  },
+  {
+   "system": "ashby",
+   "id": "jxcgfmj",
+   "company": "Lean Technologies",
+   "title": "Principal Product Manager, LeanX",
+   "url": "https://jobs.ashbyhq.com/LeanTech/0717e591-aa42-4d26-a0e2-06cdbc760c1d/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/LeanTech/0717e591-aa42-4d26-a0e2-06cdbc760c1d/application",
+   "inputs": 8,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2013
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jv7mhlr",
+   "company": "Radisson Hotel Group",
+   "title": "Sous Chef - Hot Line",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000155628659",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/ab11e66f-1ba9-4f72-a1da-83187e55d2d8?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2761
+  },
+  {
+   "system": "greenhouse",
+   "id": "j8mmcnc",
+   "company": "Binance",
+   "title": "MLRO - ADGM",
+   "url": "https://job-boards.eu.greenhouse.io/binance/jobs/5002479101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/binance/jobs/5002479101",
+   "inputs": 26,
+   "required": 14,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Where do you currently live?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you require employer sponsorship for a work visa or work permit in the country where you currently reside or are currently based?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What language(s) can you speak at a native or business level?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How did you hear about our job opening? Please select one of the following options:*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is the earliest possible date that you could join? (d/m/year)",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Can you work full-time? (This is a full-time position.)*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Please briefly describe your professional or personal experience with cryptocurrency / blockchain.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you OK with being paid in crypto? (Payment in crypto is subject to applicable legislation)*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you ever been employed at Binance before?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 8,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1866
+  },
+  {
+   "system": "lever",
+   "id": "j1wzhzpv",
+   "company": "Aldar",
+   "title": "Assistant Vice President – Data Science",
+   "url": "https://jobs.lever.co/aldar/e7fa1118-4ce8-42eb-ba57-387f387d90fb/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/e7fa1118-4ce8-42eb-ba57-387f387d90fb/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2066
+  },
+  {
+   "system": "workable",
+   "id": "j7ozx2i",
+   "company": "SIHAMCO",
+   "title": "Maintenance Supervisor",
+   "url": "https://apply.workable.com/j/814062CB75/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/sihamco/j/814062CB75/apply",
+   "inputs": 21,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "What types of properties or venues have you previously managed? Hotels, resorts, entertainment venues, theme parks, or commercial facilities",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What was the size of the maintenance team you were responsible for?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How would you establish a daily inspection routine for the entire property?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How do you allocate daily tasks and ensure all maintenance requirements are completed?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current salary?",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    },
+    {
+     "q": "How soon are you available to start?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a valid passport/permit, clear criminal record and clear health record?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2374
+  },
+  {
+   "system": "ashby",
+   "id": "jbtcyrf",
+   "company": "Thndr",
+   "title": "Senior Backend Engineer - Experience squad",
+   "url": "https://jobs.ashbyhq.com/thndr/2fa7519c-3690-4f67-9932-1cda3168e150/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/2fa7519c-3690-4f67-9932-1cda3168e150/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2068
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1fr54op",
+   "company": "Bybit",
+   "title": "Senior Compliance Operations Specialist",
+   "url": "https://job-boards.eu.greenhouse.io/bybit/jobs/5006829101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/bybit/jobs/5006829101",
+   "inputs": 21,
+   "required": 10,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you legally authorized to work in the country where this role is based?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you open to relocation for this role?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current employment status?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your highest level of education?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Please confirm that the information provided is true and complete.*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 6,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1237
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1kp0vli",
+   "company": "Delivery Hero",
+   "title": "Head of Real Estate",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160486158",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/9b8b9dd1-367a-4dd6-811b-944a57f2ad84?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2743
+  },
+  {
+   "system": "lever",
+   "id": "j1knj7kr",
+   "company": "Flow",
+   "title": "IT Manager",
+   "url": "https://jobs.lever.co/flowlife/46991aa4-53b0-4657-9728-90bfd925fb76/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/flowlife/46991aa4-53b0-4657-9728-90bfd925fb76/apply",
+   "inputs": 8,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2126
+  },
+  {
+   "system": "workable",
+   "id": "jzrxetg",
+   "company": "Ultimate Peaks",
+   "title": "Country Manager, Egypt",
+   "url": "https://apply.workable.com/j/D70B43E5F6/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/ultimate-peaks/j/D70B43E5F6/apply",
+   "inputs": 14,
+   "required": 9,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Entaa Masri?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your minimum accepted total comp package per month in EGP?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What does success look like in this role?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Why you?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How do you think a logestic company can win in Egypt?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1767
+  },
+  {
+   "system": "ashby",
+   "id": "j757k4a",
+   "company": "Ziina",
+   "title": "Backend Engineer, Payments Platform",
+   "url": "https://jobs.ashbyhq.com/ziina/b52d240f-2ccb-4aea-800b-623e9ca8ae09/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/b52d240f-2ccb-4aea-800b-623e9ca8ae09/application",
+   "inputs": 8,
+   "required": 3,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2065
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1787vah",
+   "company": "Pure Storage",
+   "title": "Data Architect",
+   "url": "https://job-boards.greenhouse.io/purestorage/jobs/8354256",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/purestorage/jobs/8354256",
+   "inputs": 26,
+   "required": 13,
+   "answered": 10,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked for Everpure (formerly Pure Storage)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Who is your current (or most recent) employer?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current (or most recent) title?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Does the deemed export rule affect your employment by Everpure?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require sponsorship for employment visa status?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 6,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2104
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j37ikrm",
+   "company": "Roland Berger",
+   "title": "Hema Internship - Riyadh",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000157437571",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/78919276-f0f3-42df-978d-3a2c25cc78cc?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2257
+  },
+  {
+   "system": "lever",
+   "id": "jcbbt5k",
+   "company": "Aldar",
+   "title": "Vice President – Data Platforms",
+   "url": "https://jobs.lever.co/aldar/f6eae687-e6f1-4f5d-a375-e4baec174616/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/f6eae687-e6f1-4f5d-a375-e4baec174616/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2123
+  },
+  {
+   "system": "workable",
+   "id": "j1eh2xg5",
+   "company": "Tamatem",
+   "title": "AI Artist",
+   "url": "https://apply.workable.com/j/C754044688/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/tamatem/j/C754044688/apply",
+   "inputs": 7,
+   "required": 4,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1956
+  },
+  {
+   "system": "ashby",
+   "id": "j1nx4s47",
+   "company": "Lean Technologies",
+   "title": "Software Engineering Intern",
+   "url": "https://jobs.ashbyhq.com/LeanTech/878f2d6c-355c-4195-ad44-fc4a81e953ed/application",
+   "http": 404,
+   "final": "https://jobs.ashbyhq.com/LeanTech/878f2d6c-355c-4195-ad44-fc4a81e953ed/application",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": true,
+   "verdict": "gone",
+   "ms": 1387
+  },
+  {
+   "system": "greenhouse",
+   "id": "j3hefpx",
+   "company": "Careem",
+   "title": "Account Manager II - Shops",
+   "url": "https://boards.greenhouse.io/careem/jobs/8899591002?gh_jid=8899591002",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/careem/jobs/8899591002?gh_jid=8899591002",
+   "inputs": 44,
+   "required": 36,
+   "answered": 8,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Where are you currently located? (Country)*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current monthly salary (please specify gross in local currency)?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What are your monthly salary expectations (please specify gross in local currency)?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "I saw the job posting on Linkedin and decided to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I saw the job posting on Careem’s Careers Page and decided to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I saw the job posting on Localized and decide to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "A recruiter from Careem reached out to me and encouraged me to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "A recruiter external to Careem reached out to me and encouraged me to apply",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I had a conversation with a friend or acquaintance who works at Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I attended a University event or career fair and met a representative from Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "I read about Careem in the news",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Have you seen Careem's content on social media?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "LinkedIn",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Twitter",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "TikTok",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Instagram",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Careem’s purpose and values",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The career growth and development opportunities offered at Careem",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Financial compensation and colleague benefits",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The job description aligns with my skills and qualifications",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Working with top talent at the organisation",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Community of inspiring colleagues",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "The opportunity to drive impact",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Have you previously worked at Careem?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 5,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1816
+  },
+  {
+   "system": "workable",
+   "id": "j9on2jg",
+   "company": "Khibraty",
+   "title": "Marketing and Growth Manager",
+   "url": "https://apply.workable.com/j/106E30C94A/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/khibraty/j/106E30C94A/apply",
+   "inputs": 22,
+   "required": 9,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Do you have hands-on experience running paid campaigns on LinkedIn or Meta Ads Manager?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Have you previously built or managed a lead generation funnel, including landing pages, lead magnets, or email follow-up sequences?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you comfortable writing marketing content in both Arabic and English?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Can you tell us about your experience in B2B digital marketing, particularly with content-driven lead generation? What types of campaigns or",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you worked in marketing for consulting, training, L&D, or professional services? If so, how have you navigated the long sales cycles an",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 1,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1859
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j7bgyi",
+   "company": "Radisson Hotel Group",
+   "title": "Chef de Partie",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000151006939",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/23605939-d9d1-4fb4-9c04-93ca3e02d29b?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2840
+  },
+  {
+   "system": "lever",
+   "id": "j11d11rr",
+   "company": "Aldar",
+   "title": "Senior Associate – EPM",
+   "url": "https://jobs.lever.co/aldar/5a570a1f-83ae-4e5c-937f-3efae1132fc4/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/5a570a1f-83ae-4e5c-937f-3efae1132fc4/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 3194
+  },
+  {
+   "system": "ashby",
+   "id": "j1pfcd5q",
+   "company": "Thndr",
+   "title": "Fixed Income Associate",
+   "url": "https://jobs.ashbyhq.com/thndr/339d760b-71c7-4428-b379-5e0a8ea411fa/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/339d760b-71c7-4428-b379-5e0a8ea411fa/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2012
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1yicfzh",
+   "company": "Scale AI",
+   "title": "Applied AI Engineer",
+   "url": "https://job-boards.greenhouse.io/scaleai/jobs/4751059005",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/scaleai/jobs/4751059005",
+   "inputs": 15,
+   "required": 7,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1763
+  },
+  {
+   "system": "workable",
+   "id": "j194epya",
+   "company": "Al-Watania Information Systems",
+   "title": "ServiceNow Presales",
+   "url": "https://apply.workable.com/j/1E22CFB7F8/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/alwatania-information-systems/j/1E22CFB7F8/apply",
+   "inputs": 15,
+   "required": 7,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "How many years of professional experience do you have in ServiceNow?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2294
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1n6ih8l",
+   "company": "Delivery Hero",
+   "title": "Account Manager (Jeddah)",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160486119",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/f82b7aa0-44f4-4219-b82e-461fd24c15a1?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2560
+  },
+  {
+   "system": "lever",
+   "id": "j1tvkwav",
+   "company": "Aldar",
+   "title": "Senior Associate - Tendering Buildings",
+   "url": "https://jobs.lever.co/aldar/b48bcbb5-13d3-468f-9c2f-0a5ddbed135d/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/b48bcbb5-13d3-468f-9c2f-0a5ddbed135d/apply",
+   "inputs": 7,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2077
+  },
+  {
+   "system": "ashby",
+   "id": "j1prxi91",
+   "company": "Ziina",
+   "title": "Senior Backend Engineer, Payments Experience",
+   "url": "https://jobs.ashbyhq.com/ziina/688eb0ce-a666-4828-98b3-cd2239535744/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/688eb0ce-a666-4828-98b3-cd2239535744/application",
+   "inputs": 8,
+   "required": 3,
+   "answered": 4,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1922
+  },
+  {
+   "system": "greenhouse",
+   "id": "j11nogd7",
+   "company": "Tamara",
+   "title": "Team Leader, Customer Care",
+   "url": "https://job-boards.eu.greenhouse.io/tamara/jobs/5027129101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/tamara/jobs/5027129101",
+   "inputs": 31,
+   "required": 18,
+   "answered": 8,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you a Saudi National?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you based in Riyadh*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many total years of experience do you have in Customer Service or Contact Center operations?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you led or supervised a team in a contact center before? If yes, how many direct reports did you manage?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "This role is based on-site in office, will you be ok with this?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "This is a rotational shift-based role, where each shift is 9 hours long (including a 1 hour break), are you ok with this?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you available to work on weekends and public holidays if scheduled?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any external commitments? Such as courses, or university degree. *",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any planned/pre-booked vacations in the first 6 months that overlaps with your probation period? *",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What is your current gross salary?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "What motivates you to join Tamara?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 9,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1802
+  },
+  {
+   "system": "workable",
+   "id": "j195jcd3",
+   "company": "webook",
+   "title": "Business Excellence Lead",
+   "url": "https://apply.workable.com/j/A6FCB1AFDC/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/webook/j/A6FCB1AFDC/apply",
+   "inputs": 24,
+   "required": 15,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "*Do you have any objections or reservations about working on projects to the entertainment industry?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you open to relocating to where the job is based?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you fluent in spoken English?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you ever worked on projects related to the entertainment industry, such as event management, concerts, or music streaming platforms?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Monthly Salary PKR",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Expected Monthly Salary PKR",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2030
+  },
+  {
+   "system": "ashby",
+   "id": "j1r244c",
+   "company": "Lean Technologies",
+   "title": "Customer Support Intern (TechOps)",
+   "url": "https://jobs.ashbyhq.com/LeanTech/9026570c-5ba5-4a15-a78a-d412201e1e10/application",
+   "http": 404,
+   "final": "https://jobs.ashbyhq.com/LeanTech/9026570c-5ba5-4a15-a78a-d412201e1e10/application",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": true,
+   "verdict": "gone",
+   "ms": 1369
+  },
+  {
+   "system": "lever",
+   "id": "j1tqcowv",
+   "company": "Aldar",
+   "title": "Assistant Vice President – Asset Management (Retail)",
+   "url": "https://jobs.lever.co/aldar/13972ce6-c094-442f-98e2-0c82e3e248da/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/13972ce6-c094-442f-98e2-0c82e3e248da/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2025
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jve9tin",
+   "company": "Roland Berger",
+   "title": "Talent Acquisition Specialist - Saudi Nationals",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000149246540",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/24d0bf74-0f50-4c3c-9e31-df217da07bab?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2501
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1gibfsf",
+   "company": "OKX",
+   "title": "Sr. Product Marketing Manager, LATAM",
+   "url": "https://job-boards.greenhouse.io/okx/jobs/8187258003",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/okx/jobs/8187258003",
+   "inputs": 42,
+   "required": 37,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "English",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Mandarin Chinese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Spanish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "French",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Arabic",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Bengali",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Cantonese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Czech",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Dutch",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "German",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Greek",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hebrew",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hindi",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Hungarian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Indonesian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Italian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Japanese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Korean",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Bahasa Malaysia",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Norwegian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Persian (Farsi)",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Polish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Portuguese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Romanian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Russian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Swedish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Thai",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Turkish",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Ukrainian",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Vietnamese",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2098
+  },
+  {
+   "system": "workable",
+   "id": "jyxk34i",
+   "company": "Capitex",
+   "title": "Junior Fraud Analyst (Night Shift)",
+   "url": "https://apply.workable.com/j/7E9E3DCB7C/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/capitex/j/7E9E3DCB7C/apply",
+   "inputs": 14,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Are you open to working night hours?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1785
+  },
+  {
+   "system": "ashby",
+   "id": "j118h7j6",
+   "company": "Thndr",
+   "title": "Senior Revenue Accountant",
+   "url": "https://jobs.ashbyhq.com/thndr/86ae5784-cae8-40b8-a0e8-e01735c4e328/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/86ae5784-cae8-40b8-a0e8-e01735c4e328/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1949
+  },
+  {
+   "system": "lever",
+   "id": "j4vxo6w",
+   "company": "Aldar",
+   "title": "Senior Associate – Environmental",
+   "url": "https://jobs.lever.co/aldar/fd30f3cc-0141-4e1f-ac64-49c05cbdd6fd/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/fd30f3cc-0141-4e1f-ac64-49c05cbdd6fd/apply",
+   "inputs": 7,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1992
+  },
+  {
+   "system": "greenhouse",
+   "id": "jf0veqf",
+   "company": "Udacity",
+   "title": "Community Moderator (External Contractor) - UAE",
+   "url": "https://job-boards.greenhouse.io/udacity/jobs/8890901002",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/udacity/jobs/8890901002",
+   "inputs": 25,
+   "required": 13,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How did you hear about this job?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you residing in UAE?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have prior experience in community moderation?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you a current or former Udacity employee?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Are you fluent in Arabic language?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 7,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1383
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1899l90",
+   "company": "Radisson Hotel Group",
+   "title": "Chef de Partie (Saudi)",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000151005059",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/18e2f325-9301-414f-974c-5820d3d672c8?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2691
+  },
+  {
+   "system": "workable",
+   "id": "j10861og",
+   "company": "Morni",
+   "title": "Car Electrician (Auto Electrical Technician)",
+   "url": "https://apply.workable.com/j/7D86EA0AB6/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/morni/j/7D86EA0AB6/apply",
+   "inputs": 15,
+   "required": 9,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "*Are you willing to work in Thiqa district?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you willing to work six days a week?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Are you currently based in Saudi Arabia?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2453
+  },
+  {
+   "system": "ashby",
+   "id": "je90q3n",
+   "company": "Ziina",
+   "title": "Full-Stack Engineer (Internal Tools)",
+   "url": "https://jobs.ashbyhq.com/ziina/fba4d650-5f20-4792-9ae7-472ef447b768/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/ziina/fba4d650-5f20-4792-9ae7-472ef447b768/application",
+   "inputs": 9,
+   "required": 3,
+   "answered": 6,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2083
+  },
+  {
+   "system": "greenhouse",
+   "id": "j1pvu50n",
+   "company": "Alpaca",
+   "title": "Customer Success Manager - Americas",
+   "url": "https://job-boards.greenhouse.io/alpaca/jobs/6251752004",
+   "http": 200,
+   "final": "https://job-boards.greenhouse.io/alpaca/jobs/6251752004",
+   "inputs": 18,
+   "required": 9,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Country*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "This role is based in São Paulo, Brazil. Are you currently based in São Paulo, or are you able and willing to be based in São Paulo for this",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you now or in the future require employer sponsorship to work in the country where this role is located?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you worked directly for a brokerage, broker-dealer, crypto exchange, or trading platform?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 5,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1499
+  },
+  {
+   "system": "lever",
+   "id": "j7dw3ln",
+   "company": "Aldar",
+   "title": "Senior Vice President – Asset Management (Retail)",
+   "url": "https://jobs.lever.co/aldar/a7dbf5e8-3e1c-4869-9af2-45ef523a5b60/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/a7dbf5e8-3e1c-4869-9af2-45ef523a5b60/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2182
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jx27n4j",
+   "company": "Delivery Hero",
+   "title": "Sales Executive",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000160484739",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/a56b3d86-85ea-4094-84cc-c3c1c134a0a7?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 3004
+  },
+  {
+   "system": "ashby",
+   "id": "jazkkqd",
+   "company": "Lean Technologies",
+   "title": "Internal Auditor – Risk & Regulatory Assurance",
+   "url": "https://jobs.ashbyhq.com/LeanTech/18f875d1-261f-4a98-b2bb-810f65294d53/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/LeanTech/18f875d1-261f-4a98-b2bb-810f65294d53/application",
+   "inputs": 8,
+   "required": 4,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 1947
+  },
+  {
+   "system": "workable",
+   "id": "jh6cj1",
+   "company": "Rotana Hotels & Resorts",
+   "title": "Pastry Chef",
+   "url": "https://apply.workable.com/j/F6E1F00D25/apply/",
+   "http": 200,
+   "final": "https://careers.rotana.com/_/j/F6E1F00D25/apply",
+   "inputs": 41,
+   "required": 12,
+   "answered": 9,
+   "unanswered": [
+    {
+     "q": "Headline",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Target Job Title",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Age (Date of Birth)SVGs not supported by this browser.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Last Monthly Salary USD",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "*Target Monthly Salary USD",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Summary",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 11,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2294
+  },
+  {
+   "system": "greenhouse",
+   "id": "jo27gdy",
+   "company": "Binance",
+   "title": "Policy & Change Management Analyst - (12-Month Contract)",
+   "url": "https://job-boards.eu.greenhouse.io/binance/jobs/5025665101",
+   "http": 200,
+   "final": "https://job-boards.eu.greenhouse.io/binance/jobs/5025665101",
+   "inputs": 14,
+   "required": 6,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Where do you currently live?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Will you require employer sponsorship for a work visa or work permit in the country where you currently reside or are currently based?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you ever been employed at Binance before?*",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": false,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 3,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1747
+  },
+  {
+   "system": "lever",
+   "id": "j2nq3yz",
+   "company": "Aldar",
+   "title": "Vice President - Wealth",
+   "url": "https://jobs.lever.co/aldar/ff218c77-1d19-48d9-bbd9-a75a57eb1622/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/ff218c77-1d19-48d9-bbd9-a75a57eb1622/apply",
+   "inputs": 18,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2055
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jgmkatd",
+   "company": "Roland Berger",
+   "title": "HR Generalist Senior Specialist -Saudi Nationals",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000147858659",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RolandBerger/publication/acdf5666-2919-4fb5-858f-c91e8c4240a2?dcr_ci=RolandBerger",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2449
+  },
+  {
+   "system": "ashby",
+   "id": "j20elni",
+   "company": "Thndr",
+   "title": "Head of Brokerage - KSA",
+   "url": "https://jobs.ashbyhq.com/thndr/6a0f02ee-35be-4386-8711-220a3351bcb7/application",
+   "http": 200,
+   "final": "https://jobs.ashbyhq.com/thndr/6a0f02ee-35be-4386-8711-220a3351bcb7/application",
+   "inputs": 9,
+   "required": 7,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "Why Thndr?",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Current Salary",
+     "kind": "text",
+     "why": "لم تكتب هذه البيانات في ملفك"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "recaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1906
+  },
+  {
+   "system": "workable",
+   "id": "j1fvs6js",
+   "company": "Mozn",
+   "title": "Senior Customer Success Manager",
+   "url": "https://apply.workable.com/j/C0A09125F5/apply/",
+   "http": 200,
+   "final": "https://apply.workable.com/mozn-ai/j/C0A09125F5/apply",
+   "inputs": 16,
+   "required": 11,
+   "answered": 5,
+   "unanswered": [
+    {
+     "q": "*Are you a Saudi national?YESNO",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "How many years of experience do you have in Customer Success, Account Management, or related client-facing roles within enterprise technolog",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Enterprise commercial organizations",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Government / public sector",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Mid-market / SMB",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "SVGs not supported by this browser.SVGs not supported by this browser.SVGs not supported by this browser.Other",
+     "kind": "checkbox",
+     "why": "مربع إلزامي ليس إقراراً"
+    },
+    {
+     "q": "Describe your experience owning customer renewals, retention, and growth (upsell/cross-sell) opportunities.",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": false,
+   "checks": [
+    "turnstile"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 1843
+  },
+  {
+   "system": "lever",
+   "id": "j1kgl1o9",
+   "company": "Aldar",
+   "title": "Assistant Vice President - Events",
+   "url": "https://jobs.lever.co/aldar/a58b2c90-9445-4b95-8ba3-1acac4d8a1d8/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/a58b2c90-9445-4b95-8ba3-1acac4d8a1d8/apply",
+   "inputs": 18,
+   "required": 12,
+   "answered": 6,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2035
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "jaykosg",
+   "company": "Radisson Hotel Group",
+   "title": "Sales Manager - Saudi National",
+   "url": "https://jobs.smartrecruiters.com/RHG/744000150943639",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/RHG/publication/d25eabf5-a3e2-4829-a83d-fcb448924798?dcr_ci=RHG",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 3113
+  },
+  {
+   "system": "lever",
+   "id": "j1j7tskz",
+   "company": "Aldar",
+   "title": "Assistant Vice President – Quality Management",
+   "url": "https://jobs.lever.co/aldar/a810c8d9-db1c-4324-8966-be008de63330/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/a810c8d9-db1c-4324-8966-be008de63330/apply",
+   "inputs": 7,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2055
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j1s1e7b1",
+   "company": "Delivery Hero",
+   "title": "Rider onboarding, training and incubation",
+   "url": "https://jobs.smartrecruiters.com/deliveryhero/744000159370249",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/oneclick-ui/company/DeliveryHero/publication/0d835373-5da4-42c5-89bf-5f625e6d5ae6?dcr_ci=DeliveryHero",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 2705
+  },
+  {
+   "system": "lever",
+   "id": "j1rdj3cg",
+   "company": "Aldar",
+   "title": "Vice President - International Sales",
+   "url": "https://jobs.lever.co/aldar/9813b214-238f-43ec-aa86-4c3fa37dd995/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/9813b214-238f-43ec-aa86-4c3fa37dd995/apply",
+   "inputs": 7,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 2064
+  },
+  {
+   "system": "smartrecruiters",
+   "id": "j7uuacm",
+   "company": "Roland Berger",
+   "title": "Asas -Summer 2027",
+   "url": "https://jobs.smartrecruiters.com/RolandBerger/744000144694909",
+   "http": 200,
+   "final": "https://jobs.smartrecruiters.com/RolandBerger/744000144694909",
+   "inputs": 0,
+   "required": 0,
+   "answered": 0,
+   "unanswered": [],
+   "cv_asked": false,
+   "widget": false,
+   "badge": false,
+   "checks": [],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "unreadable",
+   "ms": 1133
+  },
+  {
+   "system": "lever",
+   "id": "j1pdflp4",
+   "company": "Aldar",
+   "title": "Sales Manager",
+   "url": "https://jobs.lever.co/aldar/51125af7-6850-4136-a3a7-758426ed3b7d/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/51125af7-6850-4136-a3a7-758426ed3b7d/apply",
+   "inputs": 7,
+   "required": 3,
+   "answered": 5,
+   "unanswered": [],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 0,
+   "wall": false,
+   "gone": false,
+   "verdict": "silent_check",
+   "ms": 5207
+  },
+  {
+   "system": "lever",
+   "id": "jow345z",
+   "company": "Aldar",
+   "title": "Vice President - Commercials",
+   "url": "https://jobs.lever.co/aldar/3927e644-004b-4aa9-a7ea-491ec9991fc3/apply",
+   "http": 200,
+   "final": "https://jobs.lever.co/aldar/3927e644-004b-4aa9-a7ea-491ec9991fc3/apply",
+   "inputs": 22,
+   "required": 14,
+   "answered": 7,
+   "unanswered": [
+    {
+     "q": "Gender✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Home Country✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Date of Birth (DD/MM/YYYY)✱",
+     "kind": "text",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Marital Status✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you previously worked with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have any relatives/friends working with Aldar or its subsidiaries?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Have you been interviewed by Aldar before?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "If you do not reside in Abu Dhabi, would you be able to relocate?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    },
+    {
+     "q": "Do you have a Family Book?✱",
+     "kind": "choice",
+     "why": "لا إجابة في الملف لهذا السؤال"
+    }
+   ],
+   "cv_asked": true,
+   "widget": false,
+   "badge": true,
+   "checks": [
+    "hcaptcha"
+   ],
+   "behind_button": false,
+   "shadow_inputs": 0,
+   "doubled": 2,
+   "wall": false,
+   "gone": false,
+   "verdict": "needs_answers",
+   "ms": 2101
+  }
+ ]
+}

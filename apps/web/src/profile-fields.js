@@ -10,6 +10,8 @@
 //   'auto'  — the robot stops and asks you if it is blank; you can still apply by hand.
 //   none    — useful when asked, never blocking.
 //
+// `store: 'facts'` keeps the answer in profiles.answers._facts instead of a column of its own.
+//
 // `group` is the heading the full editor files the question under. Fourteen inputs in one
 // unbroken column is a form you abandon; three short blocks is a form you finish.
 
@@ -32,7 +34,16 @@ export const APPLY_FIELDS = [
     options: ['ثانوية', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] },
   { key: 'university',             label: 'الجامعة',               type: 'text',  ph: 'جامعة الملك سعود', group: 'تعليمك وروابطك' },
   { key: 'graduation_year',        label: 'سنة التخرج',            type: 'number', ph: '2025', dir: 'ltr', group: 'تعليمك وروابطك' },
-  { key: 'linkedin_url',           label: 'لينكدإن',               type: 'url',   need: 'auto',  ph: 'https://linkedin.com/in/…', dir: 'ltr', group: 'تعليمك وروابطك' }
+  { key: 'linkedin_url',           label: 'لينكدإن',               type: 'url',   need: 'auto',  ph: 'https://linkedin.com/in/…', dir: 'ltr', group: 'تعليمك وروابطك' },
+
+  // Not asked by most forms, and required by the ones that ask: measured across our open
+  // jobs, these three stopped more applications than any question we could answer in advance.
+  // Never required here — leave one blank and the form that wants it simply waits for you.
+  { key: 'gender',                 label: 'الجنس',                 type: 'select', store: 'facts', group: 'تسألها بعض الاستمارات',
+    options: ['ذكر', 'أنثى'] },
+  { key: 'date_of_birth',          label: 'تاريخ الميلاد',         type: 'date',  store: 'facts', dir: 'ltr', group: 'تسألها بعض الاستمارات' },
+  { key: 'marital_status',         label: 'الحالة الاجتماعية',     type: 'select', store: 'facts', group: 'تسألها بعض الاستمارات',
+    options: ['أعزب', 'متزوج', 'مطلّق', 'أرمل'] }
 ];
 
 const has = (profile, key) => String(profile?.[key] ?? '').trim() !== '';

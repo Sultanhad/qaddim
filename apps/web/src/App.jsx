@@ -4,6 +4,7 @@ import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, 
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
+import { forExtension } from './extension-profile.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
 import { useToast, errorAr, useOnline } from './toast.jsx';
 import ApplySheet from './ApplySheet.jsx';
@@ -510,8 +511,11 @@ function FirstRun({ user, profile, onDone }) {
 // ─────────────────────────────────────────────────────────── apply profile ──
 /** The answers a hiring form asks for. Collected once, reused on every application. */
 function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
-  const [form, setForm] = useState(() =>
-    Object.fromEntries(APPLY_FIELDS.map((f) => [f.key, profile?.[f.key] ?? ''])));
+  // Most answers are columns. The few marked `store: 'facts'` are kept with the saved
+  // questions instead, under one reserved key: they are exactly that — answers to questions
+  // forms keep asking — and keeping them there means a new one never needs a migration.
+  const [form, setForm] = useState(() => Object.fromEntries(APPLY_FIELDS.map((f) =>
+    [f.key, (f.store === 'facts' ? profile?.answers?._facts?.[f.key] : profile?.[f.key]) ?? ''])));
   const [cv, setCv] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -540,10 +544,15 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
       }
       // An untouched field is empty text in the form and must reach Postgres as null:
       // `graduation_year = ''` is not an integer, and the whole save fails with a 400.
-      const clean = Object.fromEntries(
-        Object.entries(form).map(([k, v]) => [k, typeof v === 'string' && v.trim() === '' ? null : v]));
+      const blank = (v) => typeof v === 'string' && v.trim() === '';
+      const stored = (key) => APPLY_FIELDS.find((f) => f.key === key)?.store;
+      const clean = Object.fromEntries(Object.entries(form)
+        .filter(([k]) => stored(k) !== 'facts').map(([k, v]) => [k, blank(v) ? null : v]));
+      const facts = Object.fromEntries(Object.entries(form)
+        .filter(([k, v]) => stored(k) === 'facts' && !blank(v)));
+      const answers = { ...(profile?.answers ?? {}), _facts: facts };
       const { data, error: dbErr } = await supabase.from('profiles')
-        .update({ ...clean, cv_path, cv_uploaded_at, updated_at: new Date().toISOString() })
+        .update({ ...clean, answers, cv_path, cv_uploaded_at, updated_at: new Date().toISOString() })
         .eq('id', user.id).select().single();
       if (dbErr) throw dbErr;
       onDone(data); setCv(null); setSaved(true);
@@ -897,23 +906,7 @@ async function sendToExtension(profile) {
       // Without this the extension stops working an hour after this page was last open.
       refresh_token: data.session.refresh_token
     },
-    profile: {
-      full_name: profile.full_name, first_name: (profile.full_name || '').split(' ')[0],
-      last_name: (profile.full_name || '').split(' ').slice(1).join(' '),
-      email_for_applications: profile.email_for_applications, phone: profile.phone,
-      city: (profile.cities || [])[0], location: (profile.cities || [])[0],
-      nationality: profile.nationality, work_authorization: profile.work_authorization,
-      requires_sponsorship: profile.requires_sponsorship ? 'yes' : 'no',
-      salary_expectation: profile.salary_expectation, current_salary: profile.current_salary,
-      notice_period: profile.notice_period, current_company: profile.current_company,
-      current_title: profile.current_title, years_experience: String(profile.years_experience ?? ''),
-      linkedin_url: profile.linkedin_url, education_degree: profile.education_degree,
-      university: profile.university, graduation_year: String(profile.graduation_year ?? ''),
-      answers: profile.answers ?? {},
-      auto_submit: !!profile.auto_submit,
-      // where the CV lives; the extension fetches the bytes itself with this same token
-      cv_path: profile.cv_path ?? null
-    }
+    profile: forExtension(profile)
   }, location.origin);
 }
 

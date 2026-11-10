@@ -25,60 +25,8 @@
   ];
   const OPEN_RE = /^\s*(apply for this job|apply now|apply|i am interested|i'?m interested|تقديم|قدّم الآن)\s*$/i;
 
-  const visible = (el) => !!(el.offsetParent || el.getClientRects().length) && !el.disabled;
-  const txt = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-
-  function labelOf(node) {
-    const aria = node.getAttribute('aria-label');
-    if (txt(aria)) return txt(aria);
-    const by = node.getAttribute('aria-labelledby');
-    if (by) {
-      const parts = by.split(/\s+/).map((id) => document.getElementById(id)).filter(Boolean).map((e) => txt(e.textContent));
-      if (parts.join(' ').trim()) return txt(parts.join(' '));
-    }
-    if (node.id) {
-      const l = document.querySelector('label[for="' + CSS.escape(node.id) + '"]');
-      if (l && txt(l.textContent)) return txt(l.textContent);
-    }
-    const own = node.closest('label');
-    if (own && txt(own.textContent)) return txt(own.textContent);
-    let cur = node;
-    for (let i = 0; i < 4 && cur.parentElement; i++) {
-      cur = cur.parentElement;
-      const lbl = cur.querySelector('label, legend, [class*="label" i], [class*="question" i]');
-      if (lbl && txt(lbl.textContent)) return txt(lbl.textContent);
-    }
-    return txt(node.getAttribute('placeholder')) || txt(node.getAttribute('name'));
-  }
-
-  function groupQuestion(node) {
-    const name = node.getAttribute('name') || '';
-    const opts = name
-      ? Array.from(document.querySelectorAll('input[type=radio][name="' + CSS.escape(name) + '"]'))
-        .map((r) => txt((r.closest('label') || {}).textContent || r.value)).filter(Boolean)
-      : [];
-    const clean = (s) => {
-      let t = txt(s);
-      opts.forEach((o) => { if (o) t = t.split(o).join(' '); });
-      return txt(t).replace(/^[*\s:]+/, '');
-    };
-    const fs = node.closest('fieldset');
-    if (fs) { const lg = fs.querySelector('legend'); if (lg && txt(lg.textContent)) return clean(lg.textContent); }
-    let cur = node;
-    for (let i = 0; i < 7 && cur.parentElement; i++) {
-      cur = cur.parentElement;
-      const t = clean(cur.textContent);
-      if (t.length > 8) return t;
-    }
-    return txt(name);
-  }
-
-  function isRequired(node) {
-    if (node.required || node.getAttribute('aria-required') === 'true') return true;
-    const wrap = node.closest('label, fieldset, [class*="field" i], [class*="question" i], div');
-    const t = wrap ? String(wrap.textContent || '') : '';
-    return /\*/.test(t) || /\brequired\b/i.test(t) || /مطلوب/.test(t);
-  }
+  const { visible, txt, labelOf } = QaddimRead;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /** React and friends ignore a plain value assignment; this makes the framework notice. */
   function setValue(el, value) {
@@ -108,6 +56,72 @@
     return null;
   };
 
+  /**
+   * Which of the offered options is your answer — or none of them.
+   *
+   * It used to take the first option that *contained* the answer, and "Female" contains
+   * "Male". An option now has to be the answer, word for word, in one of the ways the answer
+   * can be said; failing that, exactly one option may contain it as whole words. Two
+   * candidates is not a match, it is a question for the person.
+   */
+  function choose(options, ans) {
+    const accept = ans.accept && ans.accept.length ? ans.accept : [F.norm(ans.value)];
+    const named = options.map((o) => ({ node: o.node, t: F.norm(o.text) })).filter((o) => o.t);
+    const exact = named.find((o) => accept.indexOf(o.t) >= 0);
+    if (exact) return exact.node;
+    const yn = yesNo(ans.value);
+    if (yn !== null) {
+      const word = named.find((o) => o.t === (yn ? 'yes' : 'no'));
+      if (word) return word.node;
+    }
+    const within = named.filter((o) => accept.some((a) => a.length >= 4 && (' ' + o.t + ' ').indexOf(' ' + a + ' ') >= 0));
+    return within.length === 1 ? within[0].node : null;
+  }
+
+  // ── styled dropdowns ───────────────────────────────────────────────────────
+  // Greenhouse's newer boards and Workable do not use <select>. Each builds a text box that
+  // opens a list when pressed, and typing an answer into that box only filters the list — it
+  // chooses nothing, so the form's own validation refused every one of them.
+  const mouse = (node, type) =>
+    node.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window, button: 0 }));
+
+  function listOf(el) {
+    const LIST = '[role=listbox], [class*="select__menu"]';
+    const id = el.getAttribute('aria-controls') || el.getAttribute('aria-owns');
+    let box = id && document.getElementById(id);
+    // No id to follow: the list is rendered beside the box, a few wrappers up — or, when the
+    // page hangs its menus off <body>, nowhere near it, and it is simply the one that is open.
+    for (let up = el, i = 0; !box && i < 7 && up.parentElement; i++) {
+      up = up.parentElement;
+      box = up.querySelector(LIST);
+    }
+    box = box || Array.from(document.querySelectorAll(LIST)).find(visible);
+    return box ? Array.from(box.querySelectorAll('[role=option], [class*="select__option"]')) : [];
+  }
+
+  /** What the dropdown currently shows as chosen, if anything. */
+  function chosenIn(el) {
+    const shell = el.closest('.select__control') || el.closest('[data-ui]') || el.parentElement;
+    const single = shell && shell.querySelector('[class*="single-value" i]');
+    if (single && txt(single.textContent)) return txt(single.textContent);
+    return el.readOnly ? txt(el.value) : '';
+  }
+
+  /** @returns null when the option was chosen and the dropdown shows it, else why not. */
+  async function pickFrom(el, ans) {
+    const control = el.closest('.select__control') || el;
+    mouse(control, 'mousedown'); el.focus(); mouse(control, 'mouseup'); mouse(control, 'click');
+    let options = [];
+    for (let i = 0; i < 20 && !options.length; i++) { await sleep(100); options = listOf(el); }
+    const shut = () => { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); el.blur(); };
+    if (!options.length) { shut(); return 'القائمة لم تفتح — اختر بنفسك'; }
+    const opt = choose(options.map((o) => ({ node: o, text: o.textContent })), ans);
+    if (!opt) { shut(); return 'إجابتك ليست من الخيارات المعروضة'; }
+    mouse(opt, 'mousedown'); mouse(opt, 'mouseup'); opt.click();
+    await sleep(250);
+    return chosenIn(el) ? null : 'الخيار لم يستجب للضغط';
+  }
+
   function captchaPresent() {
     return CAPTCHA_SEL.some((s) => document.querySelector(s));
   }
@@ -129,58 +143,30 @@
     }
   }
 
-  async function fill(profile) {
+  /** @param ctx what is known about the job itself — see QaddimFields.answerFor. */
+  async function fill(profile, ctx) {
     const report = { filled: [], agreed: [], missing: [], skipped: [], captcha: false };
     await openFormIfNeeded();
 
-    // radio groups: one question, several controls
-    const groups = new Map();
-    for (const r of document.querySelectorAll('input[type=radio]')) {
-      if (!visible(r)) continue;
-      const n = r.getAttribute('name') || labelOf(r);
-      if (!groups.has(n)) groups.set(n, []);
-      groups.get(n).push(r);
-    }
-    for (const els of groups.values()) {
-      const q = groupQuestion(els[0]);
-      const req = isRequired(els[0]);
-      const ans = F.answerFor(q, profile);
-      if (!ans || !ans.value) { (req ? report.missing : report.skipped).push({ q, why: ans?.why || 'لا إجابة عندك لهذا السؤال' }); continue; }
-      const yn = yesNo(ans.value);
-      const pick = els.find((e) => {
-        const t = F.norm(labelOf(e));
-        return t === F.norm(ans.value) || (yn !== null && t === (yn ? 'yes' : 'no'));
-      });
-      if (!pick) { (req ? report.missing : report.skipped).push({ q, why: 'إجابتك ليست من الخيارات المعروضة' }); continue; }
-      if (check(pick)) report.filled.push({ q, v: ans.value });
-      else (req ? report.missing : report.skipped).push({ q, why: 'الخيار لم يستجب للضغط' });
-    }
+    for (const item of QaddimRead.questions()) {
+      const { kind, el, q, required: req } = item;
+      const leave = (why) => (req ? report.missing : report.skipped).push({ q, why });
 
-    for (const el of document.querySelectorAll('input:not([type=hidden]):not([type=radio]), textarea, select')) {
-      if (!visible(el)) continue;
-      const tag = el.tagName.toLowerCase();
-      const type = tag === 'input' ? (el.getAttribute('type') || 'text').toLowerCase() : tag;
-      const q = labelOf(el);
-      const req = isRequired(el);
-
-      if (type === 'checkbox') {
-        if (req && !el.checked) {
-          // A required checkbox is usually "I agree to the privacy policy". But a required
-          // *group* of checkboxes is a question — "which of these apply to you?" — and ticking
-          // one of those is claiming something about yourself that you never said. Only a lone
-          // box whose own words are a consent sentence gets ticked.
-          const group = el.name
-            ? document.querySelectorAll(`input[type=checkbox][name="${CSS.escape(el.name)}"]`).length
-            : 1;
-          const consent = /agree|consent|accept|acknowledge|confirm|privacy|terms|policy|gdpr|أوافق|أقر|الموافقة|الخصوصية|الشروط/i.test(q);
-          if (group > 1 || !consent) {
-            report.missing.push({ q, why: group > 1 ? 'سؤال خيارات إلزامي — اختر بنفسك' : 'مربع إلزامي ليس إقراراً — راجعه بنفسك' });
-          } else if (check(el)) report.agreed.push(q);
-          else report.missing.push({ q, why: 'مربع إلزامي لم يستجب' });
-        }
+      if (kind === 'checks') {
+        if (!req || item.els.some((c) => c.checked)) continue;
+        // A required checkbox is usually "I agree to the privacy policy". But a required
+        // *group* of checkboxes is a question — "which of these apply to you?" — and ticking
+        // one of those is claiming something about yourself that you never said. Only a lone
+        // box whose own words are a consent sentence gets ticked.
+        const consent = /agree|consent|accept|acknowledge|confirm|privacy|terms|policy|gdpr|أوافق|أقر|الموافقة|الخصوصية|الشروط/i.test(q);
+        if (item.els.length > 1 || !consent) {
+          report.missing.push({ q, why: item.els.length > 1 ? 'سؤال خيارات إلزامي — اختر بنفسك' : 'مربع إلزامي ليس إقراراً — راجعه بنفسك' });
+        } else if (check(el)) report.agreed.push(q);
+        else report.missing.push({ q, why: 'مربع إلزامي لم يستجب' });
         continue;
       }
-      if (type === 'file') {
+
+      if (kind === 'file') {
         // A file input cannot be *typed* into, but it can be given a real File through
         // DataTransfer — the same object a drag-and-drop produces. The page cannot tell the
         // difference, and nothing is fabricated: these are the bytes the user uploaded.
@@ -209,24 +195,43 @@
         }
         continue;
       }
-      if (el.value && String(el.value).trim() !== '') continue;  // the site already filled it
 
-      const ans = F.answerFor(q, profile);
-      if (!ans || !ans.value) { (req ? report.missing : report.skipped).push({ q, why: ans?.why || 'لا إجابة عندك لهذا السؤال' }); continue; }
+      // the site, or an earlier pass, already answered it
+      if (kind === 'radio' ? item.els.some((r) => r.checked)
+        : kind === 'combo' ? chosenIn(el)
+          : el.value && String(el.value).trim() !== '') continue;
 
-      if (type === 'select' || type === 'select-one') {
-        const want = F.norm(ans.value), yn = yesNo(ans.value);
-        const opt = Array.from(el.options).find((o) => F.norm(o.textContent) === want)
-          || (want.length > 1 ? Array.from(el.options).find((o) => F.norm(o.textContent).indexOf(want) >= 0) : null)
-          || (yn !== null ? Array.from(el.options).find((o) => F.norm(o.textContent) === (yn ? 'yes' : 'no')) : null);
-        if (!opt) { (req ? report.missing : report.skipped).push({ q, why: 'إجابتك ليست في القائمة' }); continue; }
+      const ans = F.answerFor(q, profile, ctx);
+      if (!ans || !ans.value) { leave(ans?.why || 'لا إجابة عندك لهذا السؤال'); continue; }
+
+      if (kind === 'radio') {
+        const pick = choose(item.els.map((r) => ({ node: r, text: labelOf(r) })), ans);
+        if (!pick) leave('إجابتك ليست من الخيارات المعروضة');
+        else if (check(pick)) report.filled.push({ q, v: ans.value });
+        else leave('الخيار لم يستجب للضغط');
+        continue;
+      }
+      if (kind === 'select') {
+        const opt = choose(Array.from(el.options).map((o) => ({ node: o, text: o.textContent })), ans);
+        if (!opt) { leave('إجابتك ليست في القائمة'); continue; }
         el.value = opt.value;
         el.dispatchEvent(new Event('change', { bubbles: true }));
         report.filled.push({ q, v: ans.value });
         continue;
       }
-      setValue(el, ans.value);
-      report.filled.push({ q, v: ans.value });
+      if (kind === 'combo') {
+        const failed = await pickFrom(el, ans);
+        if (failed) leave(failed); else report.filled.push({ q, v: ans.value });
+        continue;
+      }
+
+      let value = ans.text || ans.value;
+      if (ans.key === 'date_of_birth') {
+        value = F.dateFor(ans.value, q, item.type);
+        if (!value) { leave('الاستمارة لا تحدد صيغة التاريخ — اكتبه بنفسك'); continue; }
+      }
+      setValue(el, value);
+      report.filled.push({ q, v: value });
     }
 
     await new Promise((r) => setTimeout(r, 800));
@@ -275,7 +280,7 @@
   chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (msg?.type !== 'qaddim:apply') return;
     (async () => {
-      const report = await fill(msg.profile);
+      const report = await fill(msg.profile, msg.job || null);
       if (report.missing.length) {
         reply({ status: 'needs_you', report, reason: 'أسئلة إلزامية بلا إجابة منك' });
         return;
