@@ -11,6 +11,39 @@ export const L = {
   openNow: 'وظيفة مفتوحة', updated: 'آخر تحديث', justNow: 'الآن', minAgo: 'دقيقة', hAgo: 'ساعة'
 };
 
+/**
+ * One stroke weight, one 24-grid. Icons carry the bottom bar: at 11px a label alone is
+ * read, not recognised — the pair is what makes a tab findable without reading.
+ */
+const ICONS = {
+  jobs: <><path d="M3.6 7.8h16.8v10.4a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V7.8Z" /><path d="M9 7.8V6a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6v1.8" /><path d="M3.6 12.6c2.9 1.3 5.7 2 8.4 2s5.5-.7 8.4-2" /></>,
+  apps: <><path d="M4 6.5h9" /><path d="M4 12h9" /><path d="M4 17.5h6" /><path d="m15.5 16.6 2 2 4-4.4" /></>,
+  profile: <><path d="M12 12.4a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4Z" /><path d="M4.8 20.2a7.2 7.2 0 0 1 14.4 0" /></>,
+  settings: <><path d="M3.5 7.5h5" /><path d="M12.5 7.5h8" /><path d="M3.5 16.5h8" /><path d="M15.5 16.5h5" /><circle cx="10.5" cy="7.5" r="2" /><circle cx="13.5" cy="16.5" r="2" /></>,
+  help: <><circle cx="12" cy="12" r="8.4" /><path d="M9.7 9.6a2.4 2.4 0 1 1 2.7 2.5v1.4" /><path d="M12.3 16.6h.01" /></>,
+  shield: <><path d="M12 3.6 5.4 6.2v5c0 3.9 2.6 7.4 6.6 9.2 4-1.8 6.6-5.3 6.6-9.2v-5L12 3.6Z" /></>,
+  out: <><path d="M14.4 7.4V5.8a1.8 1.8 0 0 0-1.8-1.8H6.3a1.8 1.8 0 0 0-1.8 1.8v12.4A1.8 1.8 0 0 0 6.3 20h6.3a1.8 1.8 0 0 0 1.8-1.8v-1.6" /><path d="M10 12h9.5" /><path d="m16.8 9 2.7 3-2.7 3" /></>
+};
+
+export function Icon({ name, size = 22 }) {
+  return (
+    <svg className="ic" width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICONS[name]}
+    </svg>
+  );
+}
+
+/** The logo, one shape at every size — the bar, the radar core, the landing hero. */
+export function Mark({ size = 64, radius = 18, className = '' }) {
+  return (
+    <span className={'mark ' + className} style={{ width: size, height: size, borderRadius: radius }} aria-hidden="true">
+      <i style={{ width: size * .4, height: Math.max(3, size * .078) }} />
+      <i style={{ width: size * .28, height: Math.max(3, size * .078) }} />
+    </span>
+  );
+}
+
 export function Hero({ title, eyebrow = L.brand, children }) {
   return (
     <div className="hero">

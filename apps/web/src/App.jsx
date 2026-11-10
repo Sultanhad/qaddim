@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
-import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, L } from './ui.jsx';
+import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
@@ -175,24 +175,108 @@ export default function App() {
   if (!profile) return <Landing loading />;
   if (!profile.onboarded) return <FirstRun user={session.user} profile={profile} onDone={setProfile} />;
 
-  const title = { applications: L.applications, profile: 'ملف التقديم', settings: 'الضبط' }[route] || L.today;
+  const tab = TABS.find((x) => x.id === route);
+  const title = tab ? tab.title : L.today;
   return (
     <>
-      <Hero title={title} />
-      <div className="wrap">
+      <AppBar title={title} route={route} user={session.user} profile={profile} />
+      <div className="wrap app-wrap">
         {route === 'applications' ? <Applications user={session.user} profile={profile} onProfile={setProfile} />
           : route === 'profile' ? <ApplyProfile user={session.user} profile={profile} onDone={setProfile} />
             : route === 'settings' ? <Settings user={session.user} profile={profile} onDone={setProfile} />
               : <Jobs user={session.user} profile={profile} onProfile={setProfile} />}
-        <nav className="nav">
-          <a href="#jobs" aria-current={route === 'jobs' ? 'page' : undefined}>{L.today}</a>
-          <a href="#applications" aria-current={route === 'applications' ? 'page' : undefined}>{L.applications}</a>
-          <a href="#profile" aria-current={route === 'profile' ? 'page' : undefined}>ملفي</a>
-          <a href="#settings" aria-current={route === 'settings' ? 'page' : undefined}>الضبط</a>
-          <a href="#out" onClick={(e) => { e.preventDefault(); supabase.auth.signOut(); }}>{L.signOut}</a>
-        </nav>
       </div>
+      <TabBar route={route} />
     </>
+  );
+}
+
+// ───────────────────────────────────────────────────────────── the shell ──
+/**
+ * Four places, reachable from anywhere.
+ *
+ * They used to be a row of links printed *after* the content, so on a phone the way to your
+ * own profile — or out of the account — sat four thousand pixels below the fold, under forty
+ * job cards. Nothing you need at any moment should be something you have to scroll to find:
+ * the bar at the bottom holds the four screens, and the button at the top holds everything
+ * about the account, including the way out.
+ */
+const TABS = [
+  { id: 'jobs', label: 'وظائف', title: L.today, icon: 'jobs' },
+  { id: 'applications', label: 'طلباتي', title: L.applications, icon: 'apps' },
+  { id: 'profile', label: 'ملفي', title: 'ملف التقديم', icon: 'profile' },
+  { id: 'settings', label: 'الضبط', title: 'الضبط', icon: 'settings' }
+];
+
+function AppBar({ title, route, user, profile }) {
+  return (
+    <header className="appbar">
+      <div className="appbar-inner">
+        <a className="appbar-brand" href="#jobs" aria-label={L.brand}><Mark size={28} radius={9} /></a>
+        <h1 className="appbar-title">{title}</h1>
+        <nav className="appbar-tabs" aria-label="الأقسام">
+          {TABS.map((t) => (
+            <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined}>
+              <Icon name={t.icon} size={18} />{t.label}
+            </a>
+          ))}
+        </nav>
+        <AccountMenu user={user} profile={profile} />
+      </div>
+    </header>
+  );
+}
+
+/** The account, and the way out of it — one tap from every screen. */
+function AccountMenu({ user, profile }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    const key = (e) => { if (e.key === 'Escape') setOpen(false); };
+    const hash = () => setOpen(false);
+    addEventListener('pointerdown', away);
+    addEventListener('keydown', key);
+    addEventListener('hashchange', hash);
+    return () => { removeEventListener('pointerdown', away); removeEventListener('keydown', key); removeEventListener('hashchange', hash); };
+  }, [open]);
+
+  const name = profile?.full_name?.trim() || '';
+  const letter = (name || user.email || '؟').trim()[0];
+  const shut = () => setOpen(false);
+  return (
+    <div className="acct" ref={box}>
+      <button type="button" className="avatar" aria-haspopup="menu" aria-expanded={open}
+        aria-label="حسابك" onClick={() => setOpen((o) => !o)}>{letter}</button>
+      {open && (
+        <div className="menu" role="menu">
+          <p className="menu-id">
+            {name && <b>{name}</b>}
+            <span dir="ltr">{user.email}</span>
+          </p>
+          <a role="menuitem" href="#profile" onClick={shut}><Icon name="profile" size={18} />ملف التقديم</a>
+          <a role="menuitem" href="#settings" onClick={shut}><Icon name="settings" size={18} />الضبط</a>
+          <a role="menuitem" href="#help" onClick={shut}><Icon name="help" size={18} />كيف يشتغل</a>
+          <a role="menuitem" href="#privacy" onClick={shut}><Icon name="shield" size={18} />الخصوصية</a>
+          <hr />
+          <button type="button" role="menuitem" className="danger"
+            onClick={() => { shut(); supabase.auth.signOut(); }}><Icon name="out" size={18} />{L.signOut}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TabBar({ route }) {
+  return (
+    <nav className="tabbar" aria-label="التنقل">
+      {TABS.map((t) => (
+        <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined}>
+          <Icon name={t.icon} /><span>{t.label}</span>
+        </a>
+      ))}
+    </nav>
   );
 }
 
@@ -898,11 +982,13 @@ function Jobs({ user, profile, onProfile }) {
           <p style={{ margin: '12px 0 0', fontSize: 14 }}>
             <a href={job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a>
           </p>
-          <div style={{ marginTop: 14 }}>
+          {/* Passing on a job is not deleting anything — it used to be painted in the same red
+              as "delete my account", which made the quieter of the two choices the louder one. */}
+          <div className="card-actions">
             <button className="btn btn-go" disabled={busyId === job.id} onClick={() => act(job, 'saved')}>
               {profile.auto_apply && ext ? 'يهمني — قدّم لي' : L.approve}
             </button>
-            <button className="btn btn-no" disabled={busyId === job.id} onClick={() => act(job, 'closed')}>{L.reject}</button>
+            <button className="btn" disabled={busyId === job.id} onClick={() => act(job, 'closed')}>{L.reject}</button>
           </div>
         </article>
       ))}
@@ -984,6 +1070,25 @@ function RunBar({ stats }) {
   );
 }
 
+/**
+ * A note, when there is one to write.
+ *
+ * Every card used to carry an open, empty text box: on a phone that is 140px of furniture
+ * per application for something most applications never get. It opens on a tap, and stays
+ * open for ever after on the ones that have a note.
+ */
+function Notes({ row, onSave }) {
+  const [open, setOpen] = useState(!!row.notes);
+  if (!open) return <button type="button" className="notes-add" onClick={() => setOpen(true)}>+ أضف ملاحظة</button>;
+  return (
+    <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+      <label htmlFor={`n${row.id}`}>ملاحظات</label>
+      <textarea id={`n${row.id}`} rows={2} autoFocus={!row.notes} defaultValue={row.notes ?? ''}
+        onBlur={(e) => onSave(e.target.value)} />
+    </div>
+  );
+}
+
 function Applications({ user, profile, onProfile }) {
   const toast = useToast();
   const [rows, setRows] = useState(null);
@@ -1031,18 +1136,10 @@ function Applications({ user, profile, onProfile }) {
 
   const card = (row, lead) => (
     <article className="card" key={row.id} style={lead ? { borderColor: 'var(--warn)' } : undefined}>
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <div>
-          <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>{row.job?.title}</p>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            {row.job?.company} · {AR_CITY[row.job?.city] || row.job?.location}
-          </p>
-        </div>
-        <select className="status-pill" value={row.status} onChange={(e) => setStatus(row, e.target.value)}
-          style={{ width: 'auto' }}>
-          {STATUSES.map((s) => <option key={s} value={s}>{L[s]}</option>)}
-        </select>
-      </div>
+      <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{row.job?.title}</p>
+      <p className="muted" style={{ margin: '4px 0 0' }}>
+        {row.job?.company} · {AR_CITY[row.job?.city] || row.job?.location}
+      </p>
       {row.auto_status && (
         <p style={{ marginTop: 8, fontSize: 14, color: row.auto_status === 'submitted' ? 'var(--good)' : row.auto_status === 'queued' ? 'var(--blue-soft)' : 'var(--warn)' }}>
           {{ queued: 'في الطابور', filling: 'يُعبّأ الآن…', submitted: 'أُرسل تلقائياً ✓', needs_you: 'يحتاجك', failed: 'تعذّر' }[row.auto_status]}
@@ -1055,15 +1152,17 @@ function Applications({ user, profile, onProfile }) {
           {row.follow_up_on <= today ? 'حان وقت المتابعة' : `تابع في ${row.follow_up_on}`}
         </p>
       )}
-      <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-        <label htmlFor={`n${row.id}`}>ملاحظات</label>
-        <textarea id={`n${row.id}`} rows={2} defaultValue={row.notes ?? ''}
-          onBlur={(e) => setNotes(row, e.target.value)} />
+      <div className="card-meta">
+        <select className="status-pill" value={row.status} onChange={(e) => setStatus(row, e.target.value)}
+          style={{ width: 'auto' }}>
+          {STATUSES.map((s) => <option key={s} value={s}>{L[s]}</option>)}
+        </select>
+        <Notes row={row} onSave={(v) => setNotes(row, v)} />
       </div>
       {(row.auto_status === 'needs_you' || row.auto_status === 'failed') && (
         <Blocked row={row} profile={profile} onProfile={onProfile} onDone={load} />
       )}
-      <div style={{ marginTop: 12 }}>
+      <div className="card-actions">
         <button className="btn btn-go" onClick={() => setSheetFor(row.job)}>ورقة التعبئة</button>
         {row.job?.url && <a className="btn" href={row.job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a>}
       </div>
@@ -1080,7 +1179,7 @@ function Applications({ user, profile, onProfile }) {
           <hr className="rule" />
         </>
       )}
-      <div style={{ marginBottom: 14 }}>
+      <div className="chipbar">
         <button className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>الكل {rows.length}</button>
         {STATUSES.map((s) => (
           <button key={s} className="chip" aria-pressed={filter === s} onClick={() => setFilter(s)}>{L[s]} {count(s)}</button>

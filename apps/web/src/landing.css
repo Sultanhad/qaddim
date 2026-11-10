@@ -17,7 +17,14 @@
   margin: 0; color: #fff; font-weight: 800; letter-spacing: -.03em;
   font-size: clamp(34px, 8.5vw, 86px); line-height: 1.04;
 }
-.lp-h1 .soft { color: #a8bfff; }
+.lp-h1 .soft {
+  color: #a8bfff;
+  /* The two lines sit at 1.04, which is right for one sentence that wraps. These are two
+     sentences, and the city chip's pill makes the first line taller than its text — so the
+     second was crowding it. A little air, scaled with the type so it holds at every width. */
+  display: inline-block;
+  margin-top: .18em;
+}
 
 /* the city chip that keeps changing */
 .city-chip {
@@ -58,31 +65,49 @@
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: center; }
 @media (max-width: 760px) { .two, .split { grid-template-columns: 1fr; } }
 
-/* ── the radar ────────────────────────────────────────────────────────── */
-.radar { position: relative; aspect-ratio: 1; max-width: 380px; margin: 0 auto; width: 100%; }
-.radar i {
-  position: absolute; inset: 50% auto auto 50%; translate: -50% -50%;
-  border: 1px solid #1a2233; border-radius: 50%; display: block;
-}
-.radar .r1 { width: 46%; height: 46%; }
-.radar .r2 { width: 74%; height: 74%; }
-.radar .r3 { width: 100%; height: 100%; }
+/* ── the radar ──────────────────────────────────────────────────────────
+   Geometry in SVG, typography in a legend. Nothing here is positioned by a
+   percentage of a word's width, so nothing can hang off the edge of the panel. */
+.radar-wrap { display: grid; gap: 22px; justify-items: center; }
+.radar { position: relative; width: min(100%, 340px); aspect-ratio: 1; }
+.radar-dish { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.radar-dish .rings { fill: none; stroke: #1a2233; stroke-width: 1; }
+.radar-dish .rings path { stroke: #141b29; }
+.radar-dish .blip .dot { fill: #3d4a78; transition: fill .45s ease; }
+.radar-dish .blip .halo { fill: var(--blue); opacity: 0; transition: opacity .45s ease; }
+.radar-dish .blip.on .dot { fill: #fff; }
+.radar-dish .blip.on .halo { opacity: .22; }
+
 .radar .sweep {
-  position: absolute; inset: 0; border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(47,107,255,.45), rgba(47,107,255,0) 72deg);
+  position: absolute; inset: 4%; border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(47,107,255,.34), rgba(47,107,255,.07) 34deg, transparent 88deg);
   animation: spin 7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.radar .core {
-  position: absolute; inset: 50% auto auto 50%; translate: -50% -50%;
-  box-shadow: 0 10px 30px rgba(47,107,255,.5); border-radius: 15px;
+/* Physical offsets on purpose: the dish is LTR geometry, and `translate` does not flip
+   with direction — anchoring this logically would push the mark off-centre in Arabic. */
+.radar-core {
+  position: absolute; top: 50%; left: 50%; translate: -50% -50%;
+  filter: drop-shadow(0 10px 26px rgba(47,107,255,.55));
 }
-.ats {
-  position: absolute; translate: -50% -50%;
-  background: #11161f; border: 1px solid var(--line); color: #e6ecff;
-  border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; white-space: nowrap;
+
+.radar-legend {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin: 0; padding: 0; list-style: none;
 }
-.ats.lit { background: var(--blue); border-color: var(--blue); color: #fff; }
+.radar-legend li {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: 999px;
+  background: #11161f; border: 1px solid var(--line);
+  color: var(--dim); font-size: 13px; font-weight: 700; white-space: nowrap;
+  transition: background .35s ease, border-color .35s ease, color .35s ease;
+}
+.radar-legend li i {
+  width: 7px; height: 7px; border-radius: 50%; background: #3d4a78; flex: none;
+  transition: background .35s ease;
+}
+.radar-legend li.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.radar-legend li.on i { background: #fff; }
 
 /* ── score bars ───────────────────────────────────────────────────────── */
 .bar-row { margin-top: 18px; }
@@ -162,6 +187,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .radar .sweep, .marquee .track, .pin { animation: none; }
+  .radar-legend li, .radar-dish .blip .dot, .radar-dish .blip .halo { transition: none; }
   .bar > i { animation: none; width: var(--w); }
   .city-chip .name { animation: none; }
 }

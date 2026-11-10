@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
 import { S, FAQS, CITIES, COUNTRY } from './landing-strings.js';
+import { Mark } from './ui.jsx';
 import './landing.css';
 
 const ATS = ['Greenhouse', 'Lever', 'Ashby', 'Workable', 'SmartRecruiters'];
@@ -9,12 +10,6 @@ const Pin = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z" />
   </svg>
-);
-const Mark = ({ size = 64, radius = 18, className = '' }) => (
-  <span className={'mark ' + className} style={{ width: size, height: size, borderRadius: radius }} aria-hidden="true">
-    <i style={{ width: size * .4, height: Math.max(3, size * .078) }} />
-    <i style={{ width: size * .28, height: Math.max(3, size * .078) }} />
-  </span>
 );
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -235,24 +230,52 @@ export default function Landing({ loading, authError }) {
   );
 }
 
-/** We are looking, continuously, at these five places. */
+/**
+ * We are looking, continuously, at these five places.
+ *
+ * The names used to ride the rim of the circle as absolutely-placed pills. A pill is as wide
+ * as its word, and "SmartRecruiters" is fifteen characters: on a phone it ran off the left
+ * edge of the panel and the one opposite ran off the right, which is exactly the kind of
+ * detail that makes a product look unfinished. The dish is now geometry — an SVG that scales
+ * to any width without a single measurement — and the names read as a legend beneath it,
+ * where a long one simply wraps. The blip and its name light together, so the pairing is
+ * still legible; it is the circle that stopped having to hold the typography.
+ */
 function Radar() {
   const [lit, setLit] = useState(0);
   useEffect(() => {
     if (reduced()) return;
-    const t = setInterval(() => setLit((n) => (n + 1) % ATS.length), 1400);
+    const t = setInterval(() => setLit((n) => (n + 1) % ATS.length), 1600);
     return () => clearInterval(t);
   }, []);
-  const place = (i) => {
+  // Five blips on the middle ring, starting at the top and going clockwise, in legend order.
+  const blips = ATS.map((n, i) => {
     const a = (i / ATS.length) * 2 * Math.PI - Math.PI / 2;
-    return { left: `${50 + 46 * Math.cos(a)}%`, top: `${50 + 46 * Math.sin(a)}%` };
-  };
+    return { n, x: 100 + 64 * Math.cos(a), y: 100 + 64 * Math.sin(a) };
+  });
   return (
-    <div className="radar" aria-hidden="true">
-      <div className="sweep" />
-      <i className="r1" /><i className="r2" /><i className="r3" />
-      <div className="core"><Mark size={56} radius={15} /></div>
-      {ATS.map((n, i) => <span className={'ats' + (i === lit ? ' lit' : '')} style={place(i)} key={n}>{n}</span>)}
+    <div className="radar-wrap">
+      <div className="radar" aria-hidden="true">
+        <div className="sweep" />
+        <svg viewBox="0 0 200 200" className="radar-dish">
+          <g className="rings">
+            <circle cx="100" cy="100" r="92" /><circle cx="100" cy="100" r="64" /><circle cx="100" cy="100" r="36" />
+            <path d="M8 100h184M100 8v184" />
+          </g>
+          {blips.map(({ n, x, y }, i) => (
+            <g key={n} className={'blip' + (i === lit ? ' on' : '')}>
+              <circle cx={x} cy={y} r="11" className="halo" />
+              <circle cx={x} cy={y} r="4.5" className="dot" />
+            </g>
+          ))}
+        </svg>
+        <div className="radar-core"><Mark size={46} radius={14} /></div>
+      </div>
+      <ul className="radar-legend">
+        {ATS.map((n, i) => (
+          <li key={n} className={i === lit ? 'on' : undefined}><i aria-hidden="true" />{n}</li>
+        ))}
+      </ul>
     </div>
   );
 }
