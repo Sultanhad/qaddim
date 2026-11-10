@@ -78,7 +78,11 @@ npm run dev                  # http://localhost:5190
 
 ### ٤. النشر
 
-الموقع منشور على Netlify: **<https://qaddim.netlify.app>**
+الموقع منشور على GitHub Pages: **<https://sultanhad.github.io/qaddim/>**
+
+> نُقل إليه في ١٠ نوفمبر ٢٠٢٦ لأن حصة Netlify المجانية نفدت وصار النشر
+> يردّ `403 · Account credit usage exceeded`. العنوان القديم
+> <https://qaddim.netlify.app> ما زال يخدم آخر نسخة وصلته.
 
 ```bash
 npm run deploy      # يبني ثم يرفع عبر واجهة Netlify

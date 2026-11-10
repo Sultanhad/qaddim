@@ -282,6 +282,7 @@ input[type="file"] { max-width: 100%; }
   margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.01em; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
+.appbar-word { display: none; }
 .appbar-tabs { display: none; }
 
 .acct { position: relative; margin-inline-start: auto; flex: none; }
@@ -335,7 +336,8 @@ input[type="file"] { max-width: 100%; }
 
 /* A wide screen has room for the four along the top, so the bottom bar goes away. */
 @media (min-width: 900px) {
-  .appbar-inner { max-width: 940px; }
+  .appbar-title { display: none; }
+  .appbar-word { display: block; font-size: 17px; font-weight: 800; color: #fff; }
   .appbar-tabs { display: flex; gap: 4px; margin-inline-start: auto; }
   .appbar-tabs a {
     display: flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: var(--r-pill);
@@ -374,6 +376,11 @@ input[type="file"] { max-width: 100%; }
    half is a full-width target, which is also the order they are decided in. */
 .card-actions { display: flex; gap: 10px; margin-top: 14px; }
 .card-actions .btn, .card-actions .btn-lg { flex: 1; margin: 0; text-align: center; }
+/* A button stretched across 460px of card is not a better button. */
+@media (min-width: 700px) {
+  .card-actions { flex-wrap: wrap; }
+  .card-actions .btn, .card-actions .btn-lg { flex: 0 0 auto; min-width: 156px; }
+}
 
 /* Status and the note belong on the same line as each other, not on two. */
 .card-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }

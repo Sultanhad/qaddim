@@ -213,7 +213,10 @@ function AppBar({ title, route, user, profile }) {
     <header className="appbar">
       <div className="appbar-inner">
         <a className="appbar-brand" href="#jobs" aria-label={L.brand}><Mark size={28} radius={9} /></a>
+        {/* On a phone the bar says which screen you are on; on a wide one the highlighted
+            tab says it already, so the same space carries the name instead. */}
         <h1 className="appbar-title">{title}</h1>
+        <b className="appbar-word">{L.brand}</b>
         <nav className="appbar-tabs" aria-label="الأقسام">
           {TABS.map((t) => (
             <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined}>
