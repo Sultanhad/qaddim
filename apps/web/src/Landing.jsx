@@ -231,15 +231,18 @@ export default function Landing({ loading, authError }) {
 }
 
 /**
- * We are looking, continuously, at these five places.
+ * The radar: the boards we read, arranged around the thing that reads them.
  *
- * The names used to ride the rim of the circle as absolutely-placed pills. A pill is as wide
- * as its word, and "SmartRecruiters" is fifteen characters: on a phone it ran off the left
- * edge of the panel and the one opposite ran off the right, which is exactly the kind of
- * detail that makes a product look unfinished. The dish is now geometry — an SVG that scales
- * to any width without a single measurement — and the names read as a legend beneath it,
- * where a long one simply wraps. The blip and its name light together, so the pairing is
- * still legible; it is the circle that stopped having to hold the typography.
+ * Names sit on the dish because that is what says "these five are being swept", which a row
+ * of pills underneath does not. The reason they were moved off once is real though — a pill
+ * is as wide as its word, and "SmartRecruiters" ran past the panel's edge while the one
+ * opposite hugged the other side.
+ *
+ * A name is centred on its own blip, not pinned to a wall — pinning them to the panel's
+ * edges stopped the overflow but broke the pairing, which was the only reason to put them on
+ * the dish at all. The radius is chosen so the widest name ("SmartRecruiters") still clears
+ * the card at the narrowest width the page is built for, and that is checked by measurement
+ * rather than by eye.
  */
 function Radar() {
   const [lit, setLit] = useState(0);
@@ -248,34 +251,41 @@ function Radar() {
     const t = setInterval(() => setLit((n) => (n + 1) % ATS.length), 1600);
     return () => clearInterval(t);
   }, []);
-  // Five blips on the middle ring, starting at the top and going clockwise, in legend order.
-  const blips = ATS.map((n, i) => {
+
+  // Blips on the dish's middle ring; names on a slightly wider circle, just outside them.
+  const marks = ATS.map((n, i) => {
     const a = (i / ATS.length) * 2 * Math.PI - Math.PI / 2;
-    return { n, x: 100 + 64 * Math.cos(a), y: 100 + 64 * Math.sin(a) };
+    return {
+      n,
+      bx: 100 + 64 * Math.cos(a), by: 100 + 64 * Math.sin(a),   // SVG units, inside the dish
+      lx: 50 + 30 * Math.cos(a), ly: 50 + 30 * Math.sin(a)      // percent of the whole panel
+    };
   });
+
   return (
-    <div className="radar-wrap">
-      <div className="radar" aria-hidden="true">
+    <div className="radar">
+      <div className="radar-dish-wrap" aria-hidden="true">
         <div className="sweep" />
         <svg viewBox="0 0 200 200" className="radar-dish">
           <g className="rings">
             <circle cx="100" cy="100" r="92" /><circle cx="100" cy="100" r="64" /><circle cx="100" cy="100" r="36" />
             <path d="M8 100h184M100 8v184" />
           </g>
-          {blips.map(({ n, x, y }, i) => (
+          {marks.map(({ n, bx, by }, i) => (
             <g key={n} className={'blip' + (i === lit ? ' on' : '')}>
-              <circle cx={x} cy={y} r="11" className="halo" />
-              <circle cx={x} cy={y} r="4.5" className="dot" />
+              <circle cx={bx} cy={by} r="11" className="halo" />
+              <circle cx={bx} cy={by} r="4.5" className="dot" />
             </g>
           ))}
         </svg>
         <div className="radar-core"><Mark size={46} radius={14} /></div>
       </div>
-      <ul className="radar-legend">
-        {ATS.map((n, i) => (
-          <li key={n} className={i === lit ? 'on' : undefined}><i aria-hidden="true" />{n}</li>
-        ))}
-      </ul>
+
+      {marks.map(({ n, lx, ly }, i) => (
+        <span key={n} className={'ats' + (i === lit ? ' on' : '')} style={{ left: `${lx}%`, top: `${ly}%` }}>
+          {n}
+        </span>
+      ))}
     </div>
   );
 }

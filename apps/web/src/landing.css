@@ -66,10 +66,14 @@
 @media (max-width: 760px) { .two, .split { grid-template-columns: 1fr; } }
 
 /* ── the radar ──────────────────────────────────────────────────────────
-   Geometry in SVG, typography in a legend. Nothing here is positioned by a
-   percentage of a word's width, so nothing can hang off the edge of the panel. */
-.radar-wrap { display: grid; gap: 22px; justify-items: center; }
-.radar { position: relative; width: min(100%, 340px); aspect-ratio: 1; }
+   The dish is inset inside the panel so the names have somewhere to sit, and each
+   name is anchored by its outward edge — so a long one grows toward the middle and
+   can never reach the card's edge, which is how "SmartRecruiters" used to escape. */
+.radar { position: relative; width: min(100%, 460px); aspect-ratio: 1; margin: 0 auto; }
+
+/* The dish fills most of the panel; the names ride just outside its middle ring and overlap
+   the outer one, which is what makes them read as part of the sweep. */
+.radar-dish-wrap { position: absolute; inset: 8%; }
 .radar-dish { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .radar-dish .rings { fill: none; stroke: #1a2233; stroke-width: 1; }
 .radar-dish .rings path { stroke: #141b29; }
@@ -78,12 +82,14 @@
 .radar-dish .blip.on .dot { fill: #fff; }
 .radar-dish .blip.on .halo { opacity: .22; }
 
+/* Clipped to the dish: the sweep used to spill past the outermost ring. */
 .radar .sweep {
-  position: absolute; inset: 4%; border-radius: 50%;
+  position: absolute; inset: 4%; border-radius: 50%; overflow: hidden;
   background: conic-gradient(from 0deg, rgba(47,107,255,.34), rgba(47,107,255,.07) 34deg, transparent 88deg);
   animation: spin 7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
 /* Physical offsets on purpose: the dish is LTR geometry, and `translate` does not flip
    with direction — anchoring this logically would push the mark off-centre in Arabic. */
 .radar-core {
@@ -91,23 +97,21 @@
   filter: drop-shadow(0 10px 26px rgba(47,107,255,.55));
 }
 
-.radar-legend {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
-  margin: 0; padding: 0; list-style: none;
-}
-.radar-legend li {
-  display: inline-flex; align-items: center; gap: 7px;
+.ats {
+  position: absolute;
+  /* Physical, like .radar-core: the dish is LTR geometry and must not flip in Arabic. */
+  translate: -50% -50%;
   padding: 7px 13px; border-radius: 999px;
   background: #11161f; border: 1px solid var(--line);
   color: var(--dim); font-size: 13px; font-weight: 700; white-space: nowrap;
   transition: background .35s ease, border-color .35s ease, color .35s ease;
 }
-.radar-legend li i {
-  width: 7px; height: 7px; border-radius: 50%; background: #3d4a78; flex: none;
-  transition: background .35s ease;
+.ats.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* Narrow screens: the panel shrinks but the words do not, so the type does. */
+@media (max-width: 560px) {
+  .ats { font-size: 11px; padding: 5px 9px; }
 }
-.radar-legend li.on { background: var(--blue); border-color: var(--blue); color: #fff; }
-.radar-legend li.on i { background: #fff; }
 
 /* ── score bars ───────────────────────────────────────────────────────── */
 .bar-row { margin-top: 18px; }
