@@ -1,0 +1,55 @@
+<!-- Supabase → Authentication → Email Templates → Magic Link (and Confirm signup).
+     Both carry the link and the code: the link is one tap on a laptop, the code is what
+     keeps a phone in the browser it started in instead of handing the session to the mail
+     app's own browser. Table layout and inline styles because mail clients discard the rest. -->
+<div dir="rtl" lang="ar" style="margin:0;padding:0;background:#f4f6fb;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:28px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;border:1px solid #e3e8f2;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,Arial,sans-serif;">
+
+        <tr><td style="background:#2f6bff;padding:22px 26px;">
+          <span style="display:inline-block;width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.22);vertical-align:middle;"></span>
+          <span style="color:#ffffff;font-size:19px;font-weight:800;vertical-align:middle;padding-right:10px;">قدّم</span>
+        </td></tr>
+
+        <tr><td style="padding:28px 26px 8px;">
+          <h1 style="margin:0 0 10px;font-size:21px;font-weight:800;color:#0b1020;">رابط دخولك</h1>
+          <p style="margin:0;font-size:15px;line-height:1.8;color:#4a5570;">
+            اضغط الزر لتدخل إلى حسابك. الرابط صالح ساعة واحدة ويُستعمل مرة واحدة.
+          </p>
+        </td></tr>
+
+        <tr><td style="padding:20px 26px 6px;" align="center">
+          <a href="{{ .ConfirmationURL }}"
+             style="display:inline-block;background:#2f6bff;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 34px;border-radius:999px;">
+            ادخل إلى قدّم
+          </a>
+        </td></tr>
+
+        <tr><td style="padding:18px 26px 4px;">
+          <p style="margin:0 0 8px;font-size:14px;line-height:1.8;color:#4a5570;">
+            فتحت هذه الرسالة على جوالك؟ اكتب هذا الرمز في الصفحة التي بدأت منها، فتبقى في متصفحك:
+          </p>
+          <div dir="ltr" style="text-align:center;font-size:30px;font-weight:800;letter-spacing:.32em;color:#0b1020;background:#f4f6fb;border:1px solid #e3e8f2;border-radius:12px;padding:14px 10px;margin:4px 0 2px;">
+            {{ .Token }}
+          </div>
+        </td></tr>
+
+        <tr><td style="padding:16px 26px 26px;">
+          <p style="margin:0 0 10px;font-size:13px;line-height:1.8;color:#7a849c;">
+            لم تطلب هذه الرسالة؟ تجاهلها — لن يدخل أحد إلى حسابك بها.
+          </p>
+          <p style="margin:0;font-size:13px;line-height:1.8;color:#7a849c;">
+            لا يعمل الزر؟ انسخ هذا العنوان والصقه في متصفحك:<br>
+            <span dir="ltr" style="word-break:break-all;color:#2f6bff;">{{ .ConfirmationURL }}</span>
+          </p>
+        </td></tr>
+
+        <tr><td style="border-top:1px solid #e3e8f2;padding:16px 26px;background:#fbfcfe;">
+          <p style="margin:0;font-size:12px;color:#8b94a9;">قدّم · وظائف جديدة في السعودية والمنطقة</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</div>
