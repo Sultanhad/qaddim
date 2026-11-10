@@ -632,6 +632,7 @@ function Settings({ user, profile, onDone }) {
     auto_apply: profile.auto_apply ?? false,
     auto_submit: profile.auto_submit ?? false,
     auto_queue: profile.auto_queue ?? false,
+    skip_first_three: profile.skip_first_three ?? false,
     auto_queue_above: profile.auto_queue_above ?? 75,
     daily_cap: profile.daily_cap ?? 20,
     exclude_title_words: (profile.exclude_title_words ?? []).join('، '),
@@ -760,6 +761,15 @@ function Settings({ user, profile, onDone }) {
             <label htmlFor="cap" style={{ marginTop: 10 }}>أكثر عدد في اليوم — {form.daily_cap}</label>
             <input id="cap" type="range" min="1" max="40" step="1" value={form.daily_cap}
               onChange={(e) => set('daily_cap', Number(e.target.value))} />
+
+            <label style={{ marginTop: 12 }}>
+              <input type="checkbox" checked={form.skip_first_three}
+                onChange={(e) => set('skip_first_three', e.target.checked)} /> أرسل من أول طلب
+            </label>
+            <p className="hint">
+              افتراضاً تُعبَّأ أول ثلاثة وتُترك لك لتراها بعينك قبل أن تخرج باسمك. فعّل هذا
+              وتُرسل من الأول — ويبقى السقف اليومي وواحد لكل شركة أسبوعياً كما هما.
+            </p>
 
             <hr className="rule" />
 
@@ -1158,7 +1168,7 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 /** What the robot is doing right now, in the user's own words. */
 function RunBar({ stats }) {
   if (!stats) return null;
-  const { queued, sent_today, cap, approved, auto_submit, submitting, auto_today } = stats;
+  const { queued, sent_today, cap, approved, auto_submit, submitting, auto_today, skipped_gate } = stats;
   return (
     <div className="runbar">
       <span><b>{sent_today}</b> من {cap} أُرسلت اليوم</span>
