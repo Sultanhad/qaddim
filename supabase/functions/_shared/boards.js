@@ -20,6 +20,7 @@ export const BOARDS = [
   { system: 'recruitee', slug: 'unifonic', label: 'Unifonic' },
   { system: 'smartrecruiters', slug: 'almosafer', label: 'Almosafer' },
   { system: 'smartrecruiters', slug: 'seera', label: 'Seera Group' },
+  { system: 'workable', slug: 'morni', label: 'Morni' },
 
   // ── United Arab Emirates ──────────────────────────────────────────────────
   { system: 'lever', slug: 'aldar', label: 'Aldar' },
@@ -31,6 +32,7 @@ export const BOARDS = [
   { system: 'workable', slug: 'robusta', label: 'Robusta' },
   { system: 'ashby', slug: 'thndr', label: 'Thndr' },
   { system: 'workable', slug: 'tamatem', label: 'Tamatem' },
+  { system: 'recruitee', slug: 'sahl', label: 'Sahl' },
   { system: 'lever', slug: 'incorta', label: 'Incorta' },
 
   // ── Global employers that post real jobs in the region ────────────────────

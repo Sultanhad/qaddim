@@ -19,8 +19,58 @@ export const ALLOWED_HOSTS = [
  * `evil.com.recruitee.com.attacker.net` cannot slip through, and no userinfo or port.
  */
 export const ALLOWED_HOST_SUFFIXES = [
-  { suffix: '.recruitee.com', slug: /^[a-z0-9][a-z0-9-]{0,62}$/ }
+  { suffix: '.recruitee.com', slug: /^[a-z0-9][a-z0-9-]{0,62}$/ },
+  // Workday gives every customer a host under a numbered data centre: acme.wd3.myworkdayjobs.com
+  { suffix: '.myworkdayjobs.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.wd\d{1,2}$/ }
 ];
+
+/**
+ * The one place a search query may be POSTed, and the only shape it may take.
+ *
+ * The rule here has always been that this package can never send anything on anyone's behalf.
+ * Workday publishes its job search as a POST — the query travels in the body rather than the
+ * query string — so keeping to GET would mean giving up every large employer in the region,
+ * which is most of the ones a Saudi job seeker wants.
+ *
+ * The guarantee is therefore stated by what it protects rather than by the verb: this package
+ * may POST a *job search* to a Workday careers host, and nothing else, anywhere. The body is
+ * built here from three numbers and a string; it is never passed through from a caller, so
+ * there is no path by which an application, a form, or any other payload could leave.
+ */
+const SEARCH_POST = { suffix: '.myworkdayjobs.com', path: /^\/wday\/cxs\/[^/]+\/[^/]+\/jobs$/ };
+
+export function searchPostAllowed(url) {
+  let u;
+  try { u = new URL(String(url)); } catch { return false; }
+  if (u.protocol !== 'https:') return false;
+  const host = u.hostname.toLowerCase();
+  if (!host.endsWith(SEARCH_POST.suffix)) return false;
+  const left = host.slice(0, -SEARCH_POST.suffix.length);
+  if (!/^[a-z0-9][a-z0-9-]{0,62}\.wd\d{1,2}$/.test(left)) return false;
+  return SEARCH_POST.path.test(u.pathname);
+}
+
+/** A job search, and only a job search. The body is built here; callers pass no body. */
+export async function searchJson(url, { limit = 20, offset = 0, searchText = '' } = {}, { fetchImpl = fetch, timeoutMs = 20000 } = {}) {
+  if (!searchPostAllowed(url)) throw new BlockedHost(`Not a job-search endpoint: ${url}`);
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(url, {
+      method: 'POST', signal: ctrl?.signal,
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      // Three numbers and a string. Nothing a caller supplies reaches this object.
+      body: JSON.stringify({
+        appliedFacets: {},
+        limit: Math.min(Math.max(1, limit | 0), 20),
+        offset: Math.max(0, offset | 0),
+        searchText: String(searchText).slice(0, 80)
+      })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).hostname}`);
+    return await res.json();
+  } finally { if (timer) clearTimeout(timer); }
+}
 
 export function hostAllowed(host) {
   if (ALLOWED_HOSTS.includes(host)) return true;
@@ -162,6 +212,51 @@ const ADAPTERS = {
     });
   },
 
+  /**
+   * Workday. `slug` is "tenant.wdN/siteName" — the host and the careers site, which are
+   * separate things and both needed: alfanar.wd3 plus alfanar_Careers.
+   *
+   * The search gives a title, a location string and a path; everything else — the description,
+   * the country, the requisition id, the real apply URL — comes from the job's own page over
+   * GET. That is a request per job, so the number of pages read is capped.
+   */
+  async workday(slug, opts) {
+    const [tenantHost, site] = String(slug).split('/');
+    if (!tenantHost || !site) throw new Error(`workday slug must be "tenant.wdN/site": ${slug}`);
+    const base = `https://${tenantHost}.myworkdayjobs.com/wday/cxs/${encodeURIComponent(tenantHost.split('.')[0])}/${encodeURIComponent(site)}`;
+
+    const wanted = opts?.maxJobs ?? 60;
+    const found = [];
+    for (let offset = 0; offset < wanted; offset += 20) {
+      const page = await searchJson(`${base}/jobs`, { limit: 20, offset }, opts);
+      const batch = page?.jobPostings ?? [];
+      found.push(...batch);
+      if (batch.length < 20 || found.length >= (page?.total ?? 0)) break;
+    }
+
+    const out = [];
+    for (const x of found.slice(0, wanted)) {
+      const path = String(x.externalPath || '');
+      if (!path) continue;
+      let info = {};
+      try {
+        const detail = await getJson(base + path, opts);
+        info = detail?.jobPostingInfo ?? {};
+      } catch { /* a job whose page will not load is still a job; keep what the search gave */ }
+      const places = [info.location, ...(info.additionalLocations || [])].filter(Boolean);
+      out.push(raw({
+        source: `workday:${slug}`, source_job_id: info.jobReqId || info.id || path.split('/').pop(),
+        title: info.title || x.title, company: opts?.label || tenantHost.split('.')[0],
+        location: places.length ? places.join('; ') : (x.locationsText || ''),
+        arrangement: /remote/i.test(places.join(' ') + ' ' + (x.locationsText || '')) ? 'Remote' : null,
+        description: stripHtml(info.jobDescription || ''),
+        url: info.externalUrl || `https://${tenantHost}.myworkdayjobs.com/${encodeURIComponent(site)}${path}`,
+        published_at: info.startDate || info.postedOn || null, salary: ''
+      }));
+    }
+    return out;
+  },
+
   async smartrecruiters(slug, opts) {
     const country = opts?.country || 'sa';
     const j = await getJson(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?country=${country}&limit=100`, opts);
@@ -248,6 +343,8 @@ export function probeUrlFor(job) {
     // Recruitee hosts postings on the employer's own domain (jobs.unifonic.com), which is
     // nowhere we are allowed to go — but its API lives under the tenant we already read.
     case 'recruitee':  return `https://${encodeURIComponent(slug)}.recruitee.com/api/offers/${encodeURIComponent(id)}`;
+    // Workday's job page answers 404 once a requisition closes.
+    case 'workday':    return job.url || null;
     // Ashby and SmartRecruiters 404 honestly on their own posting pages.
     case 'ashby':
     case 'smartrecruiters': return job.url || null;

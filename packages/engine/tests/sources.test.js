@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -134,6 +134,43 @@ check('Links', 'A network failure decides nothing',
 check('Links', 'An unlisted host is skipped, not failed',
   (await checkLink('https://elsewhere.test/x', { fetchImpl: fake(404) })).ok === null);
 
+// ── the one POST this package may make ──────────────────────────────────────
+// Workday publishes job search as a POST, so the rule is stated by what it protects rather
+// than by the verb: a job search, to a Workday careers host, and nothing else anywhere. These
+// are the ways someone would try to widen that.
+check('Safety', 'A Workday job search is allowed',
+  searchPostAllowed('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/Site/jobs'));
+check('Safety', 'Another path on the same host is refused',
+  !searchPostAllowed('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/Site/apply'));
+check('Safety', 'A job detail path is refused for POST',
+  !searchPostAllowed('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/Site/jobs/US/x_JR1'));
+check('Safety', 'A path that merely ends in /jobs elsewhere is refused',
+  !searchPostAllowed('https://nvidia.wd5.myworkdayjobs.com/anything/jobs'));
+check('Safety', 'A look-alike host is refused',
+  !searchPostAllowed('https://myworkdayjobs.com.attacker.net/wday/cxs/a/b/jobs'));
+check('Safety', 'A tenant without a data-centre segment is refused',
+  !searchPostAllowed('https://nvidia.myworkdayjobs.com/wday/cxs/nvidia/Site/jobs'));
+check('Safety', 'Plain http is refused',
+  !searchPostAllowed('http://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/Site/jobs'));
+check('Safety', 'Every other host in the world is refused',
+  !searchPostAllowed('https://boards-api.greenhouse.io/v1/boards/x/jobs') &&
+  !searchPostAllowed('https://apply.workable.com/api/v1/accounts/x/jobs') &&
+  !searchPostAllowed('https://example.com/wday/cxs/a/b/jobs'));
+check('Safety', 'searchJson refuses anywhere else outright',
+  await searchJson('https://example.com/wday/cxs/a/b/jobs', {}, { fetchImpl: () => { throw new Error('must not be called'); } })
+    .then(() => false, (e) => e instanceof BlockedHost));
+
+// The body is built inside, from three numbers and a string — nothing a caller hands over
+// can become a payload, which is what stops this from ever submitting anything.
+let sentBody = null, sentMethod = null;
+await searchJson('https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/Site/jobs',
+  { limit: 9999, offset: -5, searchText: 'x'.repeat(500) },
+  { fetchImpl: (u, init) => { sentMethod = init.method; sentBody = JSON.parse(init.body); return Promise.resolve({ ok: true, status: 200, json: async () => ({}) }); } });
+check('Safety', 'It sends POST and only a search', sentMethod === 'POST' &&
+  Object.keys(sentBody).sort().join(',') === 'appliedFacets,limit,offset,searchText');
+check('Safety', 'Absurd paging is clamped, not passed through',
+  sentBody.limit === 20 && sentBody.offset === 0 && sentBody.searchText.length === 80);
+
 // The allowlist.
 let blocked = null;
 try { await getJson('https://api.openai.com/v1/chat', { fetchImpl }); } catch (e) { blocked = e; }
@@ -150,8 +187,20 @@ check('Safety', 'A host with a port is refused', !hostAllowed('x.recruitee.com:8
 check('Safety', 'Another vendor is still refused', !hostAllowed('api.example.com'));
 check('Safety', 'Only hiring-system hosts are allowed',
   ALLOWED_HOSTS.every((h) => /greenhouse|lever|ashby|workable|smartrecruiters/.test(h)));
-check('Safety', 'The adapters issue GET only',
-  !/method:\s*['"]?(POST|PUT|PATCH|DELETE)/i.test(await (await import('node:fs/promises')).readFile(new URL('../src/sources.js', import.meta.url), 'utf8')));
+// This used to assert "no POST appears in this file", which stopped being the right question
+// the day Workday was added — its job search is a POST. The property that actually matters is
+// that nothing here can write: the only non-GET in the file is the one search, and no adapter
+// builds a request method of its own.
+{
+  const src = await (await import('node:fs/promises')).readFile(new URL('../src/sources.js', import.meta.url), 'utf8');
+  const writes = src.match(/method:\s*['"]?(POST|PUT|PATCH|DELETE)/gi) || [];
+  check('Safety', 'Nothing in the reader writes', writes.length === 1 && /POST/i.test(writes[0]),
+    writes.join(', ') || 'none');
+  check('Safety', 'And that one POST lives in the search function',
+    /export async function searchJson[\s\S]*?method: 'POST'/.test(src));
+  check('Safety', 'No adapter chooses its own method',
+    !/ADAPTERS[\s\S]*method:\s*['"](POST|PUT|PATCH|DELETE)/i.test(src));
+}
 
 check('Places', 'Arabic city names are understood', placeOf('الرياض، السعودية').city === 'riyadh');
 check('Places', 'A country with no city still resolves', placeOf('Saudi Arabia').country === 'sa' && placeOf('Saudi Arabia').city === null);
