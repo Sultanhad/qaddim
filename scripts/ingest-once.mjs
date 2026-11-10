@@ -9,7 +9,7 @@
 import { readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
-import { fetchAll, fingerprintOf } from '../packages/engine/src/sources.js';
+import { fetchAll, fingerprintOf, checkLink } from '../packages/engine/src/sources.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 
@@ -122,6 +122,31 @@ if (superseded.length) {
   await db.from('jobs').update({ is_open: false, ...(HAS_LIFECYCLE ? { status: 'closed', closed_at: now } : {}) })
     .in('id', superseded);
   console.log(`  ${superseded.length} superseded by a newer posting of the same role`);
+}
+
+// Is the posting still on the employer's page? A feed listing it is not evidence — boards
+// keep advertising roles whose pages have gone. Oldest unchecked first, a bounded slice per
+// run so a sweep stays short, and only an outright 404/410 closes anything.
+if (HAS_LIFECYCLE) {
+  const PER_RUN = 120;
+  const { data: due } = await db.from('jobs')
+    .select('id, url, source, source_job_id, checked_at')
+    .eq('is_open', true)
+    .order('checked_at', { ascending: true, nullsFirst: true })
+    .limit(PER_RUN);
+
+  let gone = 0, checked = 0, unknown = 0;
+  for (const j of due ?? []) {
+    const r = await checkLink(j);
+    if (r.ok === null) { unknown++; continue; }          // a timeout decides nothing
+    checked++;
+    const patch = { checked_at: now, check_status: r.status };
+    if (r.ok) Object.assign(patch, { status: 'verified', verified_at: now });
+    else { Object.assign(patch, { is_open: false, status: 'rejected', closed_at: now }); gone++; }
+    await db.from('jobs').update(patch).eq('id', j.id);
+    await new Promise((r2) => setTimeout(r2, 120));      // be a polite visitor
+  }
+  console.log(`  links: ${checked} checked, ${gone} gone, ${unknown} no answer`);
 }
 
 const { data: profiles } = await db.from('profiles').select('*').eq('onboarded', true);

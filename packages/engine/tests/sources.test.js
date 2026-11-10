@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -94,6 +94,45 @@ check('Dedup', 'Different roles stay different',
   fp('Data Analyst', 'Mozn', 'riyadh') !== fp('Data Engineer', 'Mozn', 'riyadh'));
 check('Dedup', 'The same role in another city stays separate',
   fp('Data Analyst', 'Mozn', 'riyadh') !== fp('Data Analyst', 'Mozn', 'jeddah'));
+
+// Link checking reaches employer pages, which is a different set of hosts from the feed APIs.
+check('Safety', 'A board posting page is checkable', linkHostAllowed('https://jobs.lever.co/aldar/abc'));
+check('Safety', 'A Recruitee tenant is checkable', linkHostAllowed('https://unifonic.recruitee.com/o/x'));
+check('Safety', 'Somewhere else is not checked', !linkHostAllowed('https://evil.example.com/x'));
+check('Safety', 'A look-alike is not checked', !linkHostAllowed('https://jobs.lever.co.attacker.net/x'));
+check('Safety', 'Rubbish is not checked', !linkHostAllowed('not a url'));
+
+// Greenhouse and Workable serve a "not found" page with status 200, so the page cannot be
+// the question. Each board's own API is asked instead.
+check('Links', 'Greenhouse is asked through its API, not its page',
+  probeUrlFor({ source: 'greenhouse:tamara', source_job_id: '42', url: 'https://job-boards.greenhouse.io/tamara/jobs/42' })
+    === 'https://boards-api.greenhouse.io/v1/boards/tamara/jobs/42');
+check('Links', 'Workable too',
+  probeUrlFor({ source: 'workable:salla', source_job_id: 'ABC', url: 'https://apply.workable.com/salla/j/ABC/' })
+    === 'https://apply.workable.com/api/v1/accounts/salla/jobs/ABC');
+check('Links', 'Ashby answers honestly on its own page',
+  probeUrlFor({ source: 'ashby:leantech', source_job_id: 'x', url: 'https://jobs.ashbyhq.com/leantech/x' })
+    === 'https://jobs.ashbyhq.com/leantech/x');
+check('Links', 'Recruitee is asked at its tenant, not the employer domain',
+  probeUrlFor({ source: 'recruitee:unifonic', source_job_id: '2765217', url: 'https://jobs.unifonic.com/o/x' })
+    === 'https://unifonic.recruitee.com/api/offers/2765217');
+check('Links', 'A job with no source id cannot be asked about',
+  probeUrlFor({ source: 'greenhouse:tamara', source_job_id: '' }) === null);
+
+// 404 means gone; a timeout means we do not know, and must not close a live job.
+const fake = (status) => () => Promise.resolve({ status });
+check('Links', 'A 404 marks the posting gone',
+  (await checkLink('https://jobs.lever.co/x/1', { fetchImpl: fake(404) })).ok === false);
+check('Links', 'A 410 marks it gone too',
+  (await checkLink('https://jobs.lever.co/x/1', { fetchImpl: fake(410) })).ok === false);
+check('Links', 'A 200 keeps it',
+  (await checkLink('https://jobs.lever.co/x/1', { fetchImpl: fake(200) })).ok === true);
+check('Links', 'A server error is not an answer',
+  (await checkLink('https://jobs.lever.co/x/1', { fetchImpl: fake(500) })).ok === true);
+check('Links', 'A network failure decides nothing',
+  (await checkLink('https://jobs.lever.co/x/1', { fetchImpl: () => Promise.reject(new Error('boom')) })).ok === null);
+check('Links', 'An unlisted host is skipped, not failed',
+  (await checkLink('https://elsewhere.test/x', { fetchImpl: fake(404) })).ok === null);
 
 // The allowlist.
 let blocked = null;

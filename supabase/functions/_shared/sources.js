@@ -207,6 +207,82 @@ export function fingerprintOf(job) {
   return [title, company, job.city || ''].join('|');
 }
 
+/**
+ * Hosts a job link may point at — the public posting pages of the boards we read.
+ *
+ * Separate from ALLOWED_HOSTS, which guards the feed APIs. Checking whether a posting is
+ * still there means fetching the employer's own page, and that is a different set of hosts;
+ * listing them keeps the checker from wandering anywhere a feed happens to link to.
+ */
+export const LINK_HOSTS = [
+  'apply.workable.com', 'jobs.lever.co', 'jobs.ashbyhq.com',
+  'boards.greenhouse.io', 'job-boards.greenhouse.io', 'job-boards.eu.greenhouse.io',
+  'jobs.smartrecruiters.com', 'careers.smartrecruiters.com'
+];
+
+export function linkHostAllowed(url) {
+  let host;
+  try { host = new URL(String(url)).hostname.toLowerCase(); } catch { return false; }
+  if (LINK_HOSTS.includes(host)) return true;
+  // Recruitee gives each customer a host, and lets them put it on their own domain.
+  return ALLOWED_HOST_SUFFIXES.some(({ suffix, slug }) =>
+    host.endsWith(suffix) && slug.test(host.slice(0, -suffix.length)));
+}
+
+/**
+ * Where to ask whether one posting still exists.
+ *
+ * Not its public page: Greenhouse and Workable both answer 200 for a job id that was never
+ * real, serving a "not found" page with a success status — so a page check reports every dead
+ * Greenhouse job as alive. Each board's API answers 404 properly, and those are the hosts the
+ * reader is already allowed to talk to.
+ */
+export function probeUrlFor(job) {
+  const [system, slug] = String(job.source || '').split(':');
+  const id = String(job.source_job_id || '').trim();
+  if (!slug || !id) return null;
+  switch (system) {
+    case 'greenhouse': return `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`;
+    case 'workable':   return `https://apply.workable.com/api/v1/accounts/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(id)}`;
+    case 'lever':      return `https://api.lever.co/v0/postings/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`;
+    // Recruitee hosts postings on the employer's own domain (jobs.unifonic.com), which is
+    // nowhere we are allowed to go — but its API lives under the tenant we already read.
+    case 'recruitee':  return `https://${encodeURIComponent(slug)}.recruitee.com/api/offers/${encodeURIComponent(id)}`;
+    // Ashby and SmartRecruiters 404 honestly on their own posting pages.
+    case 'ashby':
+    case 'smartrecruiters': return job.url || null;
+    default: return null;
+  }
+}
+
+/**
+ * Is this posting still there?
+ *
+ * A feed can keep listing a job after the page behind it is gone, so "we fetched the feed"
+ * was never evidence that it exists. GET only. A timeout or a 500 decides nothing — closing a
+ * live job because a server hiccuped is the worse mistake — so only 404 and 410 mean gone.
+ */
+export async function checkLink(job, { fetchImpl = fetch, timeoutMs = 12000 } = {}) {
+  const target = typeof job === 'string' ? job : probeUrlFor(job);
+  if (!target) return { ok: null, status: 0, reason: 'no way to ask' };
+  if (!linkHostAllowed(target) && !hostAllowed(hostOf(target))) {
+    return { ok: null, status: 0, reason: 'host not checked' };
+  }
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(target, {
+      method: 'GET', redirect: 'follow', signal: ctrl?.signal,
+      headers: { accept: 'application/json, text/html', 'user-agent': 'QaddimLinkCheck/1.0 (+https://qaddim.netlify.app)' }
+    });
+    return { ok: res.status !== 404 && res.status !== 410, status: res.status, reason: '' };
+  } catch (e) {
+    return { ok: null, status: 0, reason: String(e?.name || e).slice(0, 60) };
+  } finally { if (timer) clearTimeout(timer); }
+}
+
+const hostOf = (url) => { try { return new URL(String(url)).hostname.toLowerCase(); } catch { return ''; } };
+
 /** The countries this board serves. */
 export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
 
