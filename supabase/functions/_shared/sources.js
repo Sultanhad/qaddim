@@ -225,13 +225,23 @@ const ADAPTERS = {
     if (!tenantHost || !site) throw new Error(`workday slug must be "tenant.wdN/site": ${slug}`);
     const base = `https://${tenantHost}.myworkdayjobs.com/wday/cxs/${encodeURIComponent(tenantHost.split('.')[0])}/${encodeURIComponent(site)}`;
 
-    const wanted = opts?.maxJobs ?? 60;
-    const found = [];
-    for (let offset = 0; offset < wanted; offset += 20) {
-      const page = await searchJson(`${base}/jobs`, { limit: 20, offset }, opts);
-      const batch = page?.jobPostings ?? [];
-      found.push(...batch);
-      if (batch.length < 20 || found.length >= (page?.total ?? 0)) break;
+    // A global employer's board holds thousands of jobs and a handful in this region. Reading
+    // all of them to find those few is pointless and rude; Workday's own search filters by
+    // place, so it is asked once per region term instead. Cisco: 1,479 postings → one query
+    // for "Saudi" returns 10, eight of them actually here.
+    const terms = opts?.searchTerms ?? ['Saudi Arabia', 'Riyadh', 'Jeddah', 'Dubai', 'Doha', 'Egypt', 'Jordan'];
+    const wanted = opts?.maxJobs ?? 80;
+    const found = [], seenPaths = new Set();
+    for (const term of terms) {
+      for (let offset = 0; offset < 40 && found.length < wanted; offset += 20) {
+        const page = await searchJson(`${base}/jobs`, { limit: 20, offset, searchText: term }, opts);
+        const batch = page?.jobPostings ?? [];
+        for (const x of batch) {
+          if (x.externalPath && !seenPaths.has(x.externalPath)) { seenPaths.add(x.externalPath); found.push(x); }
+        }
+        if (batch.length < 20) break;
+      }
+      if (found.length >= wanted) break;
     }
 
     const out = [];

@@ -35,6 +35,44 @@ export const BOARDS = [
   { system: 'recruitee', slug: 'sahl', label: 'Sahl' },
   { system: 'lever', slug: 'incorta', label: 'Incorta' },
 
+
+  // ── Added 10 Nov 2026, after a sector-by-sector search of the Saudi market. Each was
+  // fetched before being listed; the count beside it is how many of its postings were in
+  // this region at that moment.
+  { system: 'workable', slug: 'rotana-hotels', label: 'Rotana Hotels & Resorts' },
+  { system: 'workable', slug: 'capitex', label: 'Capitex' },
+  { system: 'workable', slug: 'sihamco', label: 'SIHAMCO' },
+  { system: 'greenhouse', slug: 'alpaca', label: 'Alpaca' },
+  { system: 'greenhouse', slug: 'datadog', label: 'Datadog' },
+  { system: 'greenhouse', slug: 'purestorage', label: 'Pure Storage' },
+  { system: 'workable', slug: 'webook', label: 'webook' },
+  { system: 'workable', slug: 'khibraty', label: 'Khibraty' },
+  { system: 'workable', slug: 'zaintech', label: 'ZainTECH' },
+  { system: 'greenhouse', slug: 'scaleai', label: 'Scale AI' },
+  { system: 'workable', slug: 'ultimate-peaks', label: 'Ultimate Peaks' },
+  { system: 'greenhouse', slug: 'elastic', label: 'Elastic' },
+  { system: 'greenhouse', slug: 'strategyandmiddleeast', label: 'Strategy& Middle East' },
+  { system: 'smartrecruiters', slug: 'RolandBerger', label: 'Roland Berger' },
+  { system: 'workable', slug: 'gathern', label: 'Gathern' },
+  { system: 'smartrecruiters', slug: 'RHG', label: 'Radisson Hotel Group' },
+  { system: 'workable', slug: 'baraka-investment', label: 'Baraka Investment' },
+  { system: 'greenhouse', slug: 'teneo', label: 'Teneo' },
+  { system: 'smartrecruiters', slug: 'QualityEducationCompany', label: 'Quality Education Company' },
+  { system: 'workable', slug: 'alwatania-information-systems', label: 'Al-Watania Information Systems' },
+
+  // ── Workday tenants ───────────────────────────────────────────────────────
+  // The large employers live here. Each is asked by region rather than read whole: Cisco
+  // lists 1,479 postings and eight of them are in Saudi Arabia.
+  { system: 'workday', slug: 'slihrms.wd3/Careers', label: 'AtkinsRéalis' },
+  { system: 'workday', slug: 'visa.wd5/Visa', label: 'Visa' },
+  { system: 'workday', slug: 'jll.wd1/jllcareers', label: 'JLL' },
+  { system: 'workday', slug: 'cisco.wd5/Cisco_Careers', label: 'Cisco' },
+  { system: 'workday', slug: 'bdx.wd1/EXTERNAL_CAREER_SITE_SAUDI_ARABIA', label: 'BD' },
+  { system: 'workday', slug: 'mastercard.wd1/CorporateCareers', label: 'Mastercard' },
+  { system: 'workday', slug: 'snapchat.wd1/snap', label: 'Snap' },
+  { system: 'workday', slug: 'wwecorp.wd5/IMG', label: 'IMG' },
+  { system: 'workday', slug: 'vanderlande.wd3/careers', label: 'Vanderlande' },
+
   // ── Global employers that post real jobs in the region ────────────────────
   { system: 'greenhouse', slug: 'binance', label: 'Binance' },
   { system: 'greenhouse', slug: 'okx', label: 'OKX' },
