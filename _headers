@@ -1,0 +1,11 @@
+# Netlify reads this from the deployed folder. The page talks to Supabase and nothing else.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# Hashed file names, so these can never be the stale ones.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

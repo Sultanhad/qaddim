@@ -1,0 +1,3 @@
+# A public job board: everything here is meant to be found.
+User-agent: *
+Allow: /
