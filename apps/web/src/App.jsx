@@ -125,6 +125,12 @@ export default function App() {
   }, []);
 
   const [profileError, setProfileError] = useState('');
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    const shut = () => setMenu(false);
+    addEventListener('hashchange', shut);
+    return () => removeEventListener('hashchange', shut);
+  }, []);
 
   function loadProfile() {
     if (!session?.user) { setProfile(null); return; }
@@ -150,11 +156,34 @@ export default function App() {
     return () => { el.lang = before.lang; el.dir = before.dir; if (before.theme) el.dataset.theme = before.theme; };
   }, [session?.user?.id]);
 
-  if (route === 'privacy') return <Privacy />;
-  if (route === 'help') return <Help />;
   // Between the click in the email and the session arriving, say so. Showing the sign-in
   // form in that gap reads as "your link did not work".
   const linkError = back.state === 'error' ? back.message : undefined;
+
+  // The privacy notice and the extension guide are readable signed in or out — but signed in
+  // they used to drop you onto a bare page with no bar and no tabs, which reads as having
+  // left the product. They now sit inside the same shell as everything else.
+  if (route === 'privacy' || route === 'help') {
+    const docTitle = route === 'privacy' ? 'الخصوصية' : 'التقديم التلقائي';
+    if (!session?.user) {
+      return (
+        <>
+          <DocBar title={docTitle} />
+          <div className="wrap">{route === 'privacy' ? <Privacy /> : <Help />}</div>
+        </>
+      );
+    }
+    return (
+      <>
+        <AppBar title={docTitle} route={route} doc onMenu={() => setMenu(true)} />
+        <div className="wrap app-wrap">{route === 'privacy' ? <Privacy /> : <Help />}</div>
+        <TabBar route={route} />
+        <Drawer open={menu} onClose={() => setMenu(false)} route={route}
+          user={session.user} profile={profile} />
+      </>
+    );
+  }
+
   if (session === undefined) return back.state === 'signing' ? <SigningIn /> : <Landing loading authError={linkError} />;
   if (!session) return <Landing authError={linkError} />;
   if (profileError) {
@@ -179,7 +208,7 @@ export default function App() {
   const title = tab ? tab.title : L.today;
   return (
     <>
-      <AppBar title={title} route={route} user={session.user} profile={profile} />
+      <AppBar title={title} route={route} onMenu={() => setMenu(true)} />
       <div className="wrap app-wrap">
         {route === 'applications' ? <Applications user={session.user} profile={profile} onProfile={setProfile} />
           : route === 'profile' ? <ApplyProfile user={session.user} profile={profile} onDone={setProfile} />
@@ -187,6 +216,8 @@ export default function App() {
               : <Jobs user={session.user} profile={profile} onProfile={setProfile} />}
       </div>
       <TabBar route={route} />
+      <Drawer open={menu} onClose={() => setMenu(false)} route={route}
+        user={session.user} profile={profile} />
     </>
   );
 }
