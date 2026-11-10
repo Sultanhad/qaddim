@@ -9,27 +9,30 @@
 //   'apply' — no application can be sent without it. A form will reject you.
 //   'auto'  — the robot stops and asks you if it is blank; you can still apply by hand.
 //   none    — useful when asked, never blocking.
+//
+// `group` is the heading the full editor files the question under. Fourteen inputs in one
+// unbroken column is a form you abandon; three short blocks is a form you finish.
 
 export const APPLY_FIELDS = [
-  { key: 'full_name',              label: 'الاسم الكامل',          type: 'text',  need: 'apply', ph: 'كما في الهوية' },
-  { key: 'email_for_applications', label: 'البريد للتقديم',        type: 'email', need: 'apply', ph: 'you@example.com', dir: 'ltr' },
-  { key: 'phone',                  label: 'الجوال',                type: 'tel',   need: 'apply', ph: '05xxxxxxxx', dir: 'ltr' },
+  { key: 'full_name',              label: 'الاسم الكامل',          type: 'text',  need: 'apply', ph: 'كما في الهوية', group: 'من أنت' },
+  { key: 'email_for_applications', label: 'البريد للتقديم',        type: 'email', need: 'apply', ph: 'you@example.com', dir: 'ltr', group: 'من أنت' },
+  { key: 'phone',                  label: 'الجوال',                type: 'tel',   need: 'apply', ph: '05xxxxxxxx', dir: 'ltr', group: 'من أنت' },
 
-  { key: 'nationality',            label: 'الجنسية',               type: 'text',  need: 'auto',  ph: 'سعودي' },
-  { key: 'work_authorization',     label: 'وضعك النظامي للعمل',    type: 'select', need: 'auto',
+  { key: 'nationality',            label: 'الجنسية',               type: 'text',  need: 'auto',  ph: 'سعودي', group: 'وضعك الوظيفي' },
+  { key: 'work_authorization',     label: 'وضعك النظامي للعمل',    type: 'select', need: 'auto', group: 'وضعك الوظيفي',
     options: ['مواطن', 'إقامة قابلة للنقل', 'إقامة غير قابلة للنقل', 'أحتاج تأشيرة عمل'] },
-  { key: 'current_title',          label: 'مسمّاك الحالي',         type: 'text',  need: 'auto',  ph: 'محلل منتجات' },
-  { key: 'current_company',        label: 'جهة عملك الحالية',      type: 'text',  ph: 'أو اتركها فارغة إن كنت تبحث' },
-  { key: 'salary_expectation',     label: 'الراتب المتوقع',        type: 'text',  need: 'auto',  ph: '15500 ريال شهرياً' },
-  { key: 'current_salary',         label: 'راتبك الحالي',          type: 'text',  ph: 'يُسأل كثيراً — اتركه إن لم ترد' },
-  { key: 'notice_period',          label: 'متى تستطيع المباشرة',   type: 'select', need: 'auto',
+  { key: 'current_title',          label: 'مسمّاك الحالي',         type: 'text',  need: 'auto',  ph: 'محلل منتجات', group: 'وضعك الوظيفي' },
+  { key: 'current_company',        label: 'جهة عملك الحالية',      type: 'text',  ph: 'أو اتركها فارغة إن كنت تبحث', group: 'وضعك الوظيفي' },
+  { key: 'salary_expectation',     label: 'الراتب المتوقع',        type: 'text',  need: 'auto',  ph: '15500 ريال شهرياً', group: 'وضعك الوظيفي' },
+  { key: 'current_salary',         label: 'راتبك الحالي',          type: 'text',  ph: 'يُسأل كثيراً — اتركه إن لم ترد', group: 'وضعك الوظيفي' },
+  { key: 'notice_period',          label: 'متى تستطيع المباشرة',   type: 'select', need: 'auto', group: 'وضعك الوظيفي',
     options: ['فوراً', 'أسبوعان', 'شهر', 'شهران', 'ثلاثة أشهر'] },
 
-  { key: 'education_degree',       label: 'المؤهل',                type: 'select', need: 'auto',
+  { key: 'education_degree',       label: 'المؤهل',                type: 'select', need: 'auto', group: 'تعليمك وروابطك',
     options: ['ثانوية', 'دبلوم', 'بكالوريوس', 'ماجستير', 'دكتوراه'] },
-  { key: 'university',             label: 'الجامعة',               type: 'text',  ph: 'جامعة الملك سعود' },
-  { key: 'graduation_year',        label: 'سنة التخرج',            type: 'number', ph: '2025', dir: 'ltr' },
-  { key: 'linkedin_url',           label: 'لينكدإن',               type: 'url',   need: 'auto',  ph: 'https://linkedin.com/in/…', dir: 'ltr' }
+  { key: 'university',             label: 'الجامعة',               type: 'text',  ph: 'جامعة الملك سعود', group: 'تعليمك وروابطك' },
+  { key: 'graduation_year',        label: 'سنة التخرج',            type: 'number', ph: '2025', dir: 'ltr', group: 'تعليمك وروابطك' },
+  { key: 'linkedin_url',           label: 'لينكدإن',               type: 'url',   need: 'auto',  ph: 'https://linkedin.com/in/…', dir: 'ltr', group: 'تعليمك وروابطك' }
 ];
 
 const has = (profile, key) => String(profile?.[key] ?? '').trim() !== '';

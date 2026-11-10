@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
@@ -239,13 +239,14 @@ const TABS = [
   { id: 'settings', label: 'الضبط', title: 'الضبط', icon: 'settings' }
 ];
 
-function AppBar({ title, route, user, profile }) {
+function AppBar({ title, route, doc, onMenu }) {
   return (
-    <header className="appbar">
+    <header className={'appbar' + (doc ? ' appbar-doc' : '')}>
       <div className="appbar-inner">
         <a className="appbar-brand" href="#jobs" aria-label={L.brand}><Mark size={28} radius={9} /></a>
         {/* On a phone the bar says which screen you are on; on a wide one the highlighted
-            tab says it already, so the same space carries the name instead. */}
+            tab says it already, so the same space carries the name instead. A page that is
+            not one of the tabs keeps its title at every width — nothing else would name it. */}
         <h1 className="appbar-title">{title}</h1>
         <b className="appbar-word">{L.brand}</b>
         <nav className="appbar-tabs" aria-label="الأقسام">
@@ -255,50 +256,81 @@ function AppBar({ title, route, user, profile }) {
             </a>
           ))}
         </nav>
-        <AccountMenu user={user} profile={profile} />
+        {/* At the end of the bar, which in Arabic is the left — where the account control
+            was, and where a thumb on a phone already expects to find it. */}
+        <button type="button" className="burger" aria-label="القائمة" onClick={onMenu}>
+          <span /><span /><span />
+        </button>
       </div>
     </header>
   );
 }
 
-/** The account, and the way out of it — one tap from every screen. */
-function AccountMenu({ user, profile }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef(null);
+/** The privacy notice read by someone with no account still needs a way back. */
+function DocBar({ title }) {
+  return (
+    <header className="appbar appbar-doc">
+      <div className="appbar-inner">
+        <a className="appbar-brand" href="#" aria-label={L.brand}><Mark size={28} radius={9} /></a>
+        <h1 className="appbar-title">{title}</h1>
+        <a className="btn" href="#" style={{ margin: 0, marginInlineStart: 'auto' }}>رجوع</a>
+      </div>
+    </header>
+  );
+}
+
+/**
+ * Everything the four tabs do not hold: who you are signed in as, the two reference pages,
+ * and the way out. One panel, opened by one button, reachable from every screen — including
+ * the wide one, where the tabs along the top cover only the four.
+ */
+function Drawer({ open, onClose, route, user, profile }) {
   useEffect(() => {
     if (!open) return;
-    const away = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
-    const key = (e) => { if (e.key === 'Escape') setOpen(false); };
-    const hash = () => setOpen(false);
-    addEventListener('pointerdown', away);
+    const key = (e) => { if (e.key === 'Escape') onClose(); };
     addEventListener('keydown', key);
-    addEventListener('hashchange', hash);
-    return () => { removeEventListener('pointerdown', away); removeEventListener('keydown', key); removeEventListener('hashchange', hash); };
-  }, [open]);
+    // Scrolling the page behind an open panel is how a drawer feels broken.
+    const before = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { removeEventListener('keydown', key); document.body.style.overflow = before; };
+  }, [open, onClose]);
 
+  if (!open) return null;
   const name = profile?.full_name?.trim() || '';
   const letter = (name || user.email || '؟').trim()[0];
-  const shut = () => setOpen(false);
   return (
-    <div className="acct" ref={box}>
-      <button type="button" className="avatar" aria-haspopup="menu" aria-expanded={open}
-        aria-label="حسابك" onClick={() => setOpen((o) => !o)}>{letter}</button>
-      {open && (
-        <div className="menu" role="menu">
-          <p className="menu-id">
+    <>
+      <div className="scrim" onClick={onClose} />
+      <aside className="drawer" role="dialog" aria-modal="true" aria-label="القائمة">
+        <div className="drawer-head">
+          <span className="avatar" aria-hidden="true">{letter}</span>
+          <span className="drawer-who">
             {name && <b>{name}</b>}
             <span dir="ltr">{user.email}</span>
-          </p>
-          <a role="menuitem" href="#profile" onClick={shut}><Icon name="profile" size={18} />ملف التقديم</a>
-          <a role="menuitem" href="#settings" onClick={shut}><Icon name="settings" size={18} />الضبط</a>
-          <a role="menuitem" href="#help" onClick={shut}><Icon name="help" size={18} />كيف يشتغل</a>
-          <a role="menuitem" href="#privacy" onClick={shut}><Icon name="shield" size={18} />الخصوصية</a>
-          <hr />
-          <button type="button" role="menuitem" className="danger"
-            onClick={() => { shut(); supabase.auth.signOut(); }}><Icon name="out" size={18} />{L.signOut}</button>
+          </span>
+          <button type="button" className="drawer-x" aria-label="إغلاق" onClick={onClose}>✕</button>
         </div>
-      )}
-    </div>
+        <nav className="drawer-nav">
+          {TABS.map((t) => (
+            <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined} onClick={onClose}>
+              <Icon name={t.icon} size={19} />{t.title}
+            </a>
+          ))}
+          <hr />
+          <a href="#help" aria-current={route === 'help' ? 'page' : undefined} onClick={onClose}>
+            <Icon name="help" size={19} />كيف يشتغل
+          </a>
+          <a href="#privacy" aria-current={route === 'privacy' ? 'page' : undefined} onClick={onClose}>
+            <Icon name="shield" size={19} />الخصوصية
+          </a>
+          <hr />
+          <button type="button" className="danger"
+            onClick={() => { onClose(); supabase.auth.signOut(); }}>
+            <Icon name="out" size={19} />{L.signOut}
+          </button>
+        </nav>
+      </aside>
+    </>
   );
 }
 
@@ -326,50 +358,46 @@ function SigningIn() {
 function Help() {
   return (
     <>
-      <Hero title="التقديم التلقائي" eyebrow="قدّم" />
-      <div className="wrap">
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>لماذا يحتاج إضافة؟</h2>
-          <p className="muted">
-            كل نظام توظيف نقرأ منه — Greenhouse وLever وAshby وWorkable — يضع «تحقّق أنك لست روبوتاً» قبل الإرسال.
-            هذا الفحص لا يقيس ضغطتك، بل يقيس <b>المتصفح نفسه</b>: حركته، توقيته، تاريخه. أي متصفح يعمل على خادم يسقط فيه،
-            حتى لو ضغط إنسان المربع بيده — جرّبناه وفشل.
-          </p>
-          <p className="muted">
-            متصفحك أنت يمرّ، لأنه متصفح حقيقي. فالإضافة ليست حيلة للتحايل على الفحص — هي السبب في أننا لا نحتاج للتحايل عليه.
-          </p>
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>لماذا يحتاج إضافة؟</h2>
+        <p className="muted">
+          كل نظام توظيف نقرأ منه — Greenhouse وLever وAshby وWorkable — يضع «تحقّق أنك لست روبوتاً» قبل الإرسال.
+          هذا الفحص لا يقيس ضغطتك، بل يقيس <b>المتصفح نفسه</b>: حركته، توقيته، تاريخه. أي متصفح يعمل على خادم يسقط فيه،
+          حتى لو ضغط إنسان المربع بيده — جرّبناه وفشل.
+        </p>
+        <p className="muted">
+          متصفحك أنت يمرّ، لأنه متصفح حقيقي. فالإضافة ليست حيلة للتحايل على الفحص — هي السبب في أننا لا نحتاج للتحايل عليه.
+        </p>
 
-          <h2>التثبيت — مرة واحدة</h2>
-          <ol style={{ paddingInlineStart: 20, color: 'var(--dim)', lineHeight: 2 }}>
-            <li>افتح <span dir="ltr">chrome://extensions</span></li>
-            <li>فعّل <b>Developer mode</b> أعلى اليمين</li>
-            <li>اضغط <b>Load unpacked</b> واختر مجلد <span dir="ltr">extension</span></li>
-            <li>ارجع لهذه الصفحة — ستظهر «الإضافة متصلة»</li>
-          </ol>
+        <h2>التثبيت — مرة واحدة</h2>
+        <ol style={{ paddingInlineStart: 20, color: 'var(--dim)', lineHeight: 2 }}>
+          <li>افتح <span dir="ltr">chrome://extensions</span></li>
+          <li>فعّل <b>Developer mode</b> أعلى اليمين</li>
+          <li>اضغط <b>Load unpacked</b> واختر مجلد <span dir="ltr">extension</span></li>
+          <li>ارجع لهذه الصفحة — ستظهر «الإضافة متصلة»</li>
+        </ol>
 
-          <h2>كيف تشتغل</h2>
-          <p className="muted">
-            تضغط «يهمني» على وظيفة ← تدخل الطابور ← متصفحك يفتحها في تبويب خلفي، يعبّيها من ملفك، ويرسلها ← يقفل التبويب وينتقل للتالية.
-            بين كل وظيفة والتي تليها تسع ثوانٍ، وواحدة في كل مرة — لا دفعات.
-          </p>
-          <p className="muted">
-            <b style={{ color: 'var(--text)' }}>تتوقف عندك</b> إذا: ظهر سؤال إلزامي لم تجب عنه، أو تحدّتك الكابتشا فعلاً، أو طُلب ملف لا يمكن لأي إضافة رفعه.
-            عندها يفتح التبويب أمامك ويصلك إشعار بالسبب.
-          </p>
-          <p className="muted">
-            <b style={{ color: 'var(--text)' }}>لا تخترع شيئاً أبداً.</b> كل حرف تكتبه مصدره ملفك الذي كتبته بنفسك.
-          </p>
+        <h2>كيف تشتغل</h2>
+        <p className="muted">
+          تضغط «يهمني» على وظيفة ← تدخل الطابور ← متصفحك يفتحها في تبويب خلفي، يعبّيها من ملفك، ويرسلها ← يقفل التبويب وينتقل للتالية.
+          بين كل وظيفة والتي تليها تسع ثوانٍ، وواحدة في كل مرة — لا دفعات.
+        </p>
+        <p className="muted">
+          <b style={{ color: 'var(--text)' }}>تتوقف عندك</b> إذا: ظهر سؤال إلزامي لم تجب عنه، أو تحدّتك الكابتشا فعلاً، أو طُلب ملف لا يمكن لأي إضافة رفعه.
+          عندها يفتح التبويب أمامك ويصلك إشعار بالسبب.
+        </p>
+        <p className="muted">
+          <b style={{ color: 'var(--text)' }}>لا تخترع شيئاً أبداً.</b> كل حرف تكتبه مصدره ملفك الذي كتبته بنفسك.
+        </p>
 
-          <h2>قبل أن تطلقها</h2>
-          <p className="muted">
-            ابدأ والإرسال التلقائي <b>مطفأ</b> من أيقونة الإضافة: ستعبّي وتترك الزر لك، فترى بعينك ما سيُرسل باسمك.
-            وحين تطمئن، فعّله.
-          </p>
-          <p className="faint">
-            تنبيه: شروط استخدام معظم أنظمة التوظيف تمنع الإرسال الآلي. القرار قرارك، والحساب حسابك.
-          </p>
-        </div>
-        <nav className="nav"><a href="#jobs">عودة</a><a href="#profile">ملفي</a></nav>
+        <h2>قبل أن تطلقها</h2>
+        <p className="muted">
+          ابدأ والإرسال التلقائي <b>مطفأ</b> من أيقونة الإضافة: ستعبّي وتترك الزر لك، فترى بعينك ما سيُرسل باسمك.
+          وحين تطمئن، فعّله.
+        </p>
+        <p className="faint">
+          تنبيه: شروط استخدام معظم أنظمة التوظيف تمنع الإرسال الآلي. القرار قرارك، والحساب حسابك.
+        </p>
       </div>
     </>
   );
@@ -534,25 +562,63 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
 
       <div className="field">
         <label htmlFor="cv">سيرتك الذاتية</label>
-        <p className="hint">
-          تُحفظ في مجلد خاص بك لا يقرؤه أحد غيرك، وتُرسل كما هي.
-          {profile?.cv_path && <b style={{ color: 'var(--good)' }}> محفوظة ✓</b>}
-        </p>
-        <input id="cv" type="file" accept=".pdf,.doc,.docx" onChange={(e) => setCv(e.target.files?.[0] ?? null)} />
+        <p className="hint">تُحفظ في مجلد خاص بك لا يقرؤه أحد غيرك، وتُرسل كما هي.</p>
+        {/* The browser's own file button is a grey English box laid out left-to-right: the
+            one control on the page that belonged to no design at all. The input is still
+            the input — it is simply wearing the label. */}
+        <label className="filepick" htmlFor="cv">
+          <span className="filepick-btn">{cv || profile?.cv_path ? 'استبدلها' : 'اختر ملفاً'}</span>
+          <span className="filepick-name">
+            {cv ? cv.name
+              : profile?.cv_path ? <>محفوظة ✓ <span dir="ltr">{cvName(profile.cv_path)}</span></>
+                : 'ملف PDF أو Word، حتى ٥ ميغابايت'}
+          </span>
+          <input id="cv" type="file" accept=".pdf,.doc,.docx"
+            onChange={(e) => setCv(e.target.files?.[0] ?? null)} />
+        </label>
       </div>
 
-      {order.map((f, i) => {
-        const field = APPLY_FIELDS.find((x) => x.key === f.key) ?? f;
-        return <Field key={field.key} field={field} value={form[field.key]}
-          onChange={(v) => set(field.key, v)} autoFocus={compact && i === 0} />;
-      })}
+      {compact
+        ? order.map((f, i) => {
+          const field = APPLY_FIELDS.find((x) => x.key === f.key) ?? f;
+          return <Field key={field.key} field={field} value={form[field.key]}
+            onChange={(v) => set(field.key, v)} autoFocus={i === 0} />;
+        })
+        : GROUPS.map(([heading, fields]) => (
+          <section key={heading}>
+            <p className="group-h">{heading}</p>
+            {fields.map((field) => (
+              <Field key={field.key} field={field} value={form[field.key]}
+                onChange={(v) => set(field.key, v)} />
+            ))}
+          </section>
+        ))}
 
       {error && <Banner kind="bad">{error}</Banner>}
       {saved && <Banner kind="good">حُفظ ✓</Banner>}
-      <button className="btn btn-go btn-lg" disabled={busy}>{busy ? '…' : 'احفظ'}</button>
+      <div className="formbar">
+        <button className="btn btn-go btn-lg" disabled={busy}>{busy ? '…' : 'احفظ'}</button>
+        {!compact && <span className="faint">{r.canApply
+          ? 'ملفك يكفي للتقديم ✓'
+          : `ينقص: ${r.missingApply.slice(0, 2).map((f) => f.label).join('، ')}${r.missingApply.length > 2 ? ` +${r.missingApply.length - 2}` : ''}`}</span>}
+      </div>
     </form>
   );
 }
+
+/** The stored path is `<user>/<stamp>-<name>`; only the last part was ever the file. */
+function cvName(path) {
+  const base = String(path).split('/').pop() ?? '';
+  return base.replace(/^\d+-/, '');
+}
+
+// The editor's three blocks, in the order APPLY_FIELDS declares them.
+const GROUPS = APPLY_FIELDS.reduce((acc, f) => {
+  const g = f.group ?? 'غير ذلك';
+  const row = acc.find(([name]) => name === g);
+  if (row) row[1].push(f); else acc.push([g, [f]]);
+  return acc;
+}, []);
 
 // ───────────────────────────────────────────────────────────────── settings ──
 /** What you want to see, and how far the robot may go. Separate from who you are. */
@@ -722,7 +788,10 @@ function Settings({ user, profile, onDone }) {
         )}
 
         {saved && <Banner kind="good">حُفظ ✓</Banner>}
-        <button className="btn btn-go btn-lg" disabled={busy}>{busy ? '…' : 'احفظ'}</button>
+        <div className="formbar">
+          <button className="btn btn-go btn-lg" disabled={busy}>{busy ? '…' : 'احفظ'}</button>
+          {scored && <span className="faint">{shown} وظيفة بهذا الضبط</span>}
+        </div>
       </form>
 
       <DangerZone user={user} profile={profile} />
