@@ -229,8 +229,8 @@ var QaddimFields = (function () {
   }
 
   /**
-   * @param ctx  what is known beyond the label: the job's `country` (ISO code) and `company`,
-   *             and the control's input `type`.
+   * @param ctx  what is known beyond the label: the job's `id`, `country` (ISO code) and
+   *             `company`, and the control's input `type`.
    * @returns {{key,value,accept,source,why}|null} — value null means "cannot answer this honestly".
    */
   function answerFor(label, profile, ctx) {
@@ -257,6 +257,17 @@ var QaddimFields = (function () {
       if (!mine) continue;
       if (UNFINISHED.test(mine)) return { key: 'answers', value: null, source: own, why: 'إجابتك فيها فراغ لم تملأه' };
       return { key: 'answers', value: mine, accept: wording(mine, label).accept, source: own };
+    }
+
+    // An answer estimated for this one application, by the worker, for someone who asked for
+    // that (scripts/answer-questions.mjs). It is consulted only for the job it was written
+    // for, after the person's own words and before everything else — it exists precisely
+    // because everything else had no answer that fit.
+    var forJob = !byCountry && ctx && ctx.id && extra._for && extra._for[ctx.id];
+    if (forJob && forJob.answers) for (var est in forJob.answers) {
+      var e = forJob.answers[est];
+      if (norm(est) !== t || !e || !e.a) continue;
+      return { key: 'estimate', value: String(e.a), accept: wording(String(e.a), label).accept, source: 'estimate' };
     }
 
     if (byCountry) {

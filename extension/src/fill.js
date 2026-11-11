@@ -272,10 +272,14 @@
         continue;
       }
 
+      // What went into the form, and whether it was an estimate rather than the person's own
+      // answer — the record of what was said in their name has to be able to tell the two apart.
+      const done = (v) => report.filled.push(ans.source === 'estimate' ? { q, v, by: 'estimate' } : { q, v });
+
       if (kind === 'radio') {
         const pick = choose(item.els.map((r) => ({ node: r, text: labelOf(r) })), ans);
         if (!pick) leave('إجابتك ليست من الخيارات المعروضة', { options: await optionsOf(item) });
-        else if (check(pick)) report.filled.push({ q, v: ans.value });
+        else if (check(pick)) done(ans.value);
         else leave('الخيار لم يستجب للضغط', { manual: true });
         continue;
       }
@@ -284,18 +288,18 @@
         if (!opt) { leave('إجابتك ليست في القائمة', { options: await optionsOf(item) }); continue; }
         el.value = opt.value;
         el.dispatchEvent(new Event('change', { bubbles: true }));
-        report.filled.push({ q, v: ans.value });
+        done(ans.value);
         continue;
       }
       if (kind === 'combo') {
         const failed = await pickFrom(el, ans, profile);
-        if (failed.why) leave(failed.why, failed); else report.filled.push({ q, v: ans.value });
+        if (failed.why) leave(failed.why, failed); else done(ans.value);
         continue;
       }
 
       const value = ans.text || ans.value;
       setValue(el, value);
-      report.filled.push({ q, v: value });
+      done(value);
     }
 
     await new Promise((r) => setTimeout(r, 800));

@@ -98,6 +98,54 @@ check('والطلب الأول عاد للطابور', await statusOf(one) === '
 check('ومحاولاته صُفّرت', (await apps()).every((a) => a.auto_attempts === 0));
 check('لا أخطاء في الصفحة', errors.length === 0, errors.join(' | '));
 
+// ── with estimates asked for ───────────────────────────────────────────────
+// The person switched on «وأجب عني ما لا جواب له». A question an estimate may answer is no
+// longer theirs to see; a declaration still is; and what was answered in their name is kept
+// on the application it was answered for.
+{
+  const YEARS = 'How many years of SQL experience do you have?';
+  const CERT = 'Please confirm that the information provided is true and complete.';
+  const WHY = 'What draws you to this role?';
+  const fresh = (await admin(`/rest/v1/profiles?id=eq.${me.id}&select=answers`).then((r) => r.json()))[0].answers;
+  await admin(`/rest/v1/profiles?id=eq.${me.id}`, { method: 'PATCH', body: JSON.stringify({ answers: {
+    ...fresh, _settings: { guess: true },
+    _for: { [one.id]: { at: new Date().toISOString(), rounds: 1, answers: { [WHY]: { a: 'The reporting work matches what I have done for three years.', basis: 'cv' } } } } } }) });
+  await admin(`/rest/v1/applications?user_id=eq.${me.id}&job_id=eq.${one.id}`, { method: 'PATCH', body: JSON.stringify({
+    auto_status: 'needs_you', auto_at: new Date(Date.now() - 3600e3).toISOString(),
+    auto_report: { filled: [], missing: [
+      { q: YEARS, kind: 'text', why: 'لا إجابة عندك لهذا السؤال' },
+      { q: CERT, kind: 'combo', options: ['Yes', 'No'], why: 'لا إجابة عندك لهذا السؤال' },
+      { q: WHY, kind: 'text', why: 'لا إجابة عندك لهذا السؤال' }] } }) });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('.questions', { timeout: 15000 });
+  check('ما يجيبه التقدير لا يُعرض على صاحبه', await panel.locator('.field', { hasText: 'SQL experience' }).count() === 0);
+  check('ويُقال إنه في الطريق', (await panel.textContent()).includes('يجيب عنها قدّم بالتقدير'));
+  check('والإقرار يبقى له', await panel.locator('.field', { hasText: 'true and complete' }).count() === 1);
+  check('وما أُجيب عنه لا يُسأل عنه', await panel.locator('.field', { hasText: 'draws you' }).count() === 0);
+  const said = page.locator('.estimated');
+  check('وما قيل باسمه مكتوب على طلبه', await said.count() === 1 && (await said.locator('summary').textContent()).includes('1'));
+  await said.locator('summary').click();
+  check('بسؤاله وجوابه', (await said.textContent()).includes(WHY) && (await said.textContent()).includes('three years'));
+  await page.screenshot({ path: '/tmp/questions-2.png', fullPage: true });
+
+  // The switch itself. It lives with the other automatic settings, which need a profile
+  // that can apply at all.
+  await admin(`/rest/v1/profiles?id=eq.${me.id}`, { method: 'PATCH', body: JSON.stringify({
+    email_for_applications: email, phone: '0500000000', cv_path: `${me.id}/cv.pdf`, auto_apply: true }) });
+  await page.goto(base + '/#settings', { waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'networkidle' });
+  const guess = page.locator('label', { hasText: 'وأجب عني ما لا جواب له' }).locator('input');
+  await guess.waitFor({ timeout: 15000 });
+  check('المفتاح في الضبط، مفعَّل', await guess.isChecked());
+  await guess.uncheck();
+  await page.locator('.formbar .btn-go').click();
+  await page.waitForSelector('.banner-good, .banner-ok', { timeout: 15000 }).catch(() => {});
+  const after = (await admin(`/rest/v1/profiles?id=eq.${me.id}&select=answers`).then((r) => r.json()))[0].answers;
+  check('إطفاؤه يُحفظ', after._settings?.guess === false);
+  check('ولا يمسح ما كُتب قبله', !!after._for?.[one.id]?.answers?.[WHY]?.a && after._facts?.gender === 'ذكر');
+}
+check('لا أخطاء في الصفحة بعد ذلك', errors.length === 0, errors.join(' | '));
+
 await browser.close();
 await admin(`/auth/v1/admin/users/${me.id}`, { method: 'DELETE' });
 console.log(fails ? `\n✗ ${fails} فحص فشل` : '\n✓ الأسئلة تصل، تُجاب مرة، وتُعيد طلباتها');

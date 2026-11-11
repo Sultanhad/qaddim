@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "sync:engine": "node scripts/sync-engine.mjs",
-    "test": "node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js",
+    "test": "node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js && node packages/engine/tests/answering.test.js",
     "dev": "npm --prefix apps/web run dev",
     "build": "sh scripts/pack-extension.sh && npm --prefix apps/web run build",
     "deploy": "npm run build && node scripts/deploy-netlify.mjs",
@@ -18,6 +18,8 @@
     "test:ext": "node apps/web/tests/extension.test.mjs",
     "test:fill": "node extension/tests/fill.test.mjs",
     "test:questions": "node apps/web/tests/questions.test.mjs",
+    "test:answers": "node supabase/tests/answers.test.mjs",
+    "answer": "node scripts/answer-questions.mjs",
     "measure:forms": "node scripts/measure-forms.mjs",
     "test:auto": "node supabase/tests/auto.test.mjs",
     "clean:tests": "node scripts/clean-test-users.mjs",
@@ -27,7 +29,9 @@
     "test:states": "node apps/web/tests/states.test.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@supabase/supabase-js": "^2.109.0",
-    "ws": "^8.22.1"
+    "ws": "^8.22.1",
+    "zod": "^4.6.7"
   }
 }

@@ -12,6 +12,7 @@ import ws from 'ws';   // Node 20 has no native WebSocket; this script never use
 import { fetchAll, fingerprintOf, checkLink, autoApplyable } from '../packages/engine/src/sources.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
+import { answerPending } from './answer-questions.mjs';
 
 const root = new URL('../', import.meta.url);
 const env = Object.fromEntries(
@@ -32,6 +33,11 @@ if (!key) {
 
 const db = createClient(url, key, { auth: { persistSession: false }, realtime: { transport: ws } });
 const t0 = Date.now();
+
+// First, before six minutes of reading boards: the questions that stopped someone's
+// application, for the people who asked to have them answered by estimate. Whatever goes
+// wrong here must not cost a cycle of ingestion.
+try { await answerPending({ db, env }); } catch (e) { console.warn('  ! answers: ' + (e?.message ?? e)); }
 
 console.log(`reading ${BOARDS.length} boards…`);
 const { jobs, errors } = await fetchAll(BOARDS, { pauseMs: 150 });

@@ -4,6 +4,7 @@ import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, 
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { autoApplyable } from '@engine/sources.js';
+import { mayGuess, sameWords } from '@engine/answering.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { forExtension } from './extension-profile.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
@@ -660,7 +661,9 @@ function Settings({ user, profile, onDone }) {
     daily_cap: profile.daily_cap ?? 20,
     exclude_title_words: (profile.exclude_title_words ?? []).join('، '),
     exclude_companies: (profile.exclude_companies ?? []).join('، '),
-    min_score: profile.min_score ?? 70
+    min_score: profile.min_score ?? 70,
+    // Not a column: kept with the answers it governs (profiles.answers._settings).
+    guess: profile.answers?._settings?.guess === true
   });
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -669,13 +672,21 @@ function Settings({ user, profile, onDone }) {
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
   const listOf = (s) => String(s).split(/[,،\n]/).map((x) => x.trim()).filter(Boolean);
 
-  const patch = useMemo(() => ({
-    ...form,
-    extra_skills: listOf(form.extra_skills),
-    exclude_title_words: listOf(form.exclude_title_words),
-    exclude_companies: listOf(form.exclude_companies),
-    min_score: Number(form.min_score) || 0
-  }), [form]);
+  const patch = useMemo(() => {
+    const { guess, ...columns } = form;
+    return {
+      ...columns,
+      extra_skills: listOf(form.extra_skills),
+      exclude_title_words: listOf(form.exclude_title_words),
+      exclude_companies: listOf(form.exclude_companies),
+      min_score: Number(form.min_score) || 0,
+      // The answers column is only written when this switch moved: the worker writes its
+      // estimates there too, and a save that changed nothing must not write over them.
+      ...(guess !== (profile.answers?._settings?.guess === true)
+        ? { answers: { ...(profile.answers ?? {}), _settings: { ...(profile.answers?._settings ?? {}), guess } } }
+        : {})
+    };
+  }, [form, profile.answers]);
 
   // Every control shows what it costs: how many jobs survive it, recomputed as you touch it.
   const scored = useMemo(() => scoreAll(pool, { ...profile, ...patch }), [pool, patch]);
@@ -817,6 +828,26 @@ function Settings({ user, profile, onDone }) {
                   onChange={(e) => set('auto_queue_above', Number(e.target.value))} />
               </>
             )}
+
+            <hr className="rule" />
+
+            <label>
+              <input type="checkbox" checked={form.guess}
+                onChange={(e) => set('guess', e.target.checked)} /> <b>وأجب عني ما لا جواب له</b>
+            </label>
+            <p className="hint">
+              أسئلة الاستمارة التي لا يجيبها ملفك — «كم سنة خبرتك في كذا؟»، «لماذا نحن؟» — يجيبها قدّم
+              من سيرتك بتقديره، ومع «أرسل بنفسك» تخرج <b>بلا أن تقرأها</b>. لا يذكر جهة عمل ولا شهادة
+              ولا راتباً ليست في سيرتك، وما لا يُجاب إلا باختراع يتركه لك.
+            </p>
+            <p className="hint">
+              ولا يجيب الإقرارات مهما كان: حقّك في العمل والكفالة، السجل، الأقارب في الشركة،
+              «أقرّ أن ما سبق صحيح». هذه تبقى لك.
+            </p>
+            <p className="hint">
+              لصياغة الجواب تُرسل سيرتك وملفك وأسئلة الاستمارة إلى مزوّد ذكاء اصطناعي (Anthropic).
+              وكل ما أُجيب به عنك يبقى مكتوباً على طلبه في «طلباتي».
+            </p>
           </div>
         )}
 
@@ -1123,9 +1154,38 @@ function Jobs({ user, profile, onProfile }) {
   );
 }
 
-/** The same question, however its whitespace and punctuation were typed. */
-const sameWords = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const stoppedOn = (row) => (row.auto_report?.missing ?? []).filter((m) => m.q);
+
+/**
+ * Whose each question on a stopped application is.
+ *
+ *   mine    only the person can answer it — it is shown to them
+ *   soon    they asked for estimates, and the worker has not reached this one yet
+ *   byHand  can only be done on the employer's page
+ *
+ * A question the worker already answered for this application is nobody's any more — unless
+ * the form was tried again afterwards and still stopped on it, which means the estimate did
+ * not fit and it is the person's after all.
+ */
+function whose(row, profile) {
+  const answers = profile.answers ?? {};
+  const own = new Set(Object.keys(answers).filter((k) => !k.startsWith('_')).map(sameWords));
+  const forJob = answers._for?.[row.job?.id];
+  const drafted = new Map(Object.entries(forJob?.answers ?? {}).map(([q, v]) => [sameWords(q), v]));
+  const stale = forJob?.at && row.auto_at && row.auto_at > forJob.at;
+  const guessing = answers._settings?.guess === true;
+  const out = { mine: [], soon: 0, byHand: [] };
+  for (const m of stoppedOn(row)) {
+    if (m.manual) { out.byHand.push(m); continue; }
+    const k = sameWords(m.q);
+    if (own.has(k)) continue;
+    const draft = drafted.get(k);
+    if (draft?.a && !stale) continue;
+    if (!drafted.has(k) && guessing && mayGuess(m.q, m.options).ok) { out.soon++; continue; }
+    out.mine.push(m);
+  }
+  return out;
+}
 // The extension's reason when there is simply nothing in the profile — true of most questions
 // here, so repeating it under each one says nothing. Any other reason is worth showing.
 const NO_ANSWER = 'لا إجابة عندك لهذا السؤال';
@@ -1154,13 +1214,13 @@ function Questions({ rows, profile, onProfile, onDone }) {
   const [always, setAlways] = useState({});
   const [busy, setBusy] = useState(false);
 
-  const answered = useMemo(
-    () => new Set(Object.keys(profile.answers ?? {}).filter((k) => !k.startsWith('_')).map(sameWords)),
-    [profile.answers]);
-  const { list, waiting } = useMemo(() => {
+  const { list, waiting, soon } = useMemo(() => {
     const byWords = new Map(), waiting = [];
+    let soon = 0;
     for (const row of rows) {
-      const open = stoppedOn(row).filter((m) => !m.manual && !answered.has(sameWords(m.q)));
+      const split = whose(row, profile);
+      soon += split.soon;
+      const open = split.mine;
       if (!open.length) continue;
       waiting.push(row);
       for (const m of open) {
@@ -1171,10 +1231,19 @@ function Questions({ rows, profile, onProfile, onDone }) {
         if (row.job?.company && !entry.from.includes(row.job.company)) entry.from.push(row.job.company);
       }
     }
-    return { list: [...byWords.values()], waiting };
-  }, [rows, answered]);
+    return { list: [...byWords.values()], waiting, soon };
+  }, [rows, profile.answers]);
 
-  if (!list.length) return null;
+  // Nothing for the person, but something on its way: say so, or the applications below
+  // look stuck for the quarter of an hour it takes the worker to come round.
+  if (!list.length) {
+    return soon ? (
+      <div className="card questions">
+        <p className="questions-h">{soon} سؤالاً يجيب عنها قدّم بالتقدير</p>
+        <p className="faint" style={{ margin: '4px 0 0' }}>خلال ربع ساعة تقريباً، ثم تعود طلباتها للطابور وحدها.</p>
+      </div>
+    ) : null;
+  }
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const written = list.filter((x) => String(draft[x.k] ?? '').trim());
   // "Have you worked here before?" will be asked again by the next company in other words.
@@ -1192,9 +1261,15 @@ function Questions({ rows, profile, onProfile, onDone }) {
     const { data, error } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
     if (error) { setBusy(false); toast.fail(errorAr(error), save); return; }
     // Back to the queue goes every application that now has nothing left to ask. One still
-    // short an answer would only open the form again to stop at the same place.
-    const now = new Set([...answered, ...written.map((x) => x.k)]);
-    const ready = waiting.filter((row) => stoppedOn(row).every((m) => m.manual || now.has(sameWords(m.q))));
+    // short an answer would only open the form again to stop at the same place. What can only
+    // be done on the employer's page does not hold it back: half of those are things the
+    // extension could not do that time — a list that would not open, a CV not yet loaded —
+    // and the next attempt is how anyone finds out which half.
+    const now = new Set(written.map((x) => x.k));
+    const ready = waiting.filter((row) => {
+      const split = whose(row, profile);
+      return !split.soon && split.mine.every((m) => now.has(sameWords(m.q)));
+    });
     const failed = (await Promise.all(ready.map((row) => supabase.rpc('retry_application', { app_id: row.id }))))
       .filter((r) => r.error);
     setBusy(false);
@@ -1212,6 +1287,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
       <p className="questions-h">أسئلة تنتظرك · {list.length}</p>
       <p className="faint" style={{ margin: '4px 0 16px' }}>
         أجب مرة واحدة: الجواب يُحفظ ويُستعمل في كل استمارة تسأل السؤال نفسه. اكتب بلغة السؤال.
+        {soon > 0 && <> و{soon} غيرها يجيب عنها قدّم بالتقدير خلال ربع ساعة.</>}
       </p>
       {list.map((x, i) => (
         // An English question lays out left to right, controls included: "Yes / No" sitting
@@ -1250,16 +1326,35 @@ function Questions({ rows, profile, onProfile, onDone }) {
   );
 }
 
+/**
+ * What قدّم answered for this application by estimate. Nobody read these before they went —
+ * that was the point of asking for them — so the least the page owes is to keep them where
+ * they can be read afterwards, on the application they were written for.
+ */
+function Estimated({ row, profile }) {
+  const said = Object.entries(profile.answers?._for?.[row.job?.id]?.answers ?? {}).filter(([, v]) => v?.a);
+  if (!said.length) return null;
+  return (
+    <details className="estimated">
+      <summary>أجاب قدّم عنك بالتقدير · {said.length}</summary>
+      {said.map(([q, v]) => (
+        <div key={q} dir={/[\u0600-\u06FF]/.test(q) ? 'rtl' : 'ltr'}>
+          <p className="q">{q}</p>
+          <p className="a">{v.a}</p>
+        </div>
+      ))}
+    </details>
+  );
+}
+
 /** What is left on one stopped application once its questions have a screen of their own. */
-function Stopped({ row, answers, onDone }) {
+function Stopped({ row, profile, onDone }) {
   const toast = useToast();
-  const known = new Set(Object.keys(answers ?? {}).map(sameWords));
-  const all = stoppedOn(row);
-  const byHand = all.filter((m) => m.manual);
-  const open = all.filter((m) => !m.manual && !known.has(sameWords(m.q)));
+  const { mine: open, soon, byHand } = whose(row, profile);
   return (
     <div className="blocked">
       {open.length > 0 && <p className="blocked-h">ينتظر جوابك عن {open.length} — في أعلى الصفحة</p>}
+      {soon > 0 && <p className="blocked-h" style={{ color: 'var(--blue-soft)' }}>{soon} يجيب عنها قدّم بالتقدير قريباً</p>}
       {byHand.length > 0 && (
         <>
           <p className="blocked-h">يُكمَل في صفحة الشركة</p>
@@ -1271,7 +1366,7 @@ function Stopped({ row, answers, onDone }) {
           </ul>
         </>
       )}
-      {open.length === 0 && (
+      {open.length === 0 && soon === 0 && (
         <button className="btn btn-go" onClick={async () => {
           const { error } = await supabase.rpc('retry_application', { app_id: row.id });
           if (error) toast.fail(errorAr(error)); else { toast.ok('عاد للطابور'); onDone(); }
@@ -1333,7 +1428,7 @@ function Applications({ user, profile, onProfile }) {
     supabase.rpc('my_apply_stats').then(({ data }) => setStats(data?.[0] ?? null));
     const { data } = await supabase
       .from('applications')
-      .select('id, status, notes, applied_on, follow_up_on, auto_status, auto_reason, auto_report, job:jobs(*)')
+      .select('id, status, notes, applied_on, follow_up_on, auto_status, auto_reason, auto_report, auto_at, job:jobs(*)')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
     setRows(data ?? []);
@@ -1391,8 +1486,9 @@ function Applications({ user, profile, onProfile }) {
         </select>
         <Notes row={row} onSave={(v) => setNotes(row, v)} />
       </div>
+      <Estimated row={row} profile={profile} />
       {(row.auto_status === 'needs_you' || row.auto_status === 'failed') && (
-        <Stopped row={row} answers={profile.answers} onDone={load} />
+        <Stopped row={row} profile={profile} onDone={load} />
       )}
       <div className="card-actions">
         <button className="btn btn-go" onClick={() => setSheetFor(row.job)}>ورقة التعبئة</button>

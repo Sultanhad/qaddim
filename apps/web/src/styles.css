@@ -487,3 +487,10 @@ section:first-of-type > .group-h { margin-top: 18px; }
 .questions .pick { display: flex; flex-wrap: wrap; gap: 8px; }
 .questions .pick .chip { margin: 0; text-align: start; }
 .questions .usual { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; font-weight: 500; color: var(--dim); }
+
+/* What was answered in your name by estimate, kept on the application it was answered for. */
+.estimated { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(47, 107, 255, .07); border: 1px solid rgba(47, 107, 255, .28); }
+.estimated summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--blue-soft); }
+.estimated .q { margin: 12px 0 2px; font-size: 13px; color: var(--faint); }
+.estimated .a { margin: 0; font-size: 14px; color: var(--text); white-space: pre-wrap; }
+@media (pointer: coarse) { .estimated summary { min-height: 44px; display: flex; align-items: center; } }

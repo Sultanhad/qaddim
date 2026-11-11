@@ -294,6 +294,36 @@ console.log('\nأسئلة عن الشركة، والمسودة');
   await page.close();
 }
 
+console.log('\nأجوبة مُقدَّرة لطلب بعينه');
+{
+  const estimates = { answers: {
+    'Have you previously worked with Kubernetes?': { a: 'No', basis: 'cv' },
+    'Notice period': { a: 'Less than 2 weeks', basis: 'profile' },
+    'Headline': { a: 'Product analyst with five years in fintech', basis: 'cv' } } };
+  const profile = { ...USUAL, answers: { _for: { J1: estimates } } };
+  const { page, result } = await run(EMPLOYER, { job: { ...ALDAR, id: 'J1' }, profile });
+  const by = (re) => result.report.filled.find((f) => re.test(f.q))?.by;
+  check('تُستعمل لطلبها', result.status === 'filled' && await shown(page, 'q_k8s') === 'No' && await val(page, '#np2') === 'a', result.report.missing.map((x) => x.q).join(' | '));
+  check('وتُسجَّل تقديراً لا جواباً من صاحبها', by(/Kubernetes/) === 'estimate' && by(/^Headline/) === 'estimate' && by(/^First Name/) === undefined);
+  await page.close();
+
+  const other = await run(EMPLOYER, { job: { ...ALDAR, id: 'J2' }, profile });
+  check('ولا تُستعمل لطلب آخر', other.result.status === 'needs_you' && await shown(other.page, 'q_k8s') === null);
+  await other.page.close();
+
+  const own = await run(EMPLOYER, { job: { ...ALDAR, id: 'J1' }, profile: { ...profile, answers: { ...profile.answers, Headline: 'My own words' } } });
+  check('وكلام صاحبها يغلبها', await val(own.page, '#hl') === 'My own words' && own.result.report.filled.find((f) => /^Headline/.test(f.q))?.by === undefined);
+  await own.page.close();
+}
+{
+  // Sponsorship is never taken from an estimate, even if one is somehow stored.
+  const sneaky = { ...PROFILE, answers: { _for: { J9: { answers: {
+    'Will you now or in the future require employer sponsorship to work in the country where this role is based?': { a: 'No', basis: 'estimate' } } } } } };
+  const { page, result } = await run(FULL, { job: { country: 'ae', id: 'J9' }, profile: sneaky });
+  check('الكفالة لا تؤخذ من تقدير ولو وُجد', await shown(page, 'q_sponsor') === null && result.status === 'needs_you');
+  await page.close();
+}
+
 console.log('\nخانة بحث لا قائمة');
 {
   const { page, result } = await run(SEARCH, { autoSubmit: true });

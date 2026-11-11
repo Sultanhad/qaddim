@@ -136,8 +136,8 @@ async function applyOne(item, profile, settings, session) {
   // all. The queue does not carry the country, so it is read here; if that read fails the
   // question is simply left for the person, which is what happened to it before.
   const job = await api(session, '/jobs?select=country&id=eq.' + encodeURIComponent(item.job_id))
-    .then((rows) => ({ country: rows?.[0]?.country ?? null, company: item.company ?? null }))
-    .catch(() => ({ country: null, company: item.company ?? null }));
+    .then((rows) => ({ id: item.job_id, country: rows?.[0]?.country ?? null, company: item.company ?? null }))
+    .catch(() => ({ id: item.job_id, country: null, company: item.company ?? null }));
 
   // Opened in the background so a run does not steal focus while you work.
   const tab = await chrome.tabs.create({ url: APPLY_URL(item.url), active: false });
@@ -212,9 +212,17 @@ async function run() {
 
   await chrome.storage.local.set({ running: true, running_since: Date.now() });
   try {
-    const cv_file = await fetchCv(session, profile).catch(() => null);
-    if (!cv_file && profile.cv_path) await note({ status: 'warn', reason: 'تعذّر تحميل سيرتك — ستتوقّف الطلبات عند المرفق' });
-    const withCv = { ...profile, cv_file };
+    // Answers change without this browser ever opening the site: the person answers from
+    // their phone, the worker writes estimates. The copy handed over by the page is whatever
+    // it was the last time the page was open here — so the answers are read again, each run.
+    // Row-level security returns exactly one profile: the owner's.
+    const answers = await api(session, '/profiles?select=answers&limit=1').then((rows) => rows?.[0]?.answers ?? null).catch(() => null);
+    const current = answers ? { ...profile, answers } : profile;
+    if (answers) await chrome.storage.local.set({ profile: current });
+
+    const cv_file = await fetchCv(session, current).catch(() => null);
+    if (!cv_file && current.cv_path) await note({ status: 'warn', reason: 'تعذّر تحميل سيرتك — ستتوقّف الطلبات عند المرفق' });
+    const withCv = { ...current, cv_file };
     for (const item of queue.slice(0, settings.maxPerRun)) {
       const s = await state();
       if (!s.running) break;
