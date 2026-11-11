@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
-import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L } from './ui.jsx';
+import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L, browserKind, BROWSER_AR } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
@@ -357,6 +357,7 @@ function SigningIn() {
 }
 
 function Help() {
+  const kind = browserKind();
   return (
     <>
       <div className="card">
@@ -371,11 +372,23 @@ function Help() {
         </p>
 
         <h2>التثبيت — مرة واحدة</h2>
+        {kind !== 'chrome' && (
+          <Banner kind="warn">
+            أنت الآن في {BROWSER_AR[kind]}، والإضافة لا تعمل إلا في <b>Google Chrome على حاسب</b>.
+            افتح قدّم في Chrome وأكمل التثبيت من هناك. كل ما عدا الإرسال — الوظائف، أسئلتك، ملفك — يعمل هنا كما هو.
+          </Banner>
+        )}
+        <p className="muted">
+          تحتاج <b>Google Chrome</b> على حاسب. سفاري وفايرفوكس والجوال لا تشغّل هذه الإضافة — تختار وتجيب منها،
+          و Chrome هو الذي يرسل.
+        </p>
+        <p><a className="btn btn-go" style={{ margin: 0 }} href={import.meta.env.BASE_URL + 'qaddim-extension.zip'} download>نزّل الإضافة</a></p>
         <ol style={{ paddingInlineStart: 20, color: 'var(--dim)', lineHeight: 2 }}>
-          <li>افتح <span dir="ltr">chrome://extensions</span></li>
+          <li>فكّ الملف المضغوط — يظهر مجلد <span dir="ltr">qaddim-extension</span></li>
+          <li>في Chrome، افتح <span dir="ltr">chrome://extensions</span></li>
           <li>فعّل <b>Developer mode</b> أعلى اليمين</li>
-          <li>اضغط <b>Load unpacked</b> واختر مجلد <span dir="ltr">extension</span></li>
-          <li>ارجع لهذه الصفحة — ستظهر «الإضافة متصلة»</li>
+          <li>اضغط <b>Load unpacked</b> واختر ذلك المجلد</li>
+          <li>افتح قدّم في Chrome نفسه وسجّل دخولك — تظهر «الإضافة متصلة» في صفحة الوظائف</li>
         </ol>
 
         <h2>كيف تشتغل</h2>
@@ -788,7 +801,7 @@ function Settings({ user, profile, onDone }) {
             </label>
             <p className="hint">
               كل ١٥ دقيقة نقرأ اللوحات. ما تجاوز درجتك أدناه يدخل الطابور وحده، ومتصفّحك يقدّم
-              عليه. لا تفتح الموقع ولا تضغط شيئاً — افتح <span dir="ltr">قدّم.command</span> واتركه.
+              عليه. لا تفتح الموقع ولا تضغط شيئاً — يكفي أن يبقى Chrome مفتوحاً والإضافة فيه.
             </p>
             {form.auto_queue && (
               <>
@@ -1009,7 +1022,9 @@ function Jobs({ user, profile, onProfile }) {
           <p style={{ margin: 0, fontWeight: 700 }}>التقديم التلقائي مفعّل — والإضافة غير متصلة</p>
           <p className="faint" style={{ margin: '6px 0 0' }}>
             «يهمني» الآن يحفظ الوظيفة ويفتح لك ورقة التعبئة، ولا يدخل الطابور — لأن لا شيء
-            سيُفرغه. افتح <span dir="ltr">قدّم.command</span> أو ثبّت الإضافة، ثم ارجع لهذه الصفحة.
+            سيُفرغه. {browserKind() === 'chrome'
+              ? 'ثبّت الإضافة ثم ارجع لهذه الصفحة.'
+              : `الإضافة تعمل في Chrome على حاسب، وأنت الآن في ${BROWSER_AR[browserKind()]}: اختر وأجب من هنا، وافتح قدّم في Chrome ليرسل.`}
             {' '}<a href="#help">كيف أثبّتها</a>
           </p>
         </div>

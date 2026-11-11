@@ -9,7 +9,7 @@
     "sync:engine": "node scripts/sync-engine.mjs",
     "test": "node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js",
     "dev": "npm --prefix apps/web run dev",
-    "build": "npm --prefix apps/web run build",
+    "build": "sh scripts/pack-extension.sh && npm --prefix apps/web run build",
     "deploy": "npm run build && node scripts/deploy-netlify.mjs",
     "deploy:pages": "sh scripts/deploy-pages.sh",
     "test:rls": "node supabase/tests/rls.test.mjs",

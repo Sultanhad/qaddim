@@ -12,6 +12,7 @@ set -e
 root=$(cd "$(dirname "$0")/.." && pwd)
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
+sh "$root/scripts/pack-extension.sh"
 cd "$root/apps/web" && npx vite build
 
 origin=$(git -C "$root" remote get-url origin)

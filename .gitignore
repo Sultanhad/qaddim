@@ -5,3 +5,5 @@ dist/
 .env.*.local
 .DS_Store
 *.log
+# built from extension/ on every build — see scripts/pack-extension.sh
+apps/web/public/qaddim-extension.zip

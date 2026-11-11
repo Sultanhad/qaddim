@@ -44,6 +44,21 @@ export function Mark({ size = 64, radius = 18, className = '' }) {
   );
 }
 
+/**
+ * Which browser this is, as far as the extension is concerned. Only desktop Chrome can load
+ * it — and the install steps used to begin "open chrome://extensions" for everyone, which in
+ * Safari is an address that goes nowhere and says nothing about why.
+ */
+export function browserKind() {
+  const ua = navigator.userAgent;
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return 'mobile';
+  if (/Firefox\//.test(ua)) return 'firefox';
+  if (/(Chrome|Chromium|Edg)\//.test(ua)) return 'chrome';
+  if (/Safari\//.test(ua)) return 'safari';
+  return 'other';
+}
+export const BROWSER_AR = { safari: 'سفاري', firefox: 'فايرفوكس', mobile: 'متصفح الجوال', other: 'متصفح آخر' };
+
 export function Hero({ title, eyebrow = L.brand, children }) {
   return (
     <div className="hero">
