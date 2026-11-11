@@ -2,15 +2,17 @@ const $ = (id) => document.getElementById(id);
 
 async function render() {
   const s = await chrome.storage.local.get(['profile', 'session', 'log', 'settings', 'running']);
-  const settings = { autoSubmit: false, ...(s.settings ?? {}) };
+  // Sending is decided on the site and nowhere else. This used to hold a switch of its own,
+  // off by default, that quietly overruled the site's — so it only reports now.
+  const sends = !!s.profile?.auto_submit && s.settings?.neverSubmit !== true;
   $('who').textContent = s.profile
     ? `${s.profile.full_name || 'ملفك'} · ${Object.keys(s.profile.answers ?? {}).length} إجابة محفوظة`
     : 'افتح المنصة مرة لمزامنة حسابك';
   $('queue').textContent = s.running ? 'يعمل الآن…' : (s.session ? 'متصل بالمنصة' : 'غير متصل');
-  $('auto').checked = !!settings.autoSubmit;
-  $('autoNote').textContent = settings.autoSubmit
-    ? 'يضغط الإرسال بنفسه. أي سؤال إلزامي بلا إجابة منك يوقفه عند تلك الوظيفة.'
-    : 'يعبّي الاستمارة ويترك الإرسال لك — ابدأ بهذا حتى تطمئن.';
+  $('sends').textContent = sends ? 'يرسل بنفسه' : 'يعبّي ويترك الإرسال لك';
+  $('autoNote').textContent = sends
+    ? 'كما اخترت في ضبط قدّم. أي سؤال إلزامي بلا جواب يوقفه عند تلك الوظيفة.'
+    : 'لتغييره: الضبط في قدّم ← «وأرسل بنفسك». الإرسال يُقرَّر هناك لا هنا.';
   $('run').disabled = !s.session || !!s.running;
   $('stop').disabled = !s.running;
 
@@ -28,11 +30,6 @@ async function render() {
   }
 }
 
-$('auto').addEventListener('change', async (e) => {
-  const { settings } = await chrome.storage.local.get('settings');
-  await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSubmit: e.target.checked } });
-  render();
-});
 $('run').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'qaddim:run' }));
 $('stop').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'qaddim:stop' }));
 chrome.storage.onChanged.addListener(render);

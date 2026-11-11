@@ -251,6 +251,20 @@ console.log('\nالتوقف');
   await page.close();
 }
 
+{
+  // An employer that answers "send" by asking for a code it mailed to the applicant.
+  const CODE_STEP = FULL.replace("'<p>Thank you for applying</p>'", "'<p>Enter the security code we emailed you</p><input id=\"code\">'");
+  const { page, result } = await run(CODE_STEP, { autoSubmit: true });
+  check('رمز تحقق بعد الإرسال: ليس «أُرسل» وليس فشلاً صامتاً', result.status === 'needs_you' && /رمز تحقق/.test(result.reason), result.reason);
+  check('ويُعرف أن الإرسال ضُغط، فلا يُغلق التبويب', result.pressed === true);
+  await page.close();
+}
+{
+  const { page, result } = await run(BLOCKED, { autoSubmit: true });
+  check('وما توقف قبل الإرسال لم يُضغط فيه شيء', result.pressed !== true);
+  await page.close();
+}
+
 console.log('\nأسئلة عن الشركة، والمسودة');
 {
   const { page, result } = await run(EMPLOYER, { job: ALDAR });

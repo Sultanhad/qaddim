@@ -328,12 +328,16 @@
     const DONE = /thank you|thanks for applying|application (was )?(received|submitted|sent)|we (have )?received|successfully (applied|submitted)|تم (استلام|إرسال|التقديم)/i;
     const BUSY = /submitting|sending|please wait|uploading|جار/i;
     const FAIL = /is required|please (fix|correct|complete)|something went wrong/i;
+    // Some employers answer "send" with one more step: a code mailed to the applicant. That
+    // is not sent and not failed — it is waiting for the one thing only the person has.
+    const CODE = /(verification|security|confirmation) code|enter the code|code (we|that we) (sent|emailed)|sent (you )?a code|رمز التحقق/i;
     const start = location.href;
     const until = Date.now() + timeoutMs;
     let wasBusy = false;
     while (Date.now() < until) {
       const t = document.body ? document.body.innerText : '';
       if (DONE.test(t)) return { ok: true, why: 'الموقع أكّد الاستلام' };
+      if (CODE.test(t)) return { ok: false, why: 'الشركة أرسلت رمز تحقق إلى بريدك — أدخله في تبويبها المفتوح' };
       if (location.href !== start && !BUSY.test(t)) return { ok: true, why: 'الصفحة انتقلت بعد الإرسال' };
       const busy = BUSY.test(t);
       if (wasBusy && !busy) {
@@ -359,7 +363,9 @@
       if (!btn) { reply({ status: 'needs_you', report, reason: 'لم أجد زر الإرسال' }); return; }
       btn.click();
       const outcome = await waitForOutcome();
-      reply({ status: outcome.ok ? 'submitted' : 'needs_you', report, reason: outcome.why });
+      // `pressed` tells the caller this form is past the point of no return: whatever the
+      // page is showing now, it is not something to close and try again from the top.
+      reply({ status: outcome.ok ? 'submitted' : 'needs_you', report, reason: outcome.why, pressed: true });
     })();
     return true;   // keep the channel open for the async reply
   });

@@ -1,8 +1,8 @@
 // Does the extension actually work? Loads it into a real Chrome, hands it a real session,
 // and watches it take a job off the queue and fill the employer's form.
 //
-// Auto-submit is forced OFF: this opens a real hiring form and types into it, and nothing is
-// ever sent to an employer from a test.
+// Sending is locked OFF (`neverSubmit`): this opens a real hiring form and types into it, and
+// nothing is ever sent to an employer from a test — whatever the test account's settings say.
 import { readFile } from 'node:fs/promises';
 import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -62,7 +62,7 @@ const ctx = await chromium.launchPersistentContext(dir, {
 // الإرسال يُطفأ قبل أن تُفتح الصفحة: مزامنة الجلسة تُشغّل دورة فوراً، وهذا هو
 // السلوك الصحيح — فلا مجال لضبط الإعدادات بعدها.
 const sw0 = ctx.serviceWorkers().length ? ctx.serviceWorkers()[0] : await ctx.waitForEvent('serviceworker', { timeout: 20000 });
-await sw0.evaluate(() => chrome.storage.local.set({ settings: { autoSubmit: false, delayMs: 1000, maxPerRun: 1 } }));
+await sw0.evaluate(() => chrome.storage.local.set({ settings: { neverSubmit: true, delayMs: 1000, maxPerRun: 1 } }));
 
 // ١) هل الجسر يعلن عن نفسه في الموقع الحيّ؟
 const page = await ctx.newPage();

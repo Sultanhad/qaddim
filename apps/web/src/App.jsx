@@ -408,8 +408,12 @@ function Help() {
 
         <h2>قبل أن تطلقها</h2>
         <p className="muted">
-          ابدأ والإرسال التلقائي <b>مطفأ</b> من أيقونة الإضافة: ستعبّي وتترك الزر لك، فترى بعينك ما سيُرسل باسمك.
-          وحين تطمئن، فعّله.
+          الإرسال يُقرَّر من مكان واحد: <a href="#settings">الضبط</a> ← «وأرسل بنفسك». ما دام مطفأً تعبّي الإضافة
+          الاستمارة وتتركها مفتوحة لك، فترى بعينك ما سيُرسل باسمك. وحين تشغّله، أول ثلاثة طلبات تبقى لك لتراها —
+          إلا إن اخترت «أرسل من أول طلب».
+        </p>
+        <p className="muted">
+          وما كان معبّأً وينتظرك حين شغّلته يخرج وحده في الدورة التالية؛ لا تحتاج أن ترجع لكل طلب.
         </p>
         <p className="faint">
           تنبيه: شروط استخدام معظم أنظمة التوظيف تمنع الإرسال الآلي. القرار قرارك، والحساب حسابك.
@@ -1451,7 +1455,11 @@ function Applications({ user, profile, onProfile }) {
     const prev = row.status;
     // Move the list now so the screen answers the tap, but put it back if the write failed.
     setRows((xs) => xs.map((x) => (x.id === row.id ? { ...x, status } : x)));
-    const { error } = await supabase.from('applications').update({ status }).eq('id', row.id);
+    // Saying "I applied" (or closing it) takes the application out of the robot's hands: it
+    // must not still be sitting in a queue, or waiting to be sent, after its owner has said
+    // it is done. Otherwise the form goes out twice.
+    const patch = status === 'saved' ? { status } : { status, auto_status: null };
+    const { error } = await supabase.from('applications').update(patch).eq('id', row.id);
     if (error) {
       setRows((xs) => xs.map((x) => (x.id === row.id ? { ...x, status: prev } : x)));
       toast.fail(errorAr(error), () => setStatus(row, status));

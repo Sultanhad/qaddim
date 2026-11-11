@@ -6,7 +6,9 @@
 // It keeps the queue in the database, not in the extension, so the site can show honest status:
 // queued → filling → submitted, or needs_you with the reason.
 
-const DEFAULTS = { autoSubmit: false, delayMs: 9000, maxPerRun: 10 };
+const DEFAULTS = { delayMs: 9000, maxPerRun: 10 };
+// What an application says while its form sits filled and unsent.
+const WAITING = 'الاستمارة مفتوحة وتنتظرك';
 const POLL_MINUTES = 2;
 
 async function state() {
@@ -126,9 +128,18 @@ async function applyOne(item, profile, settings, session) {
     return 'skipped';
   }
 
-  // Whether to press submit is decided by the database, not here: the caps and the
-  // first-three rule have to hold no matter what this copy of the extension believes.
-  const submit = item.submit === true && settings.autoSubmit !== false;
+  // Whether to press submit is decided in one place: the person's settings on the site, as
+  // the database enforces them — the caps and the first-three rule have to hold no matter
+  // what this copy of the extension believes.
+  //
+  // It used to be and-ed with a second switch in this extension's own popup, off by default.
+  // Someone could turn sending on three times over on the site and every form would still
+  // sit filled and unsent, with nothing on the site to say why: the first three real
+  // applications that were ever fully filled stopped exactly there. One decision, one switch.
+  //
+  // `neverSubmit` is not that switch. It has no control anywhere; it is a lock that tests and
+  // development set so that nothing they open can ever be sent.
+  const submit = item.submit === true && settings.neverSubmit !== true;
   await markApplication(session, item.application_id, { auto_status: 'filling', auto_at: new Date().toISOString() });
 
   // Where the job is decides what a truthful answer to "do you need sponsorship?" is, and
@@ -155,7 +166,7 @@ async function applyOne(item, profile, settings, session) {
 
   await markApplication(session, item.application_id, {
     auto_status: status,
-    auto_reason: result?.reason ?? (status === 'needs_you' ? 'الاستمارة مفتوحة وتنتظرك' : null),
+    auto_reason: result?.reason ?? (status === 'needs_you' ? WAITING : null),
     auto_at: new Date().toISOString(),
     auto_report: result?.report ?? null,
     auto_attempts: (item.auto_attempts ?? 0) + 1,
@@ -165,6 +176,15 @@ async function applyOne(item, profile, settings, session) {
 
   if (status === 'submitted') {
     setTimeout(() => chrome.tabs.remove(tab.id).catch(() => { }), 2500);
+  } else if (result?.pressed) {
+    // Send was pressed and the page did not confirm — a code mailed to the applicant, a
+    // check, a slow server. Closing this tab would throw away an application that may be one
+    // step from done, or already in; it stays open, in front, with what happened said plainly.
+    await chrome.tabs.update(tab.id, { active: true }).catch(() => { });
+    chrome.notifications.create({
+      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — ضُغط الإرسال ولم يتأكد',
+      message: (result?.reason || 'لم يظهر تأكيد') + '\nالتبويب مفتوح: أكمل ما يطلبه، أو تحقق من بريدك.'
+    });
   } else if (submit) {
     // Running unattended: leave the tab closed and the reason on the row. Twenty half-filled
     // tabs across the screen is not "automatic", it is a mess to clean up later.
@@ -182,6 +202,20 @@ async function applyOne(item, profile, settings, session) {
     });
   }
   return status;
+}
+
+/**
+ * Forms that were filled and left unsent because sending was off at the time. Once the person
+ * has turned sending on, those are applications they asked to go out — not something to sit
+ * until "retry" is pressed on each one. The database is asked, because it is what decides.
+ */
+async function releaseWaiting(session) {
+  const may = await api(session, '/rpc/my_may_submit', { method: 'POST', body: '{}' });
+  if (may !== true) return;
+  // Only what is still merely saved: one the person has since marked as applied — because
+  // they pressed send in the open tab themselves — must not go out a second time.
+  await api(session, '/applications?status=eq.saved&auto_status=eq.needs_you&auto_reason=eq.' + encodeURIComponent(WAITING),
+    { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ auto_status: 'queued', auto_reason: null }) });
 }
 
 // ── the run ──────────────────────────────────────────────────────────────────
@@ -203,6 +237,8 @@ async function run() {
   }
   if (!session || !profile) { await note({ status: 'error', reason: 'افتح المنصة مرة لمزامنة حسابك' }); return; }
 
+  if (settings.neverSubmit !== true) await releaseWaiting(session).catch(() => { });
+
   let queue = [];
   try { queue = await fetchQueue(session); } catch (e) {
     await note({ status: 'error', reason: 'تعذّر قراءة الطابور: ' + e.message });
@@ -216,9 +252,11 @@ async function run() {
     // their phone, the worker writes estimates. The copy handed over by the page is whatever
     // it was the last time the page was open here — so the answers are read again, each run.
     // Row-level security returns exactly one profile: the owner's.
-    const answers = await api(session, '/profiles?select=answers&limit=1').then((rows) => rows?.[0]?.answers ?? null).catch(() => null);
-    const current = answers ? { ...profile, answers } : profile;
-    if (answers) await chrome.storage.local.set({ profile: current });
+    // (And whether sending is on, so the popup says what is true now rather than what was
+    // true when the page was last open — it is display only; the queue carries the decision.)
+    const fresh = await api(session, '/profiles?select=answers,auto_submit&limit=1').then((rows) => rows?.[0] ?? null).catch(() => null);
+    const current = fresh ? { ...profile, answers: fresh.answers ?? profile.answers, auto_submit: !!fresh.auto_submit } : profile;
+    if (fresh) await chrome.storage.local.set({ profile: current });
 
     const cv_file = await fetchCv(session, current).catch(() => null);
     if (!cv_file && current.cv_path) await note({ status: 'warn', reason: 'تعذّر تحميل سيرتك — ستتوقّف الطلبات عند المرفق' });
