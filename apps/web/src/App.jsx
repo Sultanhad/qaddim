@@ -1178,7 +1178,9 @@ function whose(row, profile) {
   for (const m of stoppedOn(row)) {
     if (m.manual) { out.byHand.push(m); continue; }
     const k = sameWords(m.q);
-    if (own.has(k)) continue;
+    // Sponsorship and the right to work depend on the country: an answer saved for the
+    // words alone does not answer them, only one given for this job does.
+    if (m.scope !== 'job' && own.has(k)) continue;
     const draft = drafted.get(k);
     if (draft?.a && !stale) continue;
     if (!drafted.has(k) && guessing && mayGuess(m.q, m.options).ok) { out.soon++; continue; }
@@ -1224,8 +1226,10 @@ function Questions({ rows, profile, onProfile, onDone }) {
       if (!open.length) continue;
       waiting.push(row);
       for (const m of open) {
-        const k = sameWords(m.q);
-        if (!byWords.has(k)) byWords.set(k, { k, q: m.q.replace(/\s+/g, ' ').trim(), why: m.why, options: m.options, key: m.key, from: [] });
+        // The same words from two employers are one question — unless the answer depends on
+        // the job, in which case each job asks its own.
+        const k = m.scope === 'job' ? `${sameWords(m.q)}@${row.job?.id}` : sameWords(m.q);
+        if (!byWords.has(k)) byWords.set(k, { k, q: m.q.replace(/\s+/g, ' ').trim(), why: m.why, options: m.options, key: m.key, from: [], jobId: m.scope === 'job' ? row.job?.id : null });
         const entry = byWords.get(k);
         if (!entry.options && m.options) entry.options = m.options;
         if (row.job?.company && !entry.from.includes(row.job.company)) entry.from.push(row.job.company);
@@ -1254,7 +1258,14 @@ function Questions({ rows, profile, onProfile, onDone }) {
   async function save() {
     setBusy(true);
     const answers = { ...(profile.answers ?? {}) };
-    for (const x of written) answers[x.q] = String(draft[x.k]).trim();
+    for (const x of written.filter((w) => !w.jobId)) answers[x.q] = String(draft[x.k]).trim();
+    // An answer that holds for one job is kept with that job, marked as the person's own.
+    const perJob = { ...(answers._for ?? {}) };
+    for (const x of written.filter((w) => w.jobId)) {
+      const was = perJob[x.jobId] ?? {};
+      perJob[x.jobId] = { ...was, at: new Date().toISOString(), answers: { ...(was.answers ?? {}), [x.q]: { a: String(draft[x.k]).trim(), basis: 'own' } } };
+    }
+    if (Object.keys(perJob).length) answers._for = perJob;
     const facts = { ...(answers._facts ?? {}) };
     for (const x of written) if (usual(x)) facts[x.key] = 'لا';
     answers._facts = facts;
@@ -1268,7 +1279,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
     const now = new Set(written.map((x) => x.k));
     const ready = waiting.filter((row) => {
       const split = whose(row, profile);
-      return !split.soon && split.mine.every((m) => now.has(sameWords(m.q)));
+      return !split.soon && split.mine.every((m) => now.has(m.scope === 'job' ? `${sameWords(m.q)}@${row.job?.id}` : sameWords(m.q)));
     });
     const failed = (await Promise.all(ready.map((row) => supabase.rpc('retry_application', { app_id: row.id }))))
       .filter((r) => r.error);
@@ -1294,7 +1305,10 @@ function Questions({ rows, profile, onProfile, onDone }) {
         // at the far right of a question that starts at the left reads as belonging elsewhere.
         <div className="field" key={x.k} dir={/[\u0600-\u06FF]/.test(x.q) ? 'rtl' : 'ltr'}>
           <label htmlFor={`q${i}`}>{x.q}</label>
-          <p className="hint" dir="auto">{x.from.join('، ')}{x.why && x.why !== NO_ANSWER ? ` · ${x.why}` : ''}</p>
+          <p className="hint" dir="auto">
+            {x.from.join('، ')}
+            {x.jobId ? ' · لهذه الوظيفة وحدها: جوابه يختلف من بلد لآخر' : x.why && x.why !== NO_ANSWER ? ` · ${x.why}` : ''}
+          </p>
           {x.options && x.options.length <= 5
             ? <div className="pick">
                 {x.options.map((o) => (
@@ -1332,7 +1346,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
  * they can be read afterwards, on the application they were written for.
  */
 function Estimated({ row, profile }) {
-  const said = Object.entries(profile.answers?._for?.[row.job?.id]?.answers ?? {}).filter(([, v]) => v?.a);
+  const said = Object.entries(profile.answers?._for?.[row.job?.id]?.answers ?? {}).filter(([, v]) => v?.a && v.basis !== 'own');
   if (!said.length) return null;
   return (
     <details className="estimated">

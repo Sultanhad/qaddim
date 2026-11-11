@@ -222,7 +222,7 @@ console.log('\nالتعبئة');
   const { page, result } = await run(FULL, { job: { country: 'ae' } });
   const stop = result.report.missing.find((m) => /sponsorship/.test(m.q));
   check('وظيفة خارج السعودية: سؤال الكفالة يُترك لصاحبه', result.status === 'needs_you' && !!stop && await shown(page, 'q_sponsor') === null, stop?.why);
-  check('ويُكمَل في صفحة الشركة، لا في المسودة', stop?.manual === true);
+  check('ويُسأل عنه لهذه الوظيفة وحدها، بخياراته', stop?.scope === 'job' && !stop?.manual && JSON.stringify(stop?.options) === '["Yes","No"]');
   await page.close();
 }
 {
@@ -322,6 +322,18 @@ console.log('\nأجوبة مُقدَّرة لطلب بعينه');
   const { page, result } = await run(FULL, { job: { country: 'ae', id: 'J9' }, profile: sneaky });
   check('الكفالة لا تؤخذ من تقدير ولو وُجد', await shown(page, 'q_sponsor') === null && result.status === 'needs_you');
   await page.close();
+}
+
+{
+  // …but what the person said for this very job does answer it — and only for this job.
+  const Q = 'Will you now or in the future require employer sponsorship to work in the country where this role is based?';
+  const said = { ...PROFILE, answers: { _for: { DXB: { answers: { [Q]: { a: 'Yes', basis: 'own' } } } } } };
+  const here = await run(FULL, { job: { country: 'ae', id: 'DXB' }, profile: said });
+  check('جواب صاحبها لهذه الوظيفة يُستعمل لها', await shown(here.page, 'q_sponsor') === 'Yes' && here.result.report.filled.find((f) => /sponsorship/.test(f.q))?.by === undefined);
+  await here.page.close();
+  const there = await run(FULL, { job: { country: 'eg', id: 'CAI' }, profile: said });
+  check('ولا يُحمل إلى وظيفة في بلد آخر', await shown(there.page, 'q_sponsor') === null);
+  await there.page.close();
 }
 
 console.log('\nخانة بحث لا قائمة');

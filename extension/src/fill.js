@@ -268,7 +268,8 @@
         // Opening a list just to read it is only worth doing for a question that stops the
         // form. `key` tells the draft screen what kind of question this was, where known.
         leave(ans?.why || 'لا إجابة عندك لهذا السؤال',
-          !req ? null : ans?.manual ? { manual: true, key: ans.key } : { key: ans?.key, options: await optionsOf(item) });
+          // `scope: 'job'` — an answer here holds for this job only (it depends on the country).
+          !req ? null : { key: ans?.key, ...(ans?.scope ? { scope: ans.scope } : {}), options: await optionsOf(item) });
         continue;
       }
 

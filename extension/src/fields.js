@@ -242,9 +242,9 @@ var QaddimFields = (function () {
 
     // Sponsorship and the right to work are asked in the same words by every employer and
     // mean something different in every country. An answer saved for those words would be
-    // reused for a job in Dubai after being given for one in Riyadh — so for these two a
-    // saved answer is never consulted: either the profile and the job's country settle it,
-    // or it is finished on the employer's own page.
+    // reused for a job in Dubai after being given for one in Riyadh — so for these two the
+    // saved answers are never consulted: the profile and the job's country settle it, or the
+    // person answers it for that one job (see `_for` below).
     var byCountry = !standing && key && LONG_OK[key];
 
     // What you wrote for this very question outranks everything else: it is the only answer
@@ -263,18 +263,20 @@ var QaddimFields = (function () {
     // that (scripts/answer-questions.mjs). It is consulted only for the job it was written
     // for, after the person's own words and before everything else — it exists precisely
     // because everything else had no answer that fit.
-    var forJob = !byCountry && ctx && ctx.id && extra._for && extra._for[ctx.id];
-    if (forJob && forJob.answers) for (var est in forJob.answers) {
-      var e = forJob.answers[est];
+    // It also holds what the person answered for this job alone (basis "own") — which is how
+    // a question whose answer depends on the country gets answered at all: said once, for
+    // this job, and never carried to another.
+    var forJob = ctx && ctx.id && extra._for && extra._for[ctx.id] && extra._for[ctx.id].answers;
+    var fact = byCountry ? workFact(key, profile, ctx) : null;
+    if (fact && fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
+    if (forJob) for (var est in forJob) {
+      var e = forJob[est];
       if (norm(est) !== t || !e || !e.a) continue;
-      return { key: 'estimate', value: String(e.a), accept: wording(String(e.a), label).accept, source: 'estimate' };
+      var theirs = e.basis === 'own';
+      if (byCountry && !theirs) continue;          // an estimate never answers a declaration
+      return { key: theirs ? 'answers' : 'estimate', value: String(e.a), accept: wording(String(e.a), label).accept, source: theirs ? 'answers' : 'estimate' };
     }
-
-    if (byCountry) {
-      var fact = workFact(key, profile, ctx);
-      if (fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
-      return { key: key, value: null, source: 'work_authorization', why: fact.why, manual: true };
-    }
+    if (byCountry) return { key: key, value: null, source: 'work_authorization', why: fact.why, scope: 'job' };
 
     if (standing) {
       if (profile[standing] === 'no') return { key: standing, value: 'no', accept: ['no'], source: standing };
