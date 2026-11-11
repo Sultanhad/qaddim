@@ -477,3 +477,12 @@ section:first-of-type > .group-h { margin-top: 18px; }
 .formbar .btn { margin: 0; flex: none; }
 .formbar .faint { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 900px) { .formbar { bottom: 14px; } }
+
+/* ── the draft screen ────────────────────────────────────────────────────
+   The questions that stopped your applications, each asked once. It leads the
+   page because it is the one thing on it that only you can do. */
+.questions { border-color: rgba(255, 176, 32, .4); }
+.questions-h { margin: 0; color: var(--warn); font-size: 15px; font-weight: 800; }
+.questions .field label { line-height: 1.5; }
+.questions .pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.questions .pick .chip { margin: 0; text-align: start; }

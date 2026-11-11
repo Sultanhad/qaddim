@@ -17,6 +17,7 @@
     "test:flow": "node apps/web/tests/flow.test.mjs",
     "test:ext": "node apps/web/tests/extension.test.mjs",
     "test:fill": "node extension/tests/fill.test.mjs",
+    "test:questions": "node apps/web/tests/questions.test.mjs",
     "measure:forms": "node scripts/measure-forms.mjs",
     "test:auto": "node supabase/tests/auto.test.mjs",
     "clean:tests": "node scripts/clean-test-users.mjs",

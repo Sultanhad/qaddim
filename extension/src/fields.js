@@ -200,16 +200,63 @@ var QaddimFields = (function () {
     return null;
   }
 
+  // ── questions about this employer ──────────────────────────────────────────
+  // "Have you worked here before?" and "do you have relatives here?" were, measured across our
+  // open jobs, the two questions that stopped the most forms — and no profile field can answer
+  // them, because they are about the company, not about you. What a person *can* say once is
+  // their usual answer: no. It is only ever used when they have said so, and only when the
+  // question is plainly about the employer: "have you worked with Kubernetes before?" has the
+  // same shape and a different subject, so the company's own name (or "us", "this company")
+  // has to be in the question.
+  var HERE = ['this company', 'our company', 'the company', 'with us', 'for us', 'our organization',
+    'this organization', 'our group', 'our team'];
+  function aboutEmployer(t, ctx) {
+    var padded = ' ' + t + ' ';
+    for (var i = 0; i < HERE.length; i++) if (padded.indexOf(' ' + HERE[i] + ' ') >= 0) return true;
+    var name = norm(ctx && ctx.company);
+    if (!name) return false;
+    if (padded.indexOf(' ' + name) >= 0) return true;
+    var first = name.split(' ')[0];
+    return first.length >= 5 && padded.indexOf(' ' + first) >= 0;
+  }
+  var WORKED = /\b(previously|ever|before|formerly|in the past)\b.{0,60}\b(work|employ)|\b(work|employ)\w*\b.{0,80}\b(before|previously|in the past)\b|current or former .{0,40}employee|\bformer employee\b/;
+  var RELATIVE = /\b(relatives?|family members?|related to)\b|أقارب|قريب/;
+  function standingKey(t, ctx) {
+    if (t.length > LONG_LIMIT) return null;
+    if (RELATIVE.test(t) && (aboutEmployer(t, ctx) || /\bemployees?\b|\bworking\b/.test(t))) return 'relatives_here';
+    if (WORKED.test(t) && aboutEmployer(t, ctx)) return 'worked_here_before';
+    return null;
+  }
+
   /**
-   * @param ctx  what is known about the job itself — today only `country`, its ISO code.
+   * @param ctx  what is known beyond the label: the job's `country` (ISO code) and `company`,
+   *             and the control's input `type`.
    * @returns {{key,value,accept,source,why}|null} — value null means "cannot answer this honestly".
    */
   function answerFor(label, profile, ctx) {
     var t = norm(label);
-    var key = keyFor(label);
+    var extra = profile.answers || {};
+
+    // What you wrote for this very question outranks everything else: it is the only answer
+    // here that was given to these exact words. Without this, an answer picked in the draft
+    // screen lost to the profile field that had failed to fit the form in the first place —
+    // and a question shorter than ten characters could be answered for ever and never matched.
+    for (var own in extra) {
+      if (own.charAt(0) === '_' || norm(own) !== t) continue;
+      var mine = String(extra[own] || '').trim();
+      if (!mine) continue;
+      if (UNFINISHED.test(mine)) return { key: 'answers', value: null, source: own, why: 'إجابتك فيها فراغ لم تملأه' };
+      return { key: 'answers', value: mine, accept: wording(mine, label).accept, source: own };
+    }
+
+    var standing = standingKey(t, ctx);
+    var key = standing || keyFor(label);
     var blocked = null;
 
-    if (key && LONG_OK[key]) {
+    if (standing) {
+      if (profile[standing] === 'no') return { key: standing, value: 'no', accept: ['no'], source: standing };
+      blocked = { key: standing, value: null, source: standing, why: 'سؤال عن هذه الشركة — أجبه هنا، أو ضع جوابك المعتاد في ملفك' };
+    } else if (key && LONG_OK[key]) {
       var fact = workFact(key, profile, ctx);
       if (fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
       blocked = { key: key, value: null, source: 'work_authorization', why: fact.why };
@@ -220,13 +267,16 @@ var QaddimFields = (function () {
         blocked = { key: key, value: null, source: key, why: 'يسأل بـ' + asked.toUpperCase() + ' وإجابتك بـ' + held.toUpperCase() };
       } else if (UNFINISHED.test(value)) {
         blocked = { key: key, value: null, source: key, why: 'إجابتك فيها فراغ لم تملأه' };
+      } else if (key === 'date_of_birth') {
+        var shaped = dateFor(value, label, ctx && ctx.type);
+        if (shaped) return { key: key, value: shaped, accept: [norm(shaped)], source: key };
+        blocked = { key: key, value: null, source: key, why: 'الاستمارة لا تحدد صيغة التاريخ — اكتبه مرة كما تطلبه' };
       } else {
         var w = wording(value, label);
         return { key: key, value: w.typed, accept: w.accept, source: key };
       }
     }
 
-    var extra = profile.answers || {};
     for (var q in extra) {
       if (q.charAt(0) === '_') continue;          // the profile's own facts, not a saved question
       var nq = norm(q), v = String(extra[q] || '').trim();
@@ -235,7 +285,7 @@ var QaddimFields = (function () {
       var back = t.length >= 14 && nq.indexOf(t) >= 0;
       if (!fwd && !back) continue;
       if (UNFINISHED.test(v)) return { key: 'answers', value: null, source: q, why: 'إجابتك فيها فراغ لم تملأه' };
-      return { key: 'answers', value: v, accept: [norm(v)], source: q };
+      return { key: 'answers', value: v, accept: wording(v, label).accept, source: q };
     }
     if (blocked) return blocked;
     return key ? { key: key, value: null, source: key, why: 'لم تكتب هذه البيانات في ملفك' } : null;

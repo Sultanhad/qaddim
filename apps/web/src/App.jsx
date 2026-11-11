@@ -1102,55 +1102,141 @@ function Jobs({ user, profile, onProfile }) {
   );
 }
 
+/** The same question, however its whitespace and punctuation were typed. */
+const sameWords = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const stoppedOn = (row) => (row.auto_report?.missing ?? []).filter((m) => m.q);
+// The extension's reason when there is simply nothing in the profile — true of most questions
+// here, so repeating it under each one says nothing. Any other reason is worth showing.
+const NO_ANSWER = 'لا إجابة عندك لهذا السؤال';
+
 /**
- * The questions that stopped an application, answered once.
+ * The draft screen: every question that stopped an application, asked once.
  *
- * This is the difference between a robot that works and one that nags: an unanswered
- * question is not a failure of this application, it is a gap in the profile. Answer it here
- * and it is stored for every form that ever asks it again, and this one goes back in the queue.
+ * Measured across our open jobs, nine forms in ten ask something no profile can answer — "have
+ * you worked here before?", "why us?" — so this screen is not an error path, it is where most
+ * applications pass through. It gathers the questions from every waiting application, shows
+ * each one once however many forms asked it, and offers the form's own options when it has
+ * them, because an answer in the form's words is the one that is certain to fit next time.
+ *
+ * It also had never been seen. The list of applications did not ask the database for the
+ * report that carries these questions, so the only thing a stopped application ever showed was
+ * "try again" — which sent it back to fail on the same question, three times, and then stop.
  */
-function Blocked({ row, profile, onProfile, onDone }) {
+function Questions({ rows, profile, onProfile, onDone }) {
   const toast = useToast();
-  const qs = (row.auto_report?.missing ?? []).filter((m) => m.q);
   const [draft, setDraft] = useState({});
   const [busy, setBusy] = useState(false);
+
+  const answered = useMemo(
+    () => new Set(Object.keys(profile.answers ?? {}).filter((k) => !k.startsWith('_')).map(sameWords)),
+    [profile.answers]);
+  const { list, waiting } = useMemo(() => {
+    const byWords = new Map(), waiting = [];
+    for (const row of rows) {
+      const open = stoppedOn(row).filter((m) => !m.manual && !answered.has(sameWords(m.q)));
+      if (!open.length) continue;
+      waiting.push(row);
+      for (const m of open) {
+        const k = sameWords(m.q);
+        if (!byWords.has(k)) byWords.set(k, { k, q: m.q.replace(/\s+/g, ' ').trim(), why: m.why, options: m.options, from: [] });
+        const entry = byWords.get(k);
+        if (!entry.options && m.options) entry.options = m.options;
+        if (row.job?.company && !entry.from.includes(row.job.company)) entry.from.push(row.job.company);
+      }
+    }
+    return { list: [...byWords.values()], waiting };
+  }, [rows, answered]);
+
+  if (!list.length) return null;
+  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+  const written = list.filter((x) => String(draft[x.k] ?? '').trim());
 
   async function save() {
     setBusy(true);
     const answers = { ...(profile.answers ?? {}) };
-    for (const [q, a] of Object.entries(draft)) if (String(a).trim()) answers[q] = String(a).trim();
+    for (const x of written) answers[x.q] = String(draft[x.k]).trim();
     const { data, error } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
     if (error) { setBusy(false); toast.fail(errorAr(error), save); return; }
-    if (data) onProfile(data);
-    const { error: rErr } = await supabase.rpc('retry_application', { app_id: row.id });
+    // Back to the queue goes every application that now has nothing left to ask. One still
+    // short an answer would only open the form again to stop at the same place.
+    const now = new Set([...answered, ...written.map((x) => x.k)]);
+    const ready = waiting.filter((row) => stoppedOn(row).every((m) => m.manual || now.has(sameWords(m.q))));
+    const failed = (await Promise.all(ready.map((row) => supabase.rpc('retry_application', { app_id: row.id }))))
+      .filter((r) => r.error);
     setBusy(false);
-    if (rErr) { toast.fail(errorAr(rErr), save); return; }
-    toast.ok('حُفظت الإجابة وعاد الطلب للطابور');
+    if (data) onProfile(data);
+    setDraft({});
+    if (failed.length) toast.fail(errorAr(failed[0].error));
+    else toast.ok(ready.length
+      ? `حُفظت ${written.length} · عاد ${ready.length} للطابور`
+      : `حُفظت ${written.length} · الطلبات تنتظر بقية أسئلتها`);
     onDone();
   }
 
-  if (!qs.length) {
-    return (
-      <button className="btn btn-go" onClick={async () => {
-        const { error } = await supabase.rpc('retry_application', { app_id: row.id });
-        if (error) toast.fail(errorAr(error)); else { toast.ok('عاد للطابور'); onDone(); }
-      }}>أعد المحاولة</button>
-    );
-  }
-
   return (
-    <div className="blocked">
-      <p className="blocked-h">أجب مرة واحدة، وتُستخدم في كل استمارة تسأل نفس السؤال</p>
-      {qs.map((m, i) => (
-        <div className="field" key={i}>
-          <label htmlFor={`b${row.id}${i}`}>{m.q}</label>
-          {m.why && <p className="hint">{m.why}</p>}
-          <input id={`b${row.id}${i}`} type="text" value={draft[m.q] ?? ''}
-            onChange={(e) => setDraft((d) => ({ ...d, [m.q]: e.target.value }))} />
+    <div className="card questions">
+      <p className="questions-h">أسئلة تنتظرك · {list.length}</p>
+      <p className="faint" style={{ margin: '4px 0 16px' }}>
+        أجب مرة واحدة: الجواب يُحفظ ويُستعمل في كل استمارة تسأل السؤال نفسه. اكتب بلغة السؤال.
+      </p>
+      {list.map((x, i) => (
+        // An English question lays out left to right, controls included: "Yes / No" sitting
+        // at the far right of a question that starts at the left reads as belonging elsewhere.
+        <div className="field" key={x.k} dir={/[\u0600-\u06FF]/.test(x.q) ? 'rtl' : 'ltr'}>
+          <label htmlFor={`q${i}`}>{x.q}</label>
+          <p className="hint" dir="auto">{x.from.join('، ')}{x.why && x.why !== NO_ANSWER ? ` · ${x.why}` : ''}</p>
+          {x.options && x.options.length <= 5
+            ? <div className="pick">
+                {x.options.map((o) => (
+                  <button key={o} type="button" className="chip" aria-pressed={draft[x.k] === o}
+                    onClick={() => set(x.k, draft[x.k] === o ? '' : o)}>{o}</button>
+                ))}
+              </div>
+            : x.options
+              ? <select id={`q${i}`} value={draft[x.k] ?? ''} onChange={(e) => set(x.k, e.target.value)}>
+                  <option value="">—</option>
+                  {x.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              : <input id={`q${i}`} type="text" value={draft[x.k] ?? ''} onChange={(e) => set(x.k, e.target.value)} />}
         </div>
       ))}
-      <button className="btn btn-go" disabled={busy || !Object.values(draft).some((v) => String(v).trim())}
-        onClick={save}>{busy ? '…' : 'احفظ وأعد المحاولة'}</button>
+      <div className="formbar">
+        <button className="btn btn-go btn-lg" disabled={busy || !written.length} onClick={save}>
+          {busy ? '…' : 'احفظ'}
+        </button>
+        <span className="faint">{written.length} من {list.length}</span>
+      </div>
+    </div>
+  );
+}
+
+/** What is left on one stopped application once its questions have a screen of their own. */
+function Stopped({ row, answers, onDone }) {
+  const toast = useToast();
+  const known = new Set(Object.keys(answers ?? {}).map(sameWords));
+  const all = stoppedOn(row);
+  const byHand = all.filter((m) => m.manual);
+  const open = all.filter((m) => !m.manual && !known.has(sameWords(m.q)));
+  return (
+    <div className="blocked">
+      {open.length > 0 && <p className="blocked-h">ينتظر جوابك عن {open.length} — في أعلى الصفحة</p>}
+      {byHand.length > 0 && (
+        <>
+          <p className="blocked-h">يُكمَل في صفحة الشركة</p>
+          <ul className="reasons" style={{ marginTop: 0 }}>
+            {byHand.map((m, i) => (
+              <li key={i}><span dir="auto" style={{ display: 'block' }}>{m.q}</span>
+                {m.why && <span className="faint">{m.why}</span>}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      {open.length === 0 && (
+        <button className="btn btn-go" onClick={async () => {
+          const { error } = await supabase.rpc('retry_application', { app_id: row.id });
+          if (error) toast.fail(errorAr(error)); else { toast.ok('عاد للطابور'); onDone(); }
+        }}>أعد المحاولة</button>
+      )}
     </div>
   );
 }
@@ -1207,7 +1293,7 @@ function Applications({ user, profile, onProfile }) {
     supabase.rpc('my_apply_stats').then(({ data }) => setStats(data?.[0] ?? null));
     const { data } = await supabase
       .from('applications')
-      .select('id, status, notes, applied_on, follow_up_on, auto_status, auto_reason, job:jobs(*)')
+      .select('id, status, notes, applied_on, follow_up_on, auto_status, auto_reason, auto_report, job:jobs(*)')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
     setRows(data ?? []);
@@ -1266,7 +1352,7 @@ function Applications({ user, profile, onProfile }) {
         <Notes row={row} onSave={(v) => setNotes(row, v)} />
       </div>
       {(row.auto_status === 'needs_you' || row.auto_status === 'failed') && (
-        <Blocked row={row} profile={profile} onProfile={onProfile} onDone={load} />
+        <Stopped row={row} answers={profile.answers} onDone={load} />
       )}
       <div className="card-actions">
         <button className="btn btn-go" onClick={() => setSheetFor(row.job)}>ورقة التعبئة</button>
@@ -1281,6 +1367,7 @@ function Applications({ user, profile, onProfile }) {
       {!!urgent.length && (
         <>
           <p className="section">يحتاج منك شيئاً · {urgent.length}</p>
+          <Questions rows={urgent} profile={profile} onProfile={onProfile} onDone={load} />
           {urgent.map((row) => card(row, true))}
           <hr className="rule" />
         </>

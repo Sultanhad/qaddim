@@ -127,14 +127,31 @@ const BLOCKED = page_(`
     <label><input type="checkbox" name="heard" value="c"> Other</label></fieldset>
 `);
 
+// An employer's own questions: two about the company, one that only looks like one, one whose
+// options are not the profile's words, and one too short for the old matcher to ever match.
+const EMPLOYER = page_(`
+  <div class="field"><label for="first">First Name *</label><input id="first" required></div>
+  ${reactSelect('q_worked', 'Have you previously worked with Aldar or its subsidiaries?', ['Yes', 'No'])}
+  <fieldset><legend>Do you have any relatives/friends working with Aldar or its subsidiaries? *</legend>
+    <label><input type="radio" name="rel" value="y"> Yes</label><label><input type="radio" name="rel" value="n"> No</label></fieldset>
+  ${reactSelect('q_k8s', 'Have you previously worked with Kubernetes?', ['Yes', 'No'])}
+  <div class="field"><label for="edu">What is your highest level of education? *</label>
+    <select id="edu" required><option value="">Select</option><option value="ug">Undergraduate degree (BS/BA)</option><option value="gr">Graduate degree</option></select></div>
+  <div class="field"><label for="np2">Notice period *</label>
+    <select id="np2" required><option value="">Select</option><option value="a">Less than 2 weeks</option><option value="b">More than 2 months</option></select></div>
+  <div class="field"><label for="hl">Headline *</label><input id="hl" required></div>
+`);
+const ALDAR = { country: 'ae', company: 'Aldar' };
+const USUAL = { ...PROFILE, worked_here_before: 'no', relatives_here: 'no' };
+
 const browser = await chromium.launch();
-const run = async (html, { job = { country: 'sa' }, autoSubmit = false } = {}) => {
+const run = async (html, { job = { country: 'sa' }, autoSubmit = false, profile = PROFILE } = {}) => {
   const page = await browser.newPage();
   await page.setContent(html);
   await page.evaluate(BUNDLE);
   const result = await page.evaluate(([profile, job, autoSubmit]) => new Promise((resolve) => {
     window.__apply({ type: 'qaddim:apply', profile, job, autoSubmit }, null, resolve);
-  }), [PROFILE, job, autoSubmit]);
+  }), [profile, job, autoSubmit]);
   return { page, result };
 };
 const val = (page, sel) => page.evaluate((s) => document.querySelector(s)?.value ?? null, sel);
@@ -202,6 +219,48 @@ console.log('\nالتوقف');
 {
   const { page, result } = await run(FULL, { autoSubmit: true });
   check('استمارة مكتملة والإرسال مفعّل: تُرسل', result.status === 'submitted' && await page.evaluate(() => window.__submitted === true), result.reason);
+  await page.close();
+}
+
+console.log('\nأسئلة عن الشركة، والمسودة');
+{
+  const { page, result } = await run(EMPLOYER, { job: ALDAR });
+  const m = result.report.missing;
+  check('بلا جواب معتاد: «هل عملت عندنا؟» يُترك لصاحبه', m.some((x) => /worked with Aldar/.test(x.q)) && await shown(page, 'q_worked') === null);
+  await page.close();
+}
+{
+  const { page, result } = await run(EMPLOYER, { job: ALDAR, profile: USUAL });
+  const m = result.report.missing, of = (re) => m.find((x) => re.test(x.q));
+  check('بجواب معتاد «لا»: يُجاب «هل عملت عندنا؟»', await shown(page, 'q_worked') === 'No');
+  check('و«هل لك قريب عندنا؟»', await page.evaluate(() => document.querySelector('input[name=rel][value=n]').checked));
+  check('«هل عملت بـKubernetes؟» ليس سؤالاً عن الشركة', await shown(page, 'q_k8s') === null && !!of(/Kubernetes/));
+  check('وخياراته تصل للمسودة', JSON.stringify(of(/Kubernetes/)?.options) === '["Yes","No"]', JSON.stringify(of(/Kubernetes/)?.options));
+  check('والقائمة أُغلقت بعد قراءتها', await page.evaluate(() => !document.querySelector('.select__menu')));
+  check('«بكالوريوس» وجدت Undergraduate degree (BS/BA)', await val(page, '#edu') === 'ug');
+  check('جواب الملف ليس بين الخيارات: يُعرض ما في القائمة', of(/^Notice period/)?.options?.length === 2 && await val(page, '#np2') === '', of(/^Notice period/)?.why);
+  check('سؤال نصّي بلا خيارات', of(/^Headline/)?.kind === 'text' && !of(/^Headline/)?.options);
+  check('لا شيء منها «يُكمَل باليد»', m.every((x) => !x.manual));
+  await page.close();
+}
+{
+  // What the draft screen saves: each answer under the question's own words.
+  const profile = { ...USUAL, answers: {
+    'Have you previously worked with Kubernetes?': 'Yes',
+    'What is your highest level of education?': 'Graduate degree',
+    'Notice period': 'Less than 2 weeks',
+    'Headline': 'Product analyst' } };
+  const { page, result } = await run(EMPLOYER, { job: ALDAR, profile });
+  check('بعد الإجابة في المسودة: لا شيء ناقص', result.status === 'filled', result.report.missing.map((x) => x.q).join(' | '));
+  check('جوابك لهذا السؤال يغلب حقل الملف', await val(page, '#edu') === 'gr' && await val(page, '#np2') === 'a');
+  check('والسؤال القصير يُطابَق', await val(page, '#hl') === 'Product analyst');
+  check('وجواب المسودة اختير من القائمة', await shown(page, 'q_k8s') === 'Yes');
+  await page.close();
+}
+{
+  const { page, result } = await run(BLOCKED, { profile: { ...PROFILE, answers: { 'Date of birth': '10 March 1995' } } });
+  check('تاريخ بلا صيغة: يُكتب كما كتبه صاحبه مرة', await val(page, '#dob2') === '10 March 1995');
+  check('ومجموعة المربعات «تُكمَل باليد»', result.report.missing.find((x) => /hear about us/.test(x.q))?.manual === true);
   await page.close();
 }
 

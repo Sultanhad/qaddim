@@ -3,6 +3,11 @@
 //   node scripts/measure-forms.mjs                  # 20 jobs per hiring system, bundled Chromium
 //   node scripts/measure-forms.mjs --browser chrome # the same, in the installed Google Chrome
 //   node scripts/measure-forms.mjs --per 5 --only lever,ashby
+//   node scripts/measure-forms.mjs --like docs/قياس-الاستمارات.chromium.json   # the same jobs again
+//
+// Twenty forms per system means one form is five points of that system: new jobs arriving
+// between two runs move the result by more than most fixes do. `--like` re-reads the jobs of an
+// earlier run, so a before and an after are the same forms and the difference is the change.
 //
 // READ-ONLY. It opens each open job's application page in a headless browser — the conditions
 // a worker on a server would have — and looks: it types nothing, ticks nothing, attaches
@@ -29,6 +34,8 @@ const arg = (name, fallback) => {
 const PER = Number(arg('per', 20));
 const BROWSER = arg('browser', 'chromium');
 const ONLY = arg('only', '').split(',').filter(Boolean);
+const LIKE = arg('like', '');
+const SAME = LIKE ? new Set(JSON.parse(await readFile(LIKE, 'utf8')).rows.map((r) => r.id)) : null;
 
 const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
   .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))
@@ -64,7 +71,8 @@ const PROFILE = forExtension({
   current_company: 'Example Co', current_title: 'Product Analyst', years_experience: 5,
   linkedin_url: 'https://linkedin.com/in/example', education_degree: 'بكالوريوس',
   university: 'King Saud University', graduation_year: 2020,
-  answers: { _facts: { gender: 'ذكر', date_of_birth: '1995-03-10', marital_status: 'أعزب' } }
+  answers: { _facts: { gender: 'ذكر', date_of_birth: '1995-03-10', marital_status: 'أعزب',
+    worked_here_before: 'لا', relatives_here: 'لا' } }
 });
 
 // The extension's reader and rules, loaded as they are. Both only look; they are scoped so the
@@ -131,9 +139,8 @@ function readForm([hook, profile, ctx]) {
     }
     if (kind === 'text' && el.value && String(el.value).trim() !== '') continue;
     if (required) out.required++;
-    const ans = F.answerFor(q, profile, ctx);
-    const ok = ans && ans.value && (ans.key !== 'date_of_birth' || F.dateFor(ans.value, q, item.type));
-    if (ok) { out.answered++; continue; }
+    const ans = F.answerFor(q, profile, { ...ctx, type: item.type });
+    if (ans && ans.value) { out.answered++; continue; }
     if (required) out.unanswered.push({ q: q.slice(0, 140), kind, why: (ans && ans.why) || 'لا إجابة في الملف لهذا السؤال' });
   }
   out.cv_asked = Array.from(document.querySelectorAll('input[type=file]'))
@@ -171,7 +178,7 @@ async function measure(ctx, job) {
     const resp = await page.goto(row.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     row.http = resp?.status() ?? null;
     await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-    const ctx = { country: job.country ?? null };
+    const ctx = { country: job.country ?? null, company: job.company ?? null };
     let form = await readBest(page, ctx);
     if (form.next) {
       await page.goto(form.next, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -224,7 +231,7 @@ console.log(`${jobs.length} وظيفة مفتوحة · ${BROWSER} ${browser.vers
 const rows = [];
 await Promise.all([...bySystem].map(async ([system, list]) => {
   const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1280, height: 900 } });
-  for (const job of sample(list, PER)) {
+  for (const job of SAME ? list.filter((j) => SAME.has(j.id)) : sample(list, PER)) {
     const row = { system, ...(await measure(ctx, job)) };
     rows.push(row);
     console.log(`${system.padEnd(16)} ${row.verdict.padEnd(14)} ${String(row.unanswered?.length ?? '-').padStart(2)} بلا جواب  ${(row.checks || []).join('+').padEnd(10)} ${row.company}`);

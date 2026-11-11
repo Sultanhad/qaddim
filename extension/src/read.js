@@ -47,8 +47,8 @@ var QaddimRead = (function () {
     return txt(node.getAttribute('placeholder')) || txt(node.getAttribute('name'));
   }
 
-  /** The question a group of radios or checkboxes is asking, with the options taken out. */
-  function groupQuestion(node, type) {
+  /** The words around a group of radios or checkboxes, with the options taken out. */
+  function groupText(node, type) {
     var name = node.getAttribute('name') || '';
     var opts = name
       ? Array.from(document.querySelectorAll('input[type=' + type + '][name="' + CSS.escape(name) + '"]'))
@@ -57,7 +57,7 @@ var QaddimRead = (function () {
     var clean = function (s) {
       var t = txt(s);
       opts.forEach(function (o) { if (o) t = t.split(o).join(' '); });
-      return txt(t).replace(/^[*\s:]+/, '');
+      return txt(t);
     };
     var fs = node.closest('fieldset');
     if (fs) { var lg = fs.querySelector('legend'); if (lg && textOf(lg)) return clean(textOf(lg)); }
@@ -68,6 +68,21 @@ var QaddimRead = (function () {
       if (t.length > 8) return t;
     }
     return txt(name);
+  }
+
+  /** The question a group is asking. */
+  function groupQuestion(node, type) { return groupText(node, type).replace(/^[*\s:]+/, ''); }
+
+  /**
+   * A group's asterisk sits on its question, not on any one option — and each option's own
+   * label is the nearest thing to it, so asking an option "are you required?" always said no.
+   * A required group that nobody had answered was then sent as if complete.
+   */
+  function groupRequired(els, type) {
+    if (els.some(function (e) { return e.required || e.getAttribute('aria-required') === 'true'; })) return true;
+    var box = els[0].closest('[role=radiogroup], [role=group]');
+    if (box && box.getAttribute('aria-required') === 'true') return true;
+    return /[*✱]|\brequired\b|مطلوب/i.test(groupText(els[0], type));
   }
 
   function isRequired(node) {
@@ -104,7 +119,7 @@ var QaddimRead = (function () {
       radios.get(n).push(r);
     });
     radios.forEach(function (els) {
-      out.push({ kind: 'radio', el: els[0], els: els, q: groupQuestion(els[0], 'radio'), required: isRequired(els[0]) });
+      out.push({ kind: 'radio', el: els[0], els: els, q: groupQuestion(els[0], 'radio'), required: groupRequired(els, 'radio') });
     });
 
     // Checkboxes that share a name — or, unnamed, a fieldset — are one question with several
@@ -123,7 +138,7 @@ var QaddimRead = (function () {
       out.push({
         kind: 'checks', el: els[0], els: els,
         q: els.length > 1 ? groupQuestion(els[0], 'checkbox') : labelOf(els[0]),
-        required: isRequired(els[0])
+        required: els.length > 1 ? groupRequired(els, 'checkbox') : isRequired(els[0])
       });
     });
 

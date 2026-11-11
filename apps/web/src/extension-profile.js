@@ -36,6 +36,9 @@ export function forExtension(profile) {
     linkedin_url: profile.linkedin_url, education_degree: profile.education_degree,
     university: profile.university, graduation_year: String(profile.graduation_year ?? ''),
     gender: facts.gender ?? '', date_of_birth: facts.date_of_birth ?? '', marital_status: facts.marital_status ?? '',
+    // Your usual answer to a question about the employer. Only "no" is ever a usual answer.
+    worked_here_before: facts.worked_here_before === 'لا' ? 'no' : '',
+    relatives_here: facts.relatives_here === 'لا' ? 'no' : '',
     answers: profile.answers ?? {},
     auto_submit: !!profile.auto_submit,
     // where the CV lives; the extension fetches the bytes itself with this same token

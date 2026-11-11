@@ -107,19 +107,42 @@
     return el.readOnly ? txt(el.value) : '';
   }
 
-  /** @returns null when the option was chosen and the dropdown shows it, else why not. */
-  async function pickFrom(el, ans) {
+  async function openList(el) {
     const control = el.closest('.select__control') || el;
     mouse(control, 'mousedown'); el.focus(); mouse(control, 'mouseup'); mouse(control, 'click');
     let options = [];
     for (let i = 0; i < 20 && !options.length; i++) { await sleep(100); options = listOf(el); }
-    const shut = () => { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); el.blur(); };
-    if (!options.length) { shut(); return 'القائمة لم تفتح — اختر بنفسك'; }
+    return options;
+  }
+  const shutList = (el) => { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); el.blur(); };
+
+  /** @returns {{why?:string, manual?:boolean, options?:string[]}} — empty when the option was chosen. */
+  async function pickFrom(el, ans) {
+    const options = await openList(el);
+    if (!options.length) { shutList(el); return { why: 'القائمة لم تفتح — اختر بنفسك', manual: true }; }
     const opt = choose(options.map((o) => ({ node: o, text: o.textContent })), ans);
-    if (!opt) { shut(); return 'إجابتك ليست من الخيارات المعروضة'; }
+    if (!opt) { shutList(el); return { why: 'إجابتك ليست من الخيارات المعروضة', options: offer(options.map((o) => o.textContent)) }; }
     mouse(opt, 'mousedown'); mouse(opt, 'mouseup'); opt.click();
     await sleep(250);
-    return chosenIn(el) ? null : 'الخيار لم يستجب للضغط';
+    return chosenIn(el) ? {} : { why: 'الخيار لم يستجب للضغط', manual: true };
+  }
+
+  // What a question offers, for the draft screen: answering with the form's own words is the
+  // one way to be sure the answer fits next time. A list too long to show (every country on
+  // earth) is left out, and the person types instead.
+  const offer = (texts) => {
+    const list = texts.map(txt).filter(Boolean);
+    return list.length && list.length <= 40 ? list.map((t) => t.slice(0, 120)) : undefined;
+  };
+  async function optionsOf(item) {
+    if (item.kind === 'radio') return offer(item.els.map((r) => labelOf(r)));
+    if (item.kind === 'select') return offer(Array.from(item.el.options).filter((o) => o.value !== '').map((o) => o.textContent));
+    if (item.kind === 'combo') {
+      const options = await openList(item.el);
+      shutList(item.el);
+      return offer(options.map((o) => o.textContent));
+    }
+    return undefined;
   }
 
   function captchaPresent() {
@@ -150,7 +173,8 @@
 
     for (const item of QaddimRead.questions()) {
       const { kind, el, q, required: req } = item;
-      const leave = (why) => (req ? report.missing : report.skipped).push({ q, why });
+      // `manual` marks what no answer typed into قدّم can settle — it has to be done on the page.
+      const leave = (why, more) => (req ? report.missing : report.skipped).push({ q, why, kind, ...more });
 
       if (kind === 'checks') {
         if (!req || item.els.some((c) => c.checked)) continue;
@@ -160,9 +184,9 @@
         // box whose own words are a consent sentence gets ticked.
         const consent = /agree|consent|accept|acknowledge|confirm|privacy|terms|policy|gdpr|أوافق|أقر|الموافقة|الخصوصية|الشروط/i.test(q);
         if (item.els.length > 1 || !consent) {
-          report.missing.push({ q, why: item.els.length > 1 ? 'سؤال خيارات إلزامي — اختر بنفسك' : 'مربع إلزامي ليس إقراراً — راجعه بنفسك' });
+          leave(item.els.length > 1 ? 'سؤال خيارات إلزامي — اختر بنفسك' : 'مربع إلزامي ليس إقراراً — راجعه بنفسك', { manual: true });
         } else if (check(el)) report.agreed.push(q);
-        else report.missing.push({ q, why: 'مربع إلزامي لم يستجب' });
+        else leave('مربع إلزامي لم يستجب', { manual: true });
         continue;
       }
 
@@ -174,7 +198,7 @@
         const wantsCover = /cover letter|motivation/i.test(q);
         if (!(wantsCv || wantsCover) || el.files.length) continue;
         if (!profile.cv_file) {
-          report.missing.push({ q, why: wantsCv ? 'سيرتك غير محمّلة — افتح المنصة مرة لمزامنتها' : 'لا خطاب تقديم في ملفك' });
+          report.missing.push({ q, kind, manual: true, why: wantsCv ? 'سيرتك غير محمّلة — افتح المنصة مرة لمزامنتها' : 'لا خطاب تقديم في ملفك' });
           continue;
         }
         if (!wantsCv) continue;
@@ -189,9 +213,9 @@
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
           if (el.files.length === 1) report.filled.push({ q, v: profile.cv_file.name });
-          else report.missing.push({ q, why: 'الصفحة رفضت المرفق — أرفق سيرتك بنفسك' });
+          else report.missing.push({ q, kind, manual: true, why: 'الصفحة رفضت المرفق — أرفق سيرتك بنفسك' });
         } catch (e) {
-          report.missing.push({ q, why: 'تعذّر إرفاق سيرتك — أرفقها بنفسك' });
+          report.missing.push({ q, kind, manual: true, why: 'تعذّر إرفاق سيرتك — أرفقها بنفسك' });
         }
         continue;
       }
@@ -201,19 +225,23 @@
         : kind === 'combo' ? chosenIn(el)
           : el.value && String(el.value).trim() !== '') continue;
 
-      const ans = F.answerFor(q, profile, ctx);
-      if (!ans || !ans.value) { leave(ans?.why || 'لا إجابة عندك لهذا السؤال'); continue; }
+      const ans = F.answerFor(q, profile, { ...ctx, type: item.type });
+      if (!ans || !ans.value) {
+        // Opening a list just to read it is only worth doing for a question that stops the form.
+        leave(ans?.why || 'لا إجابة عندك لهذا السؤال', req ? { options: await optionsOf(item) } : null);
+        continue;
+      }
 
       if (kind === 'radio') {
         const pick = choose(item.els.map((r) => ({ node: r, text: labelOf(r) })), ans);
-        if (!pick) leave('إجابتك ليست من الخيارات المعروضة');
+        if (!pick) leave('إجابتك ليست من الخيارات المعروضة', { options: await optionsOf(item) });
         else if (check(pick)) report.filled.push({ q, v: ans.value });
-        else leave('الخيار لم يستجب للضغط');
+        else leave('الخيار لم يستجب للضغط', { manual: true });
         continue;
       }
       if (kind === 'select') {
         const opt = choose(Array.from(el.options).map((o) => ({ node: o, text: o.textContent })), ans);
-        if (!opt) { leave('إجابتك ليست في القائمة'); continue; }
+        if (!opt) { leave('إجابتك ليست في القائمة', { options: await optionsOf(item) }); continue; }
         el.value = opt.value;
         el.dispatchEvent(new Event('change', { bubbles: true }));
         report.filled.push({ q, v: ans.value });
@@ -221,15 +249,11 @@
       }
       if (kind === 'combo') {
         const failed = await pickFrom(el, ans);
-        if (failed) leave(failed); else report.filled.push({ q, v: ans.value });
+        if (failed.why) leave(failed.why, failed); else report.filled.push({ q, v: ans.value });
         continue;
       }
 
-      let value = ans.text || ans.value;
-      if (ans.key === 'date_of_birth') {
-        value = F.dateFor(ans.value, q, item.type);
-        if (!value) { leave('الاستمارة لا تحدد صيغة التاريخ — اكتبه بنفسك'); continue; }
-      }
+      const value = ans.text || ans.value;
       setValue(el, value);
       report.filled.push({ q, v: value });
     }

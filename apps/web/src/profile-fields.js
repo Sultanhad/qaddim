@@ -43,7 +43,15 @@ export const APPLY_FIELDS = [
     options: ['ذكر', 'أنثى'] },
   { key: 'date_of_birth',          label: 'تاريخ الميلاد',         type: 'date',  store: 'facts', dir: 'ltr', group: 'تسألها بعض الاستمارات' },
   { key: 'marital_status',         label: 'الحالة الاجتماعية',     type: 'select', store: 'facts', group: 'تسألها بعض الاستمارات',
-    options: ['أعزب', 'متزوج', 'مطلّق', 'أرمل'] }
+    options: ['أعزب', 'متزوج', 'مطلّق', 'أرمل'] },
+
+  // The two questions that stopped the most forms are about the employer, not about you —
+  // so what is kept is your usual answer, and only "no" can be one: it is sent only when a
+  // form plainly asks about that company. Left unset, each form that asks waits for you.
+  { key: 'worked_here_before',     label: 'هل سبق أن عملت في الشركة التي تقدّم عليها؟', type: 'select', store: 'facts',
+    group: 'تسألها بعض الاستمارات', options: ['لا'], empty: 'اسألني في كل مرة' },
+  { key: 'relatives_here',         label: 'هل لك قريب يعمل فيها؟', type: 'select', store: 'facts',
+    group: 'تسألها بعض الاستمارات', options: ['لا'], empty: 'اسألني في كل مرة' }
 ];
 
 const has = (profile, key) => String(profile?.[key] ?? '').trim() !== '';
