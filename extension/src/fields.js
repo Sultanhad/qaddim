@@ -236,12 +236,22 @@ var QaddimFields = (function () {
   function answerFor(label, profile, ctx) {
     var t = norm(label);
     var extra = profile.answers || {};
+    var standing = standingKey(t, ctx);
+    var key = standing || keyFor(label);
+    var blocked = null;
+
+    // Sponsorship and the right to work are asked in the same words by every employer and
+    // mean something different in every country. An answer saved for those words would be
+    // reused for a job in Dubai after being given for one in Riyadh — so for these two a
+    // saved answer is never consulted: either the profile and the job's country settle it,
+    // or it is finished on the employer's own page.
+    var byCountry = !standing && key && LONG_OK[key];
 
     // What you wrote for this very question outranks everything else: it is the only answer
     // here that was given to these exact words. Without this, an answer picked in the draft
     // screen lost to the profile field that had failed to fit the form in the first place —
     // and a question shorter than ten characters could be answered for ever and never matched.
-    for (var own in extra) {
+    if (!byCountry) for (var own in extra) {
       if (own.charAt(0) === '_' || norm(own) !== t) continue;
       var mine = String(extra[own] || '').trim();
       if (!mine) continue;
@@ -249,17 +259,15 @@ var QaddimFields = (function () {
       return { key: 'answers', value: mine, accept: wording(mine, label).accept, source: own };
     }
 
-    var standing = standingKey(t, ctx);
-    var key = standing || keyFor(label);
-    var blocked = null;
+    if (byCountry) {
+      var fact = workFact(key, profile, ctx);
+      if (fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
+      return { key: key, value: null, source: 'work_authorization', why: fact.why, manual: true };
+    }
 
     if (standing) {
       if (profile[standing] === 'no') return { key: standing, value: 'no', accept: ['no'], source: standing };
       blocked = { key: standing, value: null, source: standing, why: 'سؤال عن هذه الشركة — أجبه هنا، أو ضع جوابك المعتاد في ملفك' };
-    } else if (key && LONG_OK[key]) {
-      var fact = workFact(key, profile, ctx);
-      if (fact.value) return { key: key, value: fact.value, text: fact.text, accept: [norm(fact.value)], source: 'work_authorization' };
-      blocked = { key: key, value: null, source: 'work_authorization', why: fact.why };
     } else if (key && profile[key] != null && String(profile[key]).trim() !== '') {
       var value = String(profile[key]).trim();
       var asked = currencyOf(label), held = currencyOf(value);

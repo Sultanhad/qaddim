@@ -40,9 +40,13 @@ const seed = (job, missing) => admin('/rest/v1/applications', { method: 'POST', 
 await seed(one, [GCC,
   { q: 'Why do you want to work here?', kind: 'text', why: 'لا إجابة عندك لهذا السؤال' },
   { q: 'How did you hear about us? *', kind: 'checks', manual: true, why: 'سؤال خيارات إلزامي — اختر بنفسك' }]);
+const WORKED = `Have you previously worked at ${two.company}?`;
 await seed(two, [GCC,
   { q: 'What is your current employment status?', kind: 'combo', why: 'لا إجابة عندك لهذا السؤال',
-    options: ['Employed full-time', 'Employed part-time', 'Self-employed', 'Student', 'Between jobs', 'Contractor', 'Other'] }]);
+    options: ['Employed full-time', 'Employed part-time', 'Self-employed', 'Student', 'Between jobs', 'Contractor', 'Other'] },
+  { q: WORKED, kind: 'combo', key: 'worked_here_before', options: ['Yes', 'No'], why: 'سؤال عن هذه الشركة — أجبه هنا، أو ضع جوابك المعتاد في ملفك' },
+  { q: 'Will you now or in the future require sponsorship for employment visa status?', kind: 'combo', key: 'requires_sponsorship',
+    manual: true, why: 'يعتمد على بلد الوظيفة، وملفك يصف وضعك في السعودية فقط' }]);
 const apps = () => admin(`/rest/v1/applications?user_id=eq.${me.id}&select=job_id,auto_status,auto_attempts`).then((r) => r.json());
 const statusOf = async (job) => (await apps()).find((a) => a.job_id === job.id)?.auto_status;
 
@@ -59,7 +63,7 @@ await page.waitForSelector('.card', { timeout: 15000 });
 
 const panel = page.locator('.questions');
 check('الأسئلة ظاهرة أصلاً', await panel.count() === 1);
-check('كل سؤال مرة واحدة ولو سألته استمارتان', await panel.locator('.field').count() === 3, await panel.locator('.questions-h').textContent().catch(() => ''));
+check('كل سؤال مرة واحدة ولو سألته استمارتان', await panel.locator('.field').count() === 4, await panel.locator('.questions-h').textContent().catch(() => ''));
 const gcc = panel.locator('.field', { hasText: 'Are you based in the GCC?' });
 check('وتحته الشركتان اللتان سألتاه', (await gcc.locator('.hint').textContent()).includes(one.company) && (await gcc.locator('.hint').textContent()).includes(two.company));
 check('خياران يُعرضان أزراراً', await gcc.locator('.pick .chip').count() === 2);
@@ -68,6 +72,11 @@ check('ما يُكمَل باليد ليس سؤالاً هنا', await panel.loc
 check('بل مذكور عند طلبه', await page.locator('.blocked', { hasText: 'يُكمَل في صفحة الشركة' }).locator('li', { hasText: 'hear about us' }).count() === 1);
 await page.screenshot({ path: '/tmp/questions-1.png', fullPage: true });
 
+check('سؤال الكفالة ليس هنا: جوابه يختلف من بلد لآخر', await panel.locator('.field', { hasText: 'sponsorship' }).count() === 0);
+const worked = panel.locator('.field', { hasText: 'previously worked at' });
+check('«اجعلها جوابي الدائم» لا تظهر قبل أن يُقال «لا»', await worked.locator('.usual').count() === 0);
+await worked.locator('.chip', { hasText: 'No' }).click();
+check('وتظهر بعدها، مختارة', await worked.locator('.usual input').isChecked());
 await gcc.locator('.chip', { hasText: 'Yes' }).click();
 await panel.locator('.field', { hasText: 'employment status' }).locator('select').selectOption('Between jobs');
 await panel.locator('.formbar .btn-go').click();
@@ -76,6 +85,7 @@ await page.waitForFunction(() => document.querySelectorAll('.questions .field').
 const saved = (await admin(`/rest/v1/profiles?id=eq.${me.id}&select=answers`).then((r) => r.json()))[0].answers;
 check('الجوابان حُفظا بنصّ السؤال', saved['Are you based in the GCC?'] === 'Yes' && saved['What is your current employment status?'] === 'Between jobs');
 check('وما كان في الملف لم يُمسّ', saved._facts?.gender === 'ذكر');
+check('و«لا» صارت جوابه المعتاد لكل شركة', saved._facts?.worked_here_before === 'لا' && saved[WORKED] === 'No');
 check('الطلب الذي اكتملت أسئلته عاد للطابور', await statusOf(two) === 'queued', await statusOf(two));
 check('والذي بقي له سؤال ينتظر', await statusOf(one) === 'needs_you', await statusOf(one));
 check('والسؤال المُجاب اختفى من القائمة', await panel.locator('.field').count() === 1);

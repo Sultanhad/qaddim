@@ -391,6 +391,22 @@ export async function checkLink(job, { fetchImpl = fetch, timeoutMs = 12000 } = 
 const hostOf = (url) => { try { return new URL(String(url)).hostname.toLowerCase(); } catch { return ''; } };
 
 /** The countries this board serves. */
+// ── where the extension can apply ────────────────────────────────────────────
+// We *read* jobs from more systems than we can *apply* on. Workday, SuccessFactors and Oracle
+// make every applicant open an account with each employer first; the extension has no script
+// on them. A job there can be saved and applied to by hand, but it must never be put in the
+// queue — queued, it was opened, found unanswerable, and reported as "the page did not respond".
+// The list mirrors the extension's manifest; the engine's tests fail if the two drift.
+export const APPLY_HOSTS = [
+  /^apply\.workable\.com$/, /^jobs\.lever\.co$/, /^jobs\.ashbyhq\.com$/, /(^|\.)greenhouse\.io$/,
+  /^(jobs|careers)\.smartrecruiters\.com$/, /\.recruitee\.com$/, /^jobs\.unifonic\.com$/
+];
+export function autoApplyable(url) {
+  let host = '';
+  try { const u = new URL(url); if (u.protocol !== 'https:') return false; host = u.hostname; } catch { return false; }
+  return APPLY_HOSTS.some((re) => re.test(host));
+}
+
 export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
 
 /**

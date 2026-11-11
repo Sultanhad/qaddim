@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -200,6 +200,20 @@ check('Safety', 'Only hiring-system hosts are allowed',
     /export async function searchJson[\s\S]*?method: 'POST'/.test(src));
   check('Safety', 'No adapter chooses its own method',
     !/ADAPTERS[\s\S]*method:\s*['"](POST|PUT|PATCH|DELETE)/i.test(src));
+}
+
+// What may be queued for the extension has to be exactly what the extension has a script on.
+{
+  const manifest = JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../../../extension/manifest.json', import.meta.url), 'utf8'));
+  const pages = manifest.content_scripts[0].matches.map((m) => m.replace('*.', 'x.').replace('/*', '/job/1'));
+  const refused = pages.filter((u) => !autoApplyable(u));
+  check('Applying', 'Every page the extension fills may be queued', refused.length === 0, refused.join(', '));
+  check('Applying', 'A Workday job is never queued', !autoApplyable('https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Riyadh/X_1'));
+  check('Applying', 'Nor SuccessFactors, nor an employer\'s own site',
+    !autoApplyable('https://career5.successfactors.eu/career?company=x') && !autoApplyable('https://careers.datadoghq.com/detail/1/'));
+  check('Applying', 'A look-alike host is refused', !autoApplyable('https://evilgreenhouse.io/x') && !autoApplyable('https://apply.workable.com.evil.io/j/1'));
+  check('Applying', 'Greenhouse on its newer board is allowed', autoApplyable('https://job-boards.eu.greenhouse.io/binance/jobs/5024608101'));
+  check('Applying', 'Junk is not a URL', !autoApplyable('') && !autoApplyable(null) && !autoApplyable('http://jobs.lever.co/a/b'));
 }
 
 check('Places', 'Arabic city names are understood', placeOf('الرياض، السعودية').city === 'riyadh');

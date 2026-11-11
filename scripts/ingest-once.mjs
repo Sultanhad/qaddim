@@ -9,7 +9,7 @@
 import { readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
-import { fetchAll, fingerprintOf, checkLink } from '../packages/engine/src/sources.js';
+import { fetchAll, fingerprintOf, checkLink, autoApplyable } from '../packages/engine/src/sources.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 
@@ -149,6 +149,27 @@ if (HAS_LIFECYCLE) {
   console.log(`  links: ${checked} checked, ${gone} gone, ${unknown} no answer`);
 }
 
+// A queue nothing will ever drain. my_apply_queue only hands out open jobs, so an application
+// whose posting closed while it waited sat at "في الطابور" for good, counted as pending work;
+// and one on a system the extension cannot fill was opened, failed, and left as "needs you"
+// with nothing a person could do about it. Both are settled here, every run.
+{
+  const { data: waiting } = await db.from('applications')
+    .select('id, auto_status, job:jobs(url, is_open)').in('auto_status', ['queued', 'needs_you']);
+  const shut = (waiting ?? []).filter((a) => a.job && a.job.is_open === false).map((a) => a.id);
+  const byHand = (waiting ?? []).filter((a) => a.job && a.job.is_open !== false && !autoApplyable(a.job.url)).map((a) => a.id);
+  if (shut.length) {
+    await db.from('applications')
+      .update({ status: 'closed', auto_status: null, auto_reason: 'أُغلق الإعلان قبل أن يُرسل الطلب' }).in('id', shut);
+  }
+  if (byHand.length) {
+    await db.from('applications')
+      .update({ auto_status: null, auto_reason: 'نظام يطلب حساباً عند الشركة — التقديم عليه من صفحته' }).in('id', byHand);
+  }
+  if (shut.length || byHand.length) console.log(`  queue: ${shut.length} closed posting(s) cleared, ${byHand.length} moved to apply-by-hand`);
+}
+
+const byId = new Map(jobs.map((j) => [j.id, j]));
 const { data: profiles } = await db.from('profiles').select('*').eq('onboarded', true);
 console.log(`scoring for ${profiles?.length ?? 0} user(s)…`);
 let written = 0;
@@ -174,7 +195,8 @@ for (const p of profiles ?? []) {
   let auto = 0;
   if (p.auto_queue && p.auto_apply) {
     const bar = Math.max(50, p.auto_queue_above ?? 75);
-    const strong = batch.filter((m) => m.score >= bar);
+    // Strong, and on a system the extension can actually send on.
+    const strong = batch.filter((m) => m.score >= bar && autoApplyable(byId.get(m.job_id)?.url));
     if (strong.length) {
       const { data: have } = await db.from('applications').select('job_id').eq('user_id', p.id);
       const seenJobs = new Set((have ?? []).map((a) => a.job_id));

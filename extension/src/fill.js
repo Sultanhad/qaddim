@@ -116,12 +116,50 @@
   }
   const shutList = (el) => { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); el.blur(); };
 
+  /** Typing into a search box: the value and one input event, nothing that reads as leaving the field. */
+  function typeInto(el, text) {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    if (setter) setter.call(el, text); else el.value = text;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /**
+   * Which of a location search's results is where you live: your city as the place itself —
+   * "Riyadh, …", not "Riyadh Al Khabra, …" — and in your country. Search results come best
+   * match first, so among several that fit, the first is taken; with none that fit, nothing is.
+   */
+  const PLACE = { city: 1, location: 1 };
+  function choosePlace(options, profile) {
+    const city = F.norm(profile.city), country = F.norm(profile.country);
+    if (!city) return null;
+    const named = options.map((o) => ({ node: o.node, head: F.norm(String(o.text).split(',')[0]), all: ' ' + F.norm(o.text) + ' ' }));
+    const here = (o) => !country || o.all.indexOf(' ' + country + ' ') >= 0;
+    const exact = named.filter((o) => o.head === city && here(o));
+    if (exact.length) return exact[0].node;
+    const loose = named.filter((o) => o.all.indexOf(' ' + city + ' ') === 0 && country && here(o));
+    return loose.length === 1 ? loose[0].node : null;
+  }
+
   /** @returns {{why?:string, manual?:boolean, options?:string[]}} — empty when the option was chosen. */
-  async function pickFrom(el, ans) {
-    const options = await openList(el);
-    if (!options.length) { shutList(el); return { why: 'القائمة لم تفتح — اختر بنفسك', manual: true }; }
-    const opt = choose(options.map((o) => ({ node: o, text: o.textContent })), ans);
-    if (!opt) { shutList(el); return { why: 'إجابتك ليست من الخيارات المعروضة', options: offer(options.map((o) => o.textContent)) }; }
+  async function pickFrom(el, ans, profile) {
+    let options = await openList(el);
+    let searched = '';
+    if (!options.length && !el.readOnly && el.getAttribute('aria-autocomplete') === 'list') {
+      // A search box rather than a list: it has nothing to show until it is given something
+      // to look for. Greenhouse's "Location (City)" is one, and it stopped every form it was
+      // on — including one where it was the only thing left unanswered.
+      searched = String(PLACE[ans.key] ? profile.city || ans.value : ans.text || ans.value).split(',')[0].trim();
+      typeInto(el, searched);
+      for (let i = 0; i < 40 && !options.length; i++) { await sleep(150); options = listOf(el); }
+    }
+    const giveUp = () => { if (searched) typeInto(el, ''); shutList(el); };
+    if (!options.length) {
+      giveUp();
+      return { why: searched ? `البحث عن «${searched}» لم يعرض شيئاً — اختر بنفسك` : 'القائمة لم تفتح — اختر بنفسك', manual: true };
+    }
+    const listed = options.map((o) => ({ node: o, text: o.textContent }));
+    const opt = (searched && PLACE[ans.key] && choosePlace(listed, profile)) || choose(listed, ans);
+    if (!opt) { giveUp(); return { why: 'إجابتك ليست من الخيارات المعروضة', options: offer(listed.map((o) => o.text)) }; }
     mouse(opt, 'mousedown'); mouse(opt, 'mouseup'); opt.click();
     await sleep(250);
     return chosenIn(el) ? {} : { why: 'الخيار لم يستجب للضغط', manual: true };
@@ -227,8 +265,10 @@
 
       const ans = F.answerFor(q, profile, { ...ctx, type: item.type });
       if (!ans || !ans.value) {
-        // Opening a list just to read it is only worth doing for a question that stops the form.
-        leave(ans?.why || 'لا إجابة عندك لهذا السؤال', req ? { options: await optionsOf(item) } : null);
+        // Opening a list just to read it is only worth doing for a question that stops the
+        // form. `key` tells the draft screen what kind of question this was, where known.
+        leave(ans?.why || 'لا إجابة عندك لهذا السؤال',
+          !req ? null : ans?.manual ? { manual: true, key: ans.key } : { key: ans?.key, options: await optionsOf(item) });
         continue;
       }
 
@@ -248,7 +288,7 @@
         continue;
       }
       if (kind === 'combo') {
-        const failed = await pickFrom(el, ans);
+        const failed = await pickFrom(el, ans, profile);
         if (failed.why) leave(failed.why, failed); else report.filled.push({ q, v: ans.value });
         continue;
       }

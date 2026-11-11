@@ -486,3 +486,4 @@ section:first-of-type > .group-h { margin-top: 18px; }
 .questions .field label { line-height: 1.5; }
 .questions .pick { display: flex; flex-wrap: wrap; gap: 8px; }
 .questions .pick .chip { margin: 0; text-align: start; }
+.questions .usual { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; font-weight: 500; color: var(--dim); }

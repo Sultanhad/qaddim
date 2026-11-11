@@ -111,7 +111,21 @@ async function fetchCv(session, profile) {
   };
 }
 
+// The pages this extension has a script on, read from its own manifest so the two cannot
+// disagree. A Workday job used to be opened like any other; with no script there to answer,
+// it came back as "the page did not respond" — true, and no use to anyone reading it.
+const FILLABLE = chrome.runtime.getManifest().content_scripts[0].matches.map((m) =>
+  new RegExp('^' + m.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'));
+const fillable = (url) => FILLABLE.some((re) => re.test(url));
+
 async function applyOne(item, profile, settings, session) {
+  if (!fillable(APPLY_URL(item.url))) {
+    const reason = 'نظام يطلب حساباً عند الشركة — التقديم عليه من صفحته';
+    await markApplication(session, item.application_id, { auto_status: null, auto_reason: reason, auto_at: new Date().toISOString() });
+    await note({ job: item, status: 'skipped', reason });
+    return 'skipped';
+  }
+
   // Whether to press submit is decided by the database, not here: the caps and the
   // first-three rule have to hold no matter what this copy of the extension believes.
   const submit = item.submit === true && settings.autoSubmit !== false;

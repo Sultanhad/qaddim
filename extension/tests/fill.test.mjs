@@ -46,6 +46,11 @@ const reactSelect = (id, label, options, required = true) => `
     <input class="requiredInput" ${required ? 'required' : ''} aria-hidden="true" tabindex="-1" value=""></div>
   </div></div></div>`;
 
+// Greenhouse's location box: the same control, but a search — it opens empty and only lists
+// places once something has been typed, a moment later, as the answer comes back.
+const placeSearch = (id, label, places) => reactSelect(id, label, []).replace(
+  `data-options='[]'`, `data-search='${attr(places)}'`).replace('aria-expanded="false"', 'aria-expanded="false" aria-autocomplete="list"');
+
 const workableSelect = (id, label, options) => `
   <div class="styles--3aPac"><span><span><strong>*</strong></span><span><span id="${id}_label"><strong>${label}</strong></span></span></span>
     <div data-ui="${id}" data-input-type="select" data-options='${attr(options)}'><label class="styles--2bW8g"><div data-role="illustrated-input"><div class="styles--3qHIU">
@@ -59,10 +64,11 @@ const WIDGETS = `
   document.querySelectorAll('.select-shell').forEach((shell) => {
     const control = shell.querySelector('.select__control'), input = shell.querySelector('.select__input');
     const close = () => shell.querySelector('.select__menu')?.remove();
-    control.addEventListener('mousedown', () => {
-      if (shell.querySelector('.select__menu')) return;
+    const show = (texts) => {
+      close();
       const menu = document.createElement('div'); menu.className = 'select__menu'; menu.setAttribute('role', 'listbox');
-      JSON.parse(shell.dataset.options).forEach((text) => {
+      if (!texts.length) menu.innerHTML = '<div class="select__menu-notice">No options</div>';
+      texts.forEach((text) => {
         const o = document.createElement('div'); o.className = 'select__option'; o.setAttribute('role', 'option'); o.textContent = text;
         o.addEventListener('click', () => {
           shell.querySelector('.select__placeholder, .select__single-value').outerHTML = '<div class="select__single-value">' + text + '</div>';
@@ -71,10 +77,20 @@ const WIDGETS = `
         menu.appendChild(o);
       });
       shell.appendChild(menu);
+    };
+    const search = shell.dataset.search && JSON.parse(shell.dataset.search);
+    control.addEventListener('mousedown', () => {
+      if (!shell.querySelector('.select__menu')) show(search ? [] : JSON.parse(shell.dataset.options));
     });
     input.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-    // typing only filters — it never chooses, which is why setting .value used to do nothing
-    input.addEventListener('input', () => { window.__typedIntoCombo = true; });
+    input.addEventListener('input', () => {
+      // a search answers a moment after the typing; a plain list is only filtered by it —
+      // typing never chooses, which is why setting .value used to do nothing
+      if (search) {
+        const q = input.value.toLowerCase();
+        setTimeout(() => show(q ? search.filter((p) => p.toLowerCase().includes(q)) : []), 300);
+      } else window.__typedIntoCombo = true;
+    });
   });
   // Workable: a read-only box that opens its list on click.
   document.querySelectorAll('[data-ui][data-input-type="select"]').forEach((ui) => {
@@ -141,6 +157,11 @@ const EMPLOYER = page_(`
     <select id="np2" required><option value="">Select</option><option value="a">Less than 2 weeks</option><option value="b">More than 2 months</option></select></div>
   <div class="field"><label for="hl">Headline *</label><input id="hl" required></div>
 `);
+const PLACES = ['Riyadh Al Khabra, Al-Qassim, Saudi Arabia', 'Riyadh, Riyadh Province, Saudi Arabia', 'Riyadh, Somewhere, United States', 'Jeddah, Makkah Province, Saudi Arabia'];
+const SEARCH = page_(`
+  <div class="field"><label for="first">First Name *</label><input id="first" required></div>
+  ${placeSearch('candidate-location', 'Location (City)', PLACES)}
+`);
 const ALDAR = { country: 'ae', company: 'Aldar' };
 const USUAL = { ...PROFILE, worked_here_before: 'no', relatives_here: 'no' };
 
@@ -201,6 +222,14 @@ console.log('\nالتعبئة');
   const { page, result } = await run(FULL, { job: { country: 'ae' } });
   const stop = result.report.missing.find((m) => /sponsorship/.test(m.q));
   check('وظيفة خارج السعودية: سؤال الكفالة يُترك لصاحبه', result.status === 'needs_you' && !!stop && await shown(page, 'q_sponsor') === null, stop?.why);
+  check('ويُكمَل في صفحة الشركة، لا في المسودة', stop?.manual === true);
+  await page.close();
+}
+{
+  // An answer given for a job in Riyadh, in the very same words, must not travel to Dubai.
+  const said = { ...PROFILE, answers: { 'Will you now or in the future require employer sponsorship to work in the country where this role is based?': 'No' } };
+  const { page, result } = await run(FULL, { job: { country: 'ae' }, profile: said });
+  check('جواب محفوظ عن الكفالة لا يُستعمل لبلد آخر', await shown(page, 'q_sponsor') === null && result.status === 'needs_you');
   await page.close();
 }
 
@@ -227,6 +256,7 @@ console.log('\nأسئلة عن الشركة، والمسودة');
   const { page, result } = await run(EMPLOYER, { job: ALDAR });
   const m = result.report.missing;
   check('بلا جواب معتاد: «هل عملت عندنا؟» يُترك لصاحبه', m.some((x) => /worked with Aldar/.test(x.q)) && await shown(page, 'q_worked') === null);
+  check('والمسودة تعرف أنه سؤال عن الشركة', m.find((x) => /worked with Aldar/.test(x.q))?.key === 'worked_here_before' && m.find((x) => /relatives/.test(x.q))?.key === 'relatives_here');
   await page.close();
 }
 {
@@ -261,6 +291,27 @@ console.log('\nأسئلة عن الشركة، والمسودة');
   const { page, result } = await run(BLOCKED, { profile: { ...PROFILE, answers: { 'Date of birth': '10 March 1995' } } });
   check('تاريخ بلا صيغة: يُكتب كما كتبه صاحبه مرة', await val(page, '#dob2') === '10 March 1995');
   check('ومجموعة المربعات «تُكمَل باليد»', result.report.missing.find((x) => /hear about us/.test(x.q))?.manual === true);
+  await page.close();
+}
+
+console.log('\nخانة بحث لا قائمة');
+{
+  const { page, result } = await run(SEARCH, { autoSubmit: true });
+  check('«Location (City)»: كُتبت المدينة واختير مكانها', await shown(page, 'candidate-location') === 'Riyadh, Riyadh Province, Saudi Arabia', await shown(page, 'candidate-location'));
+  check('وكانت آخر ما ينقص، فأُرسلت الاستمارة', result.status === 'submitted', result.reason);
+  await page.close();
+}
+{
+  const { page, result } = await run(SEARCH, { profile: { ...PROFILE, city: 'Tabuk', location: 'Tabuk, Saudi Arabia' }, autoSubmit: true });
+  const m = result.report.missing.find((x) => /^Location/.test(x.q));
+  check('مدينة لا يعرفها البحث: تُترك ولا يُرسل', result.status === 'needs_you' && !!m && await shown(page, 'candidate-location') === null, m?.why);
+  check('ولا يبقى ما كُتب في الخانة', await val(page, '#candidate-location') === '');
+  await page.close();
+}
+{
+  // The same city in another country is not your city.
+  const { page } = await run(SEARCH, { profile: { ...PROFILE, country: 'United States' } });
+  check('المدينة في بلدك أنت', await shown(page, 'candidate-location') === 'Riyadh, Somewhere, United States');
   await page.close();
 }
 

@@ -3,6 +3,7 @@ import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L, browserKind, BROWSER_AR } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
+import { autoApplyable } from '@engine/sources.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { forExtension } from './extension-profile.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
@@ -973,8 +974,10 @@ function Jobs({ user, profile, onProfile }) {
     setBusyId(job.id);
     const row = { user_id: user.id, job_id: job.id, status };
     // Only queue when something will actually drain the queue. Without the extension these
-    // rows sit at "في الطابور" for ever while the bar counts them as pending work.
-    if (status === 'saved' && me.auto_apply && ext) row.auto_status = 'queued';
+    // rows sit at "في الطابور" for ever while the bar counts them as pending work — and the
+    // same is true of a job on a system the extension has no script for.
+    const sendable = me.auto_apply && ext && autoApplyable(job.url);
+    if (status === 'saved' && sendable) row.auto_status = 'queued';
     const { error } = await supabase.from('applications').upsert(row, { onConflict: 'user_id,job_id' });
     setBusyId(null);
     if (error) { toast.fail(errorAr(error), () => act(job, status, fresh)); return; }
@@ -982,7 +985,7 @@ function Jobs({ user, profile, onProfile }) {
     if (status === 'closed') {
       setUndo(job);
       setTimeout(() => setUndo((u) => (u?.id === job.id ? null : u)), 7000);
-    } else if (me.auto_apply && ext) {
+    } else if (sendable) {
       sendToExtension(me); setQueued((n) => n + 1);
     } else {
       setSheetFor(job);
@@ -1102,12 +1105,15 @@ function Jobs({ user, profile, onProfile }) {
           })()}
           <p style={{ margin: '12px 0 0', fontSize: 14 }}>
             <a href={job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a>
+            {profile.auto_apply && !autoApplyable(job.url) && (
+              <span className="faint"> · التقديم عليها يدوي: نظامها يطلب حساباً عند الشركة</span>
+            )}
           </p>
           {/* Passing on a job is not deleting anything — it used to be painted in the same red
               as "delete my account", which made the quieter of the two choices the louder one. */}
           <div className="card-actions">
             <button className="btn btn-go" disabled={busyId === job.id} onClick={() => act(job, 'saved')}>
-              {profile.auto_apply && ext ? 'يهمني — قدّم لي' : L.approve}
+              {profile.auto_apply && ext && autoApplyable(job.url) ? 'يهمني — قدّم لي' : L.approve}
             </button>
             <button className="btn" disabled={busyId === job.id} onClick={() => act(job, 'closed')}>{L.reject}</button>
           </div>
@@ -1123,6 +1129,11 @@ const stoppedOn = (row) => (row.auto_report?.missing ?? []).filter((m) => m.q);
 // The extension's reason when there is simply nothing in the profile — true of most questions
 // here, so repeating it under each one says nothing. Any other reason is worth showing.
 const NO_ANSWER = 'لا إجابة عندك لهذا السؤال';
+// Questions about the employer whose usual answer can be kept in the profile.
+const STANDING = {
+  worked_here_before: 'واجعلها جوابي لكل شركة تسأل إن كنت عملت فيها',
+  relatives_here: 'واجعلها جوابي لكل شركة تسأل إن كان لي قريب فيها'
+};
 
 /**
  * The draft screen: every question that stopped an application, asked once.
@@ -1140,6 +1151,7 @@ const NO_ANSWER = 'لا إجابة عندك لهذا السؤال';
 function Questions({ rows, profile, onProfile, onDone }) {
   const toast = useToast();
   const [draft, setDraft] = useState({});
+  const [always, setAlways] = useState({});
   const [busy, setBusy] = useState(false);
 
   const answered = useMemo(
@@ -1153,7 +1165,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
       waiting.push(row);
       for (const m of open) {
         const k = sameWords(m.q);
-        if (!byWords.has(k)) byWords.set(k, { k, q: m.q.replace(/\s+/g, ' ').trim(), why: m.why, options: m.options, from: [] });
+        if (!byWords.has(k)) byWords.set(k, { k, q: m.q.replace(/\s+/g, ' ').trim(), why: m.why, options: m.options, key: m.key, from: [] });
         const entry = byWords.get(k);
         if (!entry.options && m.options) entry.options = m.options;
         if (row.job?.company && !entry.from.includes(row.job.company)) entry.from.push(row.job.company);
@@ -1165,11 +1177,18 @@ function Questions({ rows, profile, onProfile, onDone }) {
   if (!list.length) return null;
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const written = list.filter((x) => String(draft[x.k] ?? '').trim());
+  // "Have you worked here before?" will be asked again by the next company in other words.
+  // Answering no once can stand for all of them — but only because the person said so.
+  const isNo = (v) => /^(no|لا)$/i.test(String(v ?? '').trim());
+  const usual = (x) => STANDING[x.key] && isNo(draft[x.k]) && always[x.key] !== false;
 
   async function save() {
     setBusy(true);
     const answers = { ...(profile.answers ?? {}) };
     for (const x of written) answers[x.q] = String(draft[x.k]).trim();
+    const facts = { ...(answers._facts ?? {}) };
+    for (const x of written) if (usual(x)) facts[x.key] = 'لا';
+    answers._facts = facts;
     const { data, error } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
     if (error) { setBusy(false); toast.fail(errorAr(error), save); return; }
     // Back to the queue goes every application that now has nothing left to ask. One still
@@ -1213,6 +1232,12 @@ function Questions({ rows, profile, onProfile, onDone }) {
                   {x.options.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               : <input id={`q${i}`} type="text" value={draft[x.k] ?? ''} onChange={(e) => set(x.k, e.target.value)} />}
+          {STANDING[x.key] && isNo(draft[x.k]) && (
+            <label className="usual" dir="rtl">
+              <input type="checkbox" checked={always[x.key] !== false}
+                onChange={(e) => setAlways((a) => ({ ...a, [x.key]: e.target.checked }))} /> {STANDING[x.key]}
+            </label>
+          )}
         </div>
       ))}
       <div className="formbar">
