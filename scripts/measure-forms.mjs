@@ -4,6 +4,7 @@
 //   node scripts/measure-forms.mjs --browser chrome # the same, in the installed Google Chrome
 //   node scripts/measure-forms.mjs --per 5 --only lever,ashby
 //   node scripts/measure-forms.mjs --like docs/قياس-الاستمارات.chromium.json   # the same jobs again
+//   node scripts/measure-forms.mjs --like … --out /tmp/from-a-server.json       # …written elsewhere
 //
 // Twenty forms per system means one form is five points of that system: new jobs arriving
 // between two runs move the result by more than most fixes do. `--like` re-reads the jobs of an
@@ -25,6 +26,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { forExtension } from '../apps/web/src/extension-profile.js';
+import { loadEnv } from './env.mjs';
 
 const root = new URL('../', import.meta.url).pathname;
 const arg = (name, fallback) => {
@@ -37,9 +39,9 @@ const ONLY = arg('only', '').split(',').filter(Boolean);
 const LIKE = arg('like', '');
 const SAME = LIKE ? new Set(JSON.parse(await readFile(LIKE, 'utf8')).rows.map((r) => r.id)) : null;
 
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+// The project's address and its publishable key: from the environment on a hosted runner,
+// from .env.local here. Nothing private is needed to read public job pages.
+const env = await loadEnv();
 const API = env.VITE_SUPABASE_URL, KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // The same systems, and the same address rules, as extension/src/background.js.
@@ -269,7 +271,9 @@ for (const r of rows) for (const u of r.unanswered ?? []) {
 const questions = [...asked.values()].sort((a, b) => b.forms - a.forms).slice(0, 60)
   .map((a) => ({ q: a.q, kind: a.kind, forms: a.forms, systems: [...a.systems] }));
 
-const out = `${root}docs/قياس-الاستمارات.${BROWSER}.json`;
+// `--out` keeps a run made elsewhere (a hosted runner, to see what a server sees) from
+// writing over the reference measurement in docs/.
+const out = arg('out', '') || `${root}docs/قياس-الاستمارات.${BROWSER}.json`;
 await writeFile(out, JSON.stringify({ at: new Date().toISOString(), browser: BROWSER, per: PER, summary, questions, rows }, null, 1));
 console.log('\n' + ['النظام'.padEnd(16), ...VERDICTS.map((v) => v.padEnd(14))].join(''));
 for (const [s, x] of Object.entries(summary)) console.log([s.padEnd(16), ...VERDICTS.map((v) => String(x[v]).padEnd(14))].join(''));

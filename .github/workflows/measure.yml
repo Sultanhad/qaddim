@@ -1,0 +1,36 @@
+# What does a server see? The same employer forms, opened from a hosted runner instead of a
+# laptop — to find out, before anything is built on it, whether applying from a server (and so
+# from a phone, with no computer on) is possible at all.
+#
+# READ-ONLY: scripts/measure-forms.mjs loads each form's page and looks. It types nothing,
+# attaches nothing and presses nothing. It uses no secret — the two values it needs are the
+# public ones already in the site's bundle. Started by hand only.
+name: قياس الاستمارات من خادم
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: open the same forms the laptop opened, and look
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/measure-forms.mjs --like "docs/قياس-الاستمارات.chromium.json" --out "$RUNNER_TEMP/from-a-server.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: from-a-server
+          path: ${{ runner.temp }}/from-a-server.json
