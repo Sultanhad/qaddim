@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable, servesRegion } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -107,6 +107,68 @@ check('Resilience', 'A failing board is recorded and the others still load',
   check('Resilience', 'And the read is marked incomplete, with how much was missed',
     some.partial.length === 1 && some.partial[0].source === 'workday:acme.wd3/Careers' && /1 of 2/.test(some.partial[0].why), JSON.stringify(some.partial));
   check('Resilience', 'It is not an error: the jobs that did load are real', some.errors.length === 0);
+}
+
+// SmartRecruiters: every country of the region, the text of each posting once, and nothing
+// stored half-read.
+{
+  const SR = [{ system: 'smartrecruiters', slug: 'Acme', label: 'Acme' }];
+  const list = { sa: [{ id: '1', name: 'Planner', location: { city: 'Yanbu', country: 'sa' }, releasedDate: '2026-10-01' }],
+    ae: [{ id: '2', name: 'Chef', location: { city: 'Dubai', country: 'ae' } }, { id: '3', name: 'Host', location: { city: 'Ras Al Khaimah', country: 'ae' } }] };
+  const asked = [];
+  const sr = (failOn) => async (url) => {
+    asked.push(url);
+    const c = /country=(\w+)/.exec(url)?.[1];
+    if (c) return { ok: true, status: 200, json: async () => ({ content: list[c] ?? [] }) };
+    const id = url.split('/').pop();
+    if (id === failOn) throw new Error('fetch failed');
+    return { ok: true, status: 200, json: async () => ({ jobAd: { sections: { jobDescription: { text: '<p>Do the work of posting ' + id + '.</p>' }, qualifications: { text: '<ul><li>Three years</li></ul>' } } } }) };
+  };
+  const first = await fetchAll(SR, { fetchImpl: sr(null) });
+  check('SmartRecruiters', 'Every country of the region is asked, not Saudi Arabia alone',
+    ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'].every((c) => asked.some((u) => u.includes('country=' + c))) && first.jobs.length === 3, String(first.jobs.length));
+  check('SmartRecruiters', 'A town this file does not know is still placed in its country',
+    first.jobs.find((j) => j.source_job_id === '1').country === 'sa' && first.jobs.find((j) => j.source_job_id === '3').country === 'ae');
+  check('SmartRecruiters', 'Each posting arrives with its text', first.jobs.every((j) => /Do the work of posting/.test(j.description) && /Three years/.test(j.description)), first.jobs[0].description);
+  check('SmartRecruiters', 'The reading is accounted for', first.runs.length === 1 && first.runs[0].ok === true && first.runs[0].listed === 3 && first.runs[0].ms >= 0);
+  asked.length = 0;
+  const known = new Set(first.jobs.filter((j) => j.source_job_id !== '3').map((j) => j.id));
+  const again = await fetchAll(SR, { fetchImpl: sr(null), known });
+  check('SmartRecruiters', 'What is already stored with its text is not read again',
+    asked.filter((u) => !u.includes('country=')).length === 1 && again.jobs.filter((j) => j.keep_description).length === 2 && again.jobs.find((j) => j.source_job_id === '3').description.length > 0);
+  const broken = await fetchAll(SR, { fetchImpl: sr('2') });
+  check('SmartRecruiters', 'A page that will not load: left out, and the read marked incomplete',
+    broken.jobs.length === 2 && !broken.jobs.some((j) => j.source_job_id === '2') && broken.partial.length === 1 && /1 of 3/.test(broken.partial[0].why), JSON.stringify(broken.partial));
+  const capped = await fetchAll(SR, { fetchImpl: sr(null), maxDetails: 1 });
+  check('SmartRecruiters', 'A large first read is spread over passes, not stored without text',
+    capped.jobs.length === 1 && capped.partial.length === 1 && capped.jobs.every((j) => j.description));
+}
+
+// "Remote" with a place attached is remote from that place. Every string here is one a board
+// really sent; 188 like the first group were on offer to people in Riyadh.
+{
+  const served = (location, arrangement = 'Remote') => servesRegion({ location, arrangement, country: placeOf(location).country });
+  const AWAY = ['Remote - Americas', 'Europe - Remote', 'Remote, United States', 'California, USA, Remote', 'Taiwan (Remote)',
+    'Remote - North America - Europe', 'Remote, Ontario, Canada', 'Remote - UK', 'LATAM - Remote', 'South Africa (Remote)',
+    'Remote - Americas or EU', 'France, Remote; Spain, Remote; The Netherlands, Remote', 'US, Canada (Remote / Onsite)',
+    'Atlanta, Georgia; Austin, Texas; Remote, Washington D.C.', 'APAC - Remote; Hong Kong SAR', 'India', 'Syrian Arab Republic',
+    'Remote - CA', 'Remote - AZ; Remote - FL; Remote - GA', 'Foster City, CA', 'Remote - SF Bay Area', 'NYC (SoHo)', 'NAMER', 'Halifax'];
+  const wrong = AWAY.filter((l) => served(l));
+  check('Region', 'Remote from somewhere else is not offered here', wrong.length === 0, wrong.join(' | '));
+  const HERE = ['Remote', 'Remote - EMEA', 'EMEA; Remote Roles - EMEA', 'Remote - Global Anywhere', 'APAC; EMEA; Remote Roles - EMEA',
+    'APAC - Remote; LATAM - Remote; Middle East - Remote', 'Remote, Worldwide', 'Remote - MENA', 'Remote (Africa)', 'عن بعد'];
+  const lost = HERE.filter((l) => !served(l));
+  check('Region', 'Remote from anywhere, or from an area that includes us, stays', lost.length === 0, lost.join(' | '));
+  check('Region', 'A posting for here and elsewhere is a posting for here',
+    placeOf('Dubai, UAE; London, UK').country === 'ae' && served('Riyadh; New York', null) && placeOf('Remote - Saudi Arabia or UK').country === 'sa');
+  check('Region', '"Medina, Ohio" is not Medina', placeOf('Medina, Ohio, USA').country === null && placeOf('Medina, Ohio, USA').elsewhere === true
+    && placeOf('Cairo, Illinois').elsewhere === true);
+  check('Region', 'Medina and Cairo themselves are untouched', placeOf('Medina, Saudi Arabia').country === 'sa' && placeOf('Madinah').country === 'sa'
+    && placeOf('Cairo, Egypt').country === 'eg' && placeOf('Cairo').country === 'eg');
+  check('Region', 'A state code is read only where one is written: capitals, after a comma or a dash',
+    served('Remote or hybrid') && served('Remote - in office two days') && served('Work from home, ok with travel') && placeOf('Riyadh, CA').country === 'sa');
+  check('Region', 'A place nobody listed is not called elsewhere', placeOf('Remote - Timbuktu').elsewhere === false && served('Remote - Timbuktu'));
+  check('Region', 'Not remote and not here was never offered', !served('Somewhere unknown', null));
 }
 
 // Re-posting. The same role comes back with a new id every year, and all of them were being

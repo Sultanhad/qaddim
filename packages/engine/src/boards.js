@@ -79,5 +79,30 @@ export const BOARDS = [
   { system: 'greenhouse', slug: 'bybit', label: 'Bybit' },
   { system: 'greenhouse', slug: 'udacity', label: 'Udacity' },
   { system: 'smartrecruiters', slug: 'deliveryhero', label: 'Delivery Hero' },
-  { system: 'lever', slug: 'dlocal', label: 'dLocal' }
+  { system: 'lever', slug: 'dlocal', label: 'dLocal' },
+
+  // ── Added 12 Nov 2026, counted under the corrected region rule ────────────
+  // Sixty-six candidates looked worth adding while "remote, wherever" was being counted as
+  // "here": OpenAI alone showed 581. Counted again with remote-from-elsewhere excluded, these
+  // eighteen had three or more postings that are in the region or open to it (the number
+  // beside each); the rest had fewer, or only a bare "Remote" from an employer that hires in
+  // one country. Run `node scripts/discover-boards.mjs` before adding to this list.
+  { system: 'greenhouse', slug: 'lucidmotors', label: 'Lucid Motors' },       // 35 — Saudi Arabia
+  { system: 'greenhouse', slug: 'deliveroo', label: 'Deliveroo' },            // 22 — Dubai, Kuwait
+  { system: 'ashby', slug: 'supabase', label: 'Supabase' },                   // 46 — "Remote, Global"
+  { system: 'lever', slug: 'offchainlabs', label: 'Offchain Labs' },          // 12 — remote
+  { system: 'ashby', slug: 'elevenlabs', label: 'ElevenLabs' },               //  8 — UAE, Saudi Arabia
+  { system: 'greenhouse', slug: 'consensys', label: 'Consensys' },            //  8 — EMEA remote
+  { system: 'greenhouse', slug: 'gitlab', label: 'GitLab' },                  //  7 — remote, KSA, UAE
+  { system: 'ashby', slug: 'cohere', label: 'Cohere' },                       //  7 — Dubai, Riyadh
+  { system: 'ashby', slug: 'oyster', label: 'Oyster' },                       //  6 — EMEA, global
+  { system: 'ashby', slug: 'posthog', label: 'PostHog' },                     //  6 — remote
+  { system: 'greenhouse', slug: 'coinbase', label: 'Coinbase' },              //  4 — UAE
+  { system: 'lever', slug: 'appen', label: 'Appen' },                         //  4 — Qatar, Bahrain, UAE
+  { system: 'greenhouse', slug: 'thunes', label: 'Thunes' },                  //  4 — Riyadh, Dubai
+  { system: 'ashby', slug: 'airwallex', label: 'Airwallex' },                 //  3 — Dubai, Abu Dhabi
+  { system: 'ashby', slug: 'openai', label: 'OpenAI' },                       //  3 — Abu Dhabi
+  { system: 'ashby', slug: 'zapier', label: 'Zapier' },                       //  3 — EMEA remote
+  { system: 'greenhouse', slug: 'celonis', label: 'Celonis' },                //  3 — UAE
+  { system: 'greenhouse', slug: 'alixpartners', label: 'AlixPartners' }       //  3 — Riyadh, Dubai
 ];

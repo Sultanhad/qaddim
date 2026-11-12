@@ -13,7 +13,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
-import { fetchAll, fingerprintOf, checkLink, autoApplyable } from '../packages/engine/src/sources.js';
+import { fetchAll, fingerprintOf, checkLink, autoApplyable, servesRegion } from '../packages/engine/src/sources.js';
 import { awaitingProof, isPaused } from '../packages/engine/src/applications.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
@@ -91,8 +91,29 @@ for (const ev of ['uncaughtException', 'unhandledRejection']) {
 // wrong here must not cost a cycle of ingestion.
 try { await answerPending({ db, env }); } catch (e) { console.warn('  ! answers: ' + (e?.message ?? e)); }
 
-console.log(`reading ${BOARDS.length} boards…`);
-const { jobs, errors, partial } = await fetchAll(BOARDS, { pauseMs: 150 });
+// ── which boards, this pass ──
+// The list lives in the code (boards.js): a row in a table must never be able to send this
+// worker to a new address. What the table decides is narrower — whether a board already on
+// the list is read — so one that misbehaves can be switched off from the database (set
+// `enabled` to false on its row in job_sources) without waiting for a release.
+const keyOf = (b) => `${b.system}:${b.slug}`;
+const pending = [];
+await db.from('job_sources').upsert(
+  BOARDS.map((b) => ({ system: b.system, slug: b.slug, label: b.label, country: b.country ?? null })),
+  { onConflict: 'system,slug', ignoreDuplicates: true }
+).then(({ error }) => { if (error) pending.push('job_sources: ' + error.message); });
+const sourceRows = await db.from('job_sources').select('id, system, slug, enabled').then(({ data }) => data ?? []);
+const sourceId = new Map(sourceRows.map((r) => [keyOf(r), r.id]));
+const off = new Set(sourceRows.filter((r) => r.enabled === false).map(keyOf));
+const boards = BOARDS.filter((b) => !off.has(keyOf(b)));
+if (off.size) console.log(`  ${off.size} board(s) switched off in job_sources`);
+
+// Postings read one page each (SmartRecruiters) are not read again once their text is stored.
+const described = new Set((await everyRow(() => db.from('jobs').select('id').like('source', 'smartrecruiters:%').neq('description', ''))).map((r) => r.id));
+
+console.log(`reading ${boards.length} boards…`);
+const passStarted = new Date().toISOString();
+const { jobs, errors, partial, runs } = await fetchAll(boards, { pauseMs: 150, known: described });
 for (const e of errors) console.warn('  ! ' + e.source + ': ' + e.error);
 for (const p of partial) console.warn('  ~ ' + p.source + ': ' + p.why);
 console.log(`  ${jobs.length} postings`);
@@ -101,15 +122,23 @@ console.log(`  ${jobs.length} postings`);
 if (!jobs.length) { console.error('no board answered — nothing done'); await finish(1); }
 
 const now = new Date().toISOString();
-const rows = jobs.map((j) => ({
+const rowOf = (j) => ({
   id: j.id, title: j.title, company: j.company, location: j.location, city: j.city,
   country: j.country, arrangement: j.arrangement, salary_published: j.salary_published,
   description: j.description, url: j.url, canonical_url: j.canonical_url,
   source: j.source, source_type: j.source_type, source_job_id: j.source_job_id,
   published_at: j.published_at, last_seen: now, is_open: true
-}));
-const { error: upErr } = await db.from('jobs').upsert(rows, { onConflict: 'id' });
-if (upErr) { console.error('upsert failed:', upErr.message); await finish(1); }
+});
+const rows = jobs.map(rowOf);
+// Two writes, because a posting whose text was not read again this pass must not have the
+// text it already has written over with nothing: for those, the column is simply not sent.
+const fresh = jobs.filter((j) => !j.keep_description).map(rowOf);
+const kept = jobs.filter((j) => j.keep_description).map((j) => { const { description, ...rest } = rowOf(j); return rest; });
+for (const batch of [fresh, kept]) {
+  if (!batch.length) continue;
+  const { error: upErr } = await db.from('jobs').upsert(batch, { onConflict: 'id' });
+  if (upErr) { console.error('upsert failed:', upErr.message); await finish(1); }
+}
 console.log(`  stored`);
 
 // A posting the board still lists is a posting that still exists — that is what verifies it.
@@ -133,7 +162,20 @@ if (HAS_LIFECYCLE) {
 const lived = new Set(jobs.map((j) => j.source));
 const halfRead = new Set(partial.map((p) => p.source));
 const seen = new Set(jobs.map((j) => j.id));
-const known = await everyRow(() => db.from('jobs').select('id, source, last_seen').eq('is_open', true));
+const everyOpen = await everyRow(() => db.from('jobs').select('id, source, last_seen, location, country, arrangement').eq('is_open', true));
+
+// First, what is open and is not for this region at all. That is a fact about the posting,
+// not about whether a board listed it today, so it needs no waiting and no second opinion:
+// "Remote - Americas" was never a job for someone in Riyadh. (This is also what clears the
+// postings stored under the old rule, which kept any "remote" whose place it did not know.)
+const outside = everyOpen.filter((k) => !servesRegion(k)).map((k) => k.id);
+if (outside.length) {
+  await patchJobs(outside, { is_open: false, ...(HAS_LIFECYCLE ? { status: 'closed', closed_at: now } : {}) });
+  console.log(`  ${outside.length} not for this region — closed`);
+}
+const notOurs = new Set(outside);
+const known = everyOpen.filter((k) => !notOurs.has(k.id));
+
 const listed = new Map(), missing = new Map();
 for (const k of known) {
   listed.set(k.source, (listed.get(k.source) ?? 0) + 1);
@@ -309,24 +351,46 @@ console.log(`  ${written} new match(es)${queuedAuto ? ` · ${queuedAuto} queued 
 // Bookkeeping that must never cost a pass: what went wrong is said in one line, in the
 // database's own words. (It used to say "apply migration 007" whatever the reason — for weeks
 // the real one was a constraint that did not know Workday, which migration 012 corrects.)
-const pending = [];
 
 // A pulse, so a stall is visible. The worker ran only three times in 46 hours while the Mac
 // slept and nothing said so; anything that can read this row can now tell how long it has been.
 await db.from('ops_heartbeat').upsert({
   name: 'ingest',
   at: new Date().toISOString(),
-  detail: { boards: BOARDS.length, jobs: jobs.length, closed: gone.length, matches: written,
+  detail: { boards: boards.length, jobs: jobs.length, closed: gone.length, outside: outside.length, matches: written,
             errors: errors.map((e) => e.source), partial: partial.map((p) => p.source), doubted,
             host: env.QADDIM_HOST || 'laptop', every_min: EVERY_MIN, seconds: +((Date.now() - t0) / 1000).toFixed(1) }
 }, { onConflict: 'name' }).then(({ error }) => { if (error) pending.push('ops_heartbeat: ' + error.message); });
 
-// Keep the editable source list in step with the code's list, so an admin screen has rows to
-// show the day it exists. Does nothing until migration 007 is applied.
-await db.from('job_sources').upsert(
-  BOARDS.map((b) => ({ system: b.system, slug: b.slug, label: b.label, country: b.country ?? null })),
-  { onConflict: 'system,slug', ignoreDuplicates: true }
-).then(({ error }) => { if (error) pending.push('job_sources: ' + error.message); });
+// Every source's own record: when it was last read, whether it answered, how many postings
+// it listed, and what it said when it did not. The pulse above says the worker is alive;
+// this says which boards it is actually hearing from.
+{
+  const done = new Date().toISOString();
+  const kept = new Map();
+  for (const j of jobs) kept.set(j.source, (kept.get(j.source) ?? 0) + 1);
+  const label = new Map(BOARDS.map((b) => [keyOf(b), b.label]));
+  const base = (r) => { const [system, ...rest] = r.source.split(':'); return { system, slug: rest.join(':'), label: label.get(r.source) ?? rest.join(':') }; };
+  const answered = runs.filter((r) => r.ok).map((r) => ({ ...base(r), last_run_at: done, last_ok_at: done, last_error: r.partial,
+    status: r.partial ? 'pending' : 'verified', jobs_count: kept.get(r.source) ?? 0 }));
+  const silent = runs.filter((r) => !r.ok).map((r) => ({ ...base(r), last_run_at: done, last_error: String(r.error).slice(0, 300), status: 'failing' }));
+  for (const batch of [answered, silent]) {
+    if (!batch.length) continue;
+    const { error } = await db.from('job_sources').upsert(batch, { onConflict: 'system,slug' });
+    if (error) pending.push('job_sources: ' + error.message);
+  }
+  const log = runs.filter((r) => sourceId.has(r.source)).map((r) => ({
+    source_id: sourceId.get(r.source), started_at: passStarted, finished_at: done, ok: r.ok,
+    jobs_seen: r.listed, jobs_closed: (missing.get(r.source) ?? []).filter((k) => gone.includes(k.id)).length,
+    error: r.error ? String(r.error).slice(0, 300) : r.partial
+  }));
+  if (log.length) {
+    const { error } = await db.from('source_runs').insert(log);
+    if (error) pending.push('source_runs: ' + error.message);
+  }
+  // A fortnight of history answers "when did this board stop?"; more is only weight.
+  await db.from('source_runs').delete().lt('started_at', new Date(Date.now() - 14 * 864e5).toISOString());
+}
 
 for (const line of pending) console.log('  ! ' + line.slice(0, 200));
 console.log(`\ndone in ${((Date.now() - t0) / 1000).toFixed(1)}s · ${jobs.length} jobs · ${gone.length} closed · ${written} matches`);

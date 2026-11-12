@@ -5,7 +5,7 @@
 //   2. Every job keeps the employer's own link. Nothing is reposted under our name.
 
 import { stripHtml, clean, dateOnly, canonicalUrl, fnv1a, decodeEntities } from './text.js';
-import { CITY_ALIASES, CITY_COUNTRY, COUNTRY_ALIASES } from './taxonomy.js';
+import { CITY_ALIASES, CITY_COUNTRY, COUNTRY_ALIASES, ELSEWHERE, COVERS_REGION, SHARED_CITY_NAMES, US_STATE_CODE } from './taxonomy.js';
 import { norm, hasAny } from './text.js';
 
 export const ALLOWED_HOSTS = [
@@ -127,12 +127,23 @@ export function placeOf(location) {
     if (hasAny(t, terms)) { city = name; break; }
   }
   let country = city ? (CITY_COUNTRY[city] || null) : null;
-  if (!country) {
-    for (const [code, terms] of Object.entries(COUNTRY_ALIASES)) {
-      if (hasAny(t, terms)) { country = code; break; }
-    }
+  let named = null;                       // a region country written out, not inferred from a city
+  for (const [code, terms] of Object.entries(COUNTRY_ALIASES)) {
+    if (hasAny(t, terms)) { named = code; break; }
   }
-  return { city, country };
+  if (!country) country = named;
+
+  // Somewhere else? Only when nothing here is named. A posting listed for "Dubai; London" is a
+  // Dubai posting; one listed for "London" alone is not ours, however remote it says it is.
+  const away = hasAny(t, ELSEWHERE) || (US_STATE_CODE.test(String(location ?? '')) ? 'a US state' : null);
+  if (country && away && !named && SHARED_CITY_NAMES.includes(city)) {
+    // "Medina, Ohio": the city's name matched, the country it sits in is not one of ours.
+    return { city: null, country: null, elsewhere: true };
+  }
+  // "Africa" covers Egypt; "South Africa" is a country. The part of a name is not the area.
+  const areas = t.replace(/ (south|southern|west|east|central|sub saharan) africa(n)? /g, ' ');
+  const elsewhere = !country && !!away && !hasAny(areas, COVERS_REGION);
+  return { city, country, elsewhere };
 }
 
 // ── one adapter per hiring system ───────────────────────────────────────────
@@ -277,20 +288,59 @@ const ADAPTERS = {
     return out;
   },
 
+  /**
+   * SmartRecruiters. Its list is filtered by country, so it is asked once for each country
+   * of the region: asked only about Saudi Arabia, a hotel group showed 105 roles and kept its
+   * 106 in the Emirates, Qatar and Egypt to itself.
+   *
+   * The list carries no description — the text every score is computed from — so each posting
+   * the database does not already hold is read once from its own page. `opts.known` is the
+   * set of job ids already stored with their text; those are not asked for again, and come
+   * back flagged so the caller knows not to overwrite what it has with nothing.
+   */
   async smartrecruiters(slug, opts) {
-    const country = opts?.country || 'sa';
-    const j = await getJson(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?country=${country}&limit=100`, opts);
-    return (j.content || []).map((x) => {
+    const api = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings`;
+    const listed = [], seen = new Set();
+    for (const c of opts?.countries ?? REGION) {
+      for (let offset = 0; offset < 1000; offset += 100) {
+        const page = await getJson(`${api}?country=${c}&limit=100&offset=${offset}`, opts);
+        const batch = page.content || [];
+        for (const x of batch) if (x.id && !seen.has(x.id)) { seen.add(x.id); listed.push(x); }
+        if (batch.length < 100) break;
+      }
+    }
+    const out = [];
+    let unread = 0, asked = 0;
+    for (const x of listed) {
       const l = x.location || {};
-      return raw({
+      // The API gives the country as a code. Written as a name, a posting in a town this
+      // file has never heard of is still placed in its country instead of being dropped.
+      const countryName = COUNTRY_ALIASES[String(l.country || '').toLowerCase()]?.[0] || l.country;
+      const job = raw({
         source: `smartrecruiters:${slug}`, source_job_id: x.id, title: x.name,
         company: x.company?.name || opts?.label || slug,
-        location: [l.city, l.region, l.country].filter(Boolean).join(', '),
+        location: [l.city, l.region, countryName].filter(Boolean).join(', '),
         arrangement: l.remote ? 'Remote' : (l.hybrid ? 'Hybrid' : null),
         description: '', url: `https://jobs.smartrecruiters.com/${encodeURIComponent(slug)}/${encodeURIComponent(x.id)}`,
         published_at: x.releasedDate, salary: ''
       });
-    });
+      if (opts?.known?.has(job.id)) { job.keep_description = true; out.push(job); continue; }
+      // A first read of a large board is hundreds of pages. It is spread over passes: what is
+      // not read this time is left out, the read is marked incomplete, and the next pass —
+      // which already knows the ones read now — takes the rest.
+      if (asked >= (opts?.maxDetails ?? 150)) { unread++; continue; }
+      asked++;
+      try {
+        const detail = await getJson(`${api}/${encodeURIComponent(x.id)}`, opts);
+        const sections = detail?.jobAd?.sections ?? {};
+        job.description = ['companyDescription', 'jobDescription', 'qualifications', 'additionalInformation']
+          .map((k) => stripHtml(sections[k]?.text || '')).filter(Boolean).join('\n\n').slice(0, 20000);
+      } catch { unread++; continue; }
+      out.push(job);
+      if (opts?.pauseMs) await new Promise((r) => setTimeout(r, Math.min(opts.pauseMs, 80)));
+    }
+    if (unread) incomplete(out, `${unread} of ${listed.length} postings not read yet`);
+    return out;
   }
 };
 
@@ -431,6 +481,9 @@ export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
 export function servesRegion(job) {
   if (job.country && REGION.includes(job.country)) return true;
   if (job.country) return false;
+  // "Remote" with a place attached is remote *from that place*. It used to pass whenever the
+  // place was one this file did not know — which was nearly all of them.
+  if (placeOf(job.location || '').elsewhere) return false;
   return job.arrangement === 'Remote' || /\bremote\b|عن بعد/i.test(job.location || '');
 }
 
@@ -451,16 +504,23 @@ function incomplete(list, why) {
  *   errors   the board did not answer — nothing is known about it this time
  *   partial  it answered, but not completely — its jobs are real, its silences are not
  *   (neither) it answered in full — a job it no longer lists is gone
+ *
+ * `opts.known` (a Set of job ids already stored with their description) is passed through to
+ * the adapters that read one page per posting, so they do not read the same page every pass.
  */
 export async function fetchAll(sources, opts = {}) {
-  const jobs = [], errors = [], partial = [];
+  const jobs = [], errors = [], partial = [], runs = [];
   for (const s of sources) {
+    const source = `${s.system}:${s.slug}`, began = Date.now();
     try {
       const found = await fetchSource(s, opts);
-      if (found.partial) partial.push({ source: `${s.system}:${s.slug}`, why: found.partial });
+      if (found.partial) partial.push({ source, why: found.partial });
       jobs.push(...found);
+      runs.push({ source, ok: true, partial: found.partial || null, listed: found.length, ms: Date.now() - began, error: null });
     } catch (e) {
-      errors.push({ source: `${s.system}:${s.slug}`, error: String(e?.message || e) });
+      const error = String(e?.message || e);
+      errors.push({ source, error });
+      runs.push({ source, ok: false, partial: null, listed: 0, ms: Date.now() - began, error });
     }
     if (opts.pauseMs) await new Promise((r) => setTimeout(r, opts.pauseMs));
   }
@@ -473,5 +533,7 @@ export async function fetchAll(sources, opts = {}) {
     if (opts.allRegions !== true && !servesRegion(j)) { elsewhere++; continue; }
     unique.push(j);
   }
-  return { jobs: unique, errors, partial, elsewhere };
+  // `runs` is the account of the reading itself, one line per source: did it answer, how
+  // many postings it listed (before the region filter), how long it took.
+  return { jobs: unique, errors, partial, elsewhere, runs };
 }

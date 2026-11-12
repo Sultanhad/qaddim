@@ -115,6 +115,89 @@ export const COUNTRY_ALIASES = {
   kw: ['kuwait', 'الكويت'], om: ['oman', 'عمان'], eg: ['egypt', 'مصر'], jo: ['jordan', 'الأردن']
 };
 
+/**
+ * Places that are not here.
+ *
+ * A posting marked "remote" used to be kept whenever its location named no country this file
+ * knew — and this file knew eight. So "Remote - Americas", "Remote, Texas" and "Taiwan (Remote)"
+ * were all read as "remote, open from anywhere" and offered to people in Riyadh: 188 of them.
+ * This is not a gazetteer. It is enough that a location naming one of these — and nothing in
+ * the region — is understood as somewhere else.
+ */
+export const ELSEWHERE = [
+  // areas that leave this region out
+  'europe', 'eu', 'european union', 'emea north', 'dach', 'nordics', 'benelux', 'apac', 'asia pacific', 'anz',
+  'latam', 'latin america', 'north america', 'namer', 'south america', 'central america', 'americas', 'america', 'amer',
+  'sub saharan africa', 'southern africa', 'west africa', 'east africa', 'southeast asia', 'south asia',
+  'east asia', 'northeast asia', 'north asia', 'central asia', 'cis', 'oceania', 'caribbean',
+  // the United States, as it is written
+  'united states', 'united states of america', 'usa', 'us', 'u s', 'u s a',
+  'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut', 'delaware', 'florida',
+  'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas', 'kentucky', 'louisiana', 'maine',
+  'maryland', 'massachusetts', 'michigan', 'minnesota', 'mississippi', 'missouri', 'montana', 'nebraska',
+  'nevada', 'new hampshire', 'new jersey', 'new mexico', 'new york', 'north carolina', 'north dakota', 'ohio',
+  'oklahoma', 'oregon', 'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas',
+  'utah', 'vermont', 'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming', 'district of columbia',
+  'nyc', 'bay area', 'sf bay area', 'silicon valley',
+  // Canada
+  'canada', 'ontario', 'quebec', 'british columbia', 'alberta', 'manitoba', 'saskatchewan', 'nova scotia',
+  'ottawa', 'halifax', 'calgary', 'edmonton', 'waterloo', 'winnipeg',
+  // the United Kingdom and Ireland
+  'united kingdom', 'uk', 'u k', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland', 'ireland',
+  // every other country outside the eight
+  'afghanistan', 'albania', 'algeria', 'andorra', 'angola', 'argentina', 'armenia', 'australia', 'austria',
+  'azerbaijan', 'bahamas', 'bangladesh', 'barbados', 'belarus', 'belgium', 'belize', 'benin', 'bhutan', 'bolivia',
+  'bosnia', 'botswana', 'brazil', 'brunei', 'bulgaria', 'burkina faso', 'burundi', 'cambodia', 'cameroon',
+  'cape verde', 'chad', 'chile', 'china', 'colombia', 'congo', 'costa rica', 'croatia', 'cuba', 'cyprus',
+  'czech republic', 'czechia', 'denmark', 'djibouti', 'dominican republic', 'ecuador', 'el salvador', 'eritrea',
+  'estonia', 'eswatini', 'ethiopia', 'fiji', 'finland', 'france', 'gabon', 'gambia', 'germany', 'ghana', 'greece',
+  'guatemala', 'guinea', 'guyana', 'haiti', 'honduras', 'hong kong', 'hungary', 'iceland', 'india', 'indonesia',
+  'iran', 'iraq', 'israel', 'italy', 'ivory coast', 'jamaica', 'japan', 'kazakhstan', 'kenya', 'kosovo',
+  'kyrgyzstan', 'laos', 'latvia', 'lebanon', 'lesotho', 'liberia', 'libya', 'liechtenstein', 'lithuania',
+  'luxembourg', 'macau', 'madagascar', 'malawi', 'malaysia', 'maldives', 'mali', 'malta', 'mauritania',
+  'mauritius', 'mexico', 'moldova', 'monaco', 'mongolia', 'montenegro', 'morocco', 'mozambique', 'myanmar',
+  'namibia', 'nepal', 'netherlands', 'the netherlands', 'new zealand', 'nicaragua', 'niger', 'nigeria',
+  'north korea', 'north macedonia', 'norway', 'pakistan', 'palestine', 'panama', 'papua new guinea', 'paraguay',
+  'peru', 'philippines', 'poland', 'portugal', 'puerto rico', 'romania', 'russia', 'rwanda', 'senegal', 'serbia',
+  'seychelles', 'sierra leone', 'singapore', 'slovakia', 'slovenia', 'somalia', 'south africa', 'south korea',
+  'korea', 'south sudan', 'spain', 'sri lanka', 'sudan', 'suriname', 'sweden', 'switzerland', 'syria', 'syrian arab republic', 'taiwan',
+  'tajikistan', 'tanzania', 'thailand', 'togo', 'trinidad and tobago', 'tunisia', 'turkey', 'turkiye',
+  'turkmenistan', 'uganda', 'ukraine', 'uruguay', 'uzbekistan', 'venezuela', 'vietnam', 'yemen', 'zambia', 'zimbabwe',
+  // cities a "remote" posting is most often pinned to
+  'london', 'manchester', 'edinburgh', 'dublin', 'berlin', 'munich', 'hamburg', 'frankfurt', 'paris', 'amsterdam',
+  'brussels', 'madrid', 'barcelona', 'lisbon', 'rome', 'milan', 'zurich', 'geneva', 'vienna', 'prague', 'warsaw',
+  'krakow', 'budapest', 'bucharest', 'sofia', 'athens', 'stockholm', 'oslo', 'copenhagen', 'helsinki', 'istanbul',
+  'tel aviv', 'beirut', 'baghdad', 'erbil', 'casablanca', 'tunis', 'algiers', 'lagos', 'nairobi', 'accra',
+  'johannesburg', 'cape town', 'karachi', 'lahore', 'islamabad', 'dhaka', 'colombo', 'mumbai', 'delhi', 'new delhi',
+  'bangalore', 'bengaluru', 'hyderabad', 'pune', 'chennai', 'gurgaon', 'gurugram', 'noida', 'kolkata', 'manila',
+  'jakarta', 'kuala lumpur', 'bangkok', 'ho chi minh', 'hanoi', 'seoul', 'tokyo', 'osaka', 'taipei', 'shanghai',
+  'beijing', 'shenzhen', 'sydney', 'melbourne', 'brisbane', 'auckland', 'toronto', 'vancouver', 'montreal',
+  'san francisco', 'los angeles', 'seattle', 'boston', 'chicago', 'austin', 'dallas', 'houston', 'denver',
+  'atlanta', 'miami', 'sao paulo', 'rio de janeiro', 'mexico city', 'bogota', 'buenos aires', 'santiago', 'lima'
+];
+
+/**
+ * Areas that do include this region. "Remote - EMEA" is open to someone in Jeddah; so is
+ * "Global". Named alongside somewhere else ("APAC; EMEA"), these win.
+ */
+export const COVERS_REGION = [
+  'emea', 'mena', 'menat', 'mea', 'middle east', 'gcc', 'gulf', 'global', 'globally', 'worldwide', 'world wide',
+  'anywhere', 'international', 'africa', 'north africa', 'levant', 'arab world', 'الشرق الأوسط', 'الخليج', 'عالمي'
+];
+
+/**
+ * Region cities whose names are also towns elsewhere. "Medina, Ohio" is not Medina.
+ * Beside one of these, a foreign place with no region country named means the foreign one.
+ */
+export const SHARED_CITY_NAMES = ['medina', 'mecca', 'cairo'];
+
+/**
+ * US states as boards abbreviate them: "Foster City, CA", "Remote - TX". Read from the text as
+ * written — capitals, and only straight after a comma or a dash — because lower-cased and on
+ * their own, "in", "or", "me", "ok" and "hi" are words. Those five are left out altogether.
+ */
+export const US_STATE_CODE = /(?:,\s*|[-–]\s+)(?:AL|AK|AZ|AR|CA|CO|CT|DC|DE|FL|GA|IA|ID|IL|KS|KY|LA|MA|MD|MI|MN|MO|MS|MT|NC|ND|NE|NH|NJ|NM|NV|NY|OH|PA|RI|SC|SD|TN|TX|UT|VA|VT|WA|WI|WV|WY)(?=$|[\s,;)])/;
+
 export const CITY_COUNTRY = {
   riyadh: 'sa', jeddah: 'sa', dammam: 'sa', khobar: 'sa', dhahran: 'sa', mecca: 'sa', medina: 'sa',
   neom: 'sa', tabuk: 'sa', abha: 'sa', qassim: 'sa',
