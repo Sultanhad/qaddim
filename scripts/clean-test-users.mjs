@@ -13,7 +13,7 @@ const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).spl
 // The prefixes every suite uses. A real address never starts with one.
 const TEST = [
   /^exttest\+/, /^flowtest\+/, /^authtest\+/, /^rls-/, /^auto-/, /^loop-/, /^probe-/, /^audit-/,
-  /^questions-\d+@example\.com$/, /^(ui|facts|live)-\d+@example\.com$/,
+  /^(questions|sending)-\d+@example\.com$/, /^(ui|facts|live)-\d+@example\.com$/,
   // Resend's own sink address, used when checking that sign-in mail actually goes out.
   /^delivered(\+[^@]*)?@resend\.dev$/
 ];

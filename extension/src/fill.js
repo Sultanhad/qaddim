@@ -308,49 +308,127 @@
     return report;
   }
 
-  function submitButton() {
-    const buttons = Array.from(document.querySelectorAll('button, input[type=submit]')).filter(visible);
+  // ── sending ────────────────────────────────────────────────────────────────
+  // Everything before this point can be done again. Pressing send cannot, so the rules here
+  // are different: the press is announced and recorded before it is made; "sent" is said only
+  // on evidence from the employer's own page; and anything short of that evidence is reported
+  // as exactly what it is — pressed, and not known to have arrived.
+
+  function sendButton() {
+    const shown = Array.from(document.querySelectorAll('button, input[type=submit], [role=button]'))
+      .filter((b) => b.offsetParent || b.getClientRects().length);
+    const words = (b) => txt(QaddimRead.textOf(b) || b.value);
     // Prefer a real submit control inside the form that holds the fields, then fall back to
     // any button whose words match — most specific wording first.
     const form = document.querySelector('form input:not([type=hidden])')?.closest('form');
     for (const re of SUBMIT_PATTERNS) {
-      const inForm = form && buttons.find((b) => form.contains(b) && re.test(txt(b.textContent || b.value)));
+      const inForm = form && shown.find((b) => form.contains(b) && re.test(words(b)));
       if (inForm) return inForm;
     }
     for (const re of SUBMIT_PATTERNS) {
-      const any = buttons.find((b) => re.test(txt(b.textContent || b.value)));
+      const any = shown.find((b) => re.test(words(b)));
       if (any) return any;
     }
     return null;
   }
+  const switchedOff = (b) => b.disabled || b.getAttribute('aria-disabled') === 'true';
 
-  async function waitForOutcome(timeoutMs = 60000) {
-    const DONE = /thank you|thanks for applying|application (was )?(received|submitted|sent)|we (have )?received|successfully (applied|submitted)|تم (استلام|إرسال|التقديم)/i;
-    const BUSY = /submitting|sending|please wait|uploading|جار/i;
-    const FAIL = /is required|please (fix|correct|complete)|something went wrong/i;
-    // Some employers answer "send" with one more step: a code mailed to the applicant. That
-    // is not sent and not failed — it is waiting for the one thing only the person has.
-    const CODE = /(verification|security|confirmation) code|enter the code|code (we|that we) (sent|emailed)|sent (you )?a code|رمز التحقق/i;
-    const start = location.href;
-    const until = Date.now() + timeoutMs;
-    let wasBusy = false;
-    while (Date.now() < until) {
-      const t = document.body ? document.body.innerText : '';
-      if (DONE.test(t)) return { ok: true, why: 'الموقع أكّد الاستلام' };
-      if (CODE.test(t)) return { ok: false, why: 'الشركة أرسلت رمز تحقق إلى بريدك — أدخله في تبويبها المفتوح' };
-      if (location.href !== start && !BUSY.test(t)) return { ok: true, why: 'الصفحة انتقلت بعد الإرسال' };
-      const busy = BUSY.test(t);
-      if (wasBusy && !busy) {
-        if (FAIL.test(t)) return { ok: false, why: 'الاستمارة رجعت بخطأ' };
-        return { ok: true, why: 'انتهى الإرسال' };
+  // What an employer's page says once an application is in. "Thank you" alone is page
+  // furniture, and so is "thank you for your interest" — it opens half the forms there are and
+  // closes most rejections. It has to be thanks *for applying*, or the application named as
+  // received.
+  const DONE = /thank you for (applying|your application)|thanks for applying|application (has been |was |is )?(successfully )?(received|submitted|sent|complete)|(received|got) your application|successfully (applied|submitted)|تم (استلام|إرسال|تقديم) (طلبك|الطلب)|شكراً لتقديمك/i;
+  const DONE_URL = /\/(confirmation|thank[-_]?you|thanks|success|submitted|applied)(\/|$)/i;
+  // Some employers answer "send" with one more step: a code mailed to the applicant. That
+  // is not sent and not failed — it is waiting for the one thing only the person has.
+  const CODE = /(verification|security|confirmation) code|enter the code|code (we|that we) (sent|emailed)|sent (you )?a code|رمز التحقق/i;
+  const ERRORS = /is required|this field is required|please (fix|correct|complete|enter|select)|something went wrong|there (was|were) (an? )?(error|problem)|هذا الحقل مطلوب|حقل إلزامي/gi;
+  const pageText = () => (document.body ? document.body.innerText : '');
+  const errorCount = () => (pageText().match(ERRORS) || []).length;
+  const hits = (re, t) => Array.from(t.matchAll(new RegExp(re.source, 'gi')));
+
+  /**
+   * The page as it stands the instant before the press. Words that were already there are not
+   * an answer to it: "once your application is submitted we will review it" sits above a great
+   * many forms, and read after the click it would have been taken for the employer's receipt.
+   */
+  function snapshot() {
+    const t = pageText();
+    return { href: location.href, done: hits(DONE, t).length, code: hits(CODE, t).length, errors: errorCount() };
+  }
+
+  /** Is a form still on this page asking to be filled and sent? */
+  function formHere() {
+    if (!sendButton()) return false;
+    const fields = Array.from(document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), textarea, select'))
+      .filter((el) => el.offsetParent || el.getClientRects().length);
+    return fields.length >= 3;
+  }
+
+  /**
+   * What this page shows right now about an application that was just sent.
+   *
+   * `base` is the snapshot from before the press — this script's own, or the one carried over
+   * by the background when the press replaced the page. On the address the press was made
+   * from, only words that were not there before count, and not at all if new errors came with
+   * them. On any other address, a form still waiting to be sent outweighs whatever the page
+   * says around it. Erring this way costs a look at the inbox; erring the other way costs an
+   * application its owner believes was sent.
+   */
+  function outcomeNow(base) {
+    const t = pageText();
+    const same = !!base && location.href === base.href;
+    const here = location.origin + location.pathname;        // no query: it can carry a token
+    const said = (m) => t.slice(Math.max(0, m.index - 30), m.index + 110).replace(/\s+/g, ' ').trim();
+    const fresh = (re, was) => { const all = hits(re, t); return all.length > (same ? was : 0) ? all[all.length - 1] : null; };
+    const standing = !same && formHere();
+    const errorsUp = same && errorCount() > base.errors;
+
+    const done = !standing && !errorsUp && fresh(DONE, base ? base.done : 0);
+    if (done) return { outcome: 'confirmed', evidence: { kind: 'text', said: said(done), url: here } };
+    if (!same && !standing && DONE_URL.test(location.pathname)) return { outcome: 'confirmed', evidence: { kind: 'url', url: here } };
+    const code = fresh(CODE, base ? base.code : 0);
+    if (code) return { outcome: 'code', evidence: { kind: 'text', said: said(code), url: here } };
+    return { outcome: null, url: here };
+  }
+
+  const WHY = {
+    confirmed: 'الموقع أكّد الاستلام',
+    code: 'الشركة أرسلت رمز تحقق إلى بريدك — أدخله في تبويبها المفتوح',
+    rejected: 'الاستمارة رجعت بخطأ بعد الضغط — لم تُرسل',
+    unverified: 'ضُغط الإرسال ولم يظهر تأكيد — تحقق من بريدك قبل أي إعادة'
+  };
+
+  /**
+   * Waits for the page to say what happened. It used to call a changed address "sent", and a
+   * spinner that stopped "sent" — neither is the employer saying so. Now there are four
+   * answers and only one of them is yes; "the form came back with new errors, still on the
+   * same page, send button still there" is the only one that says nothing went.
+   */
+  async function waitForOutcome(base, timeoutMs = 60000) {
+    const began = Date.now();
+    while (Date.now() - began < timeoutMs) {
+      const now = outcomeNow(base);
+      if (now.outcome) return { ...now, why: WHY[now.outcome] };
+      if (Date.now() - began > Math.min(6000, timeoutMs / 2) && location.href === base.href && errorCount() > base.errors && sendButton()) {
+        return { outcome: 'rejected', why: WHY.rejected };
       }
-      wasBusy = busy;
-      await new Promise((r) => setTimeout(r, 1200));
+      await sleep(1000);
     }
-    return { ok: false, why: 'ما زال يعالج بعد ٦٠ ثانية' };
+    return { outcome: 'unverified', why: WHY.unverified };
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+    // Asked after the page changed under a press: the script on the new page answers for it.
+    // It brings the snapshot taken before the press, because this page never saw that moment.
+    if (msg?.type === 'qaddim:outcome') {
+      const now = outcomeNow(msg.base || null);
+      // A fresh copy of the same form, at the same address, carrying errors it did not have
+      // before the press: the employer's server handed it back. Nothing went.
+      if (!now.outcome && msg.base && location.href === msg.base.href && errorCount() > msg.base.errors && formHere()) now.outcome = 'rejected';
+      reply(now);
+      return;
+    }
     if (msg?.type !== 'qaddim:apply') return;
     (async () => {
       const report = await fill(msg.profile, msg.job || null);
@@ -359,13 +437,32 @@
         return;
       }
       if (!msg.autoSubmit) { reply({ status: 'filled', report }); return; }
-      const btn = submitButton();
+      const btn = sendButton();
       if (!btn) { reply({ status: 'needs_you', report, reason: 'لم أجد زر الإرسال' }); return; }
+      // A send button that is switched off is a page still waiting for something of its own —
+      // an upload finishing, a check running. It was being read as "no button at all".
+      for (let i = 0; i < (msg.patienceS ?? 25) && switchedOff(btn); i++) await sleep(1000);
+      if (switchedOff(btn)) {
+        reply({ status: 'needs_you', report, reason: 'زر الإرسال معطّل — الصفحة ما زالت تنتظر شيئاً (رفع السيرة أو تحقق)' });
+        return;
+      }
+      // The press is recorded before it is made. If the page navigates away the moment it is
+      // clicked — which is what a successful send usually does — this script dies with it,
+      // and the only thing that knows a press happened is whoever was told beforehand.
+      // No acknowledgement, no press.
+      const base = snapshot();
+      let leave = null;
+      try { leave = await chrome.runtime.sendMessage({ type: 'qaddim:pressing', report, base }); } catch { /* no one to tell */ }
+      if (!leave || leave.ok !== true) {
+        reply({ status: 'needs_you', report, reason: (leave && leave.why) || 'لم يُؤذن بالإرسال — أعد تحميل الإضافة' });
+        return;
+      }
       btn.click();
-      const outcome = await waitForOutcome();
-      // `pressed` tells the caller this form is past the point of no return: whatever the
-      // page is showing now, it is not something to close and try again from the top.
-      reply({ status: outcome.ok ? 'submitted' : 'needs_you', report, reason: outcome.why, pressed: true });
+      const result = await waitForOutcome(base, msg.waitMs ?? 60000);
+      reply({
+        status: result.outcome === 'confirmed' ? 'submitted' : 'needs_you',
+        report, reason: result.why, pressed: true, outcome: result.outcome, evidence: result.evidence || null
+      });
     })();
     return true;   // keep the channel open for the async reply
   });

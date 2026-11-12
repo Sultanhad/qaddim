@@ -47,6 +47,17 @@ for f in "$HERE"/supabase/migrations/*.sql; do
 done
 echo "$ok migration(s) apply cleanly in order"
 
+# What the migrations promise, asked of the database they just built: each file in
+# supabase/tests/sql raises an exception on the first promise that does not hold.
+for t in "$HERE"/supabase/tests/sql/*.sql; do
+  [ -f "$t" ] || continue
+  if "$PSQL" -q -v ON_ERROR_STOP=1 -d "$DB" -f "$t" >/tmp/migcheck.out 2>&1; then
+    echo "  ✓ $(basename "$t") holds"
+  else
+    echo "  ✗ $(basename "$t")"; grep -E "ERROR|—" /tmp/migcheck.out | head -6 | sed 's/^/      /'; exit 1
+  fi
+done
+
 # schema.sql exists so a new project can be stood up in one paste. It drifted three migrations
 # behind, so anyone following the README got a database the app 400s against. It is now
 # generated from the chain, and this check fails when the two disagree.

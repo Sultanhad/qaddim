@@ -14,7 +14,14 @@ const root = new URL('../../', import.meta.url).pathname;
 const src = (f) => readFile(root + 'extension/src/' + f, 'utf8');
 // The content scripts as shipped; `chrome.runtime` is handed to them as a local.
 const BUNDLE = `(function(){
-  const chrome = { runtime: { onMessage: { addListener(fn) { window.__apply = fn; } } } };
+  const chrome = { runtime: {
+    onMessage: { addListener(fn) { window.__apply = fn; } },
+    // stands in for the background: records what it was told and when, and answers as the test says
+    sendMessage: async (m) => {
+      (window.__told = window.__told || []).push({ type: m.type, afterSubmit: !!window.__submitted, filled: m.report?.filled?.length, base: m.base });
+      return window.__leave === undefined ? { ok: true } : window.__leave;
+    }
+  } };
   ${await src('fields.js')}
   ${await src('read.js')}
   ${await src('fill.js')}
@@ -166,13 +173,14 @@ const ALDAR = { country: 'ae', company: 'Aldar' };
 const USUAL = { ...PROFILE, worked_here_before: 'no', relatives_here: 'no' };
 
 const browser = await chromium.launch();
-const run = async (html, { job = { country: 'sa' }, autoSubmit = false, profile = PROFILE } = {}) => {
+const run = async (html, { job = { country: 'sa' }, autoSubmit = false, profile = PROFILE, leave, waitMs, patienceS } = {}) => {
   const page = await browser.newPage();
   await page.setContent(html);
   await page.evaluate(BUNDLE);
-  const result = await page.evaluate(([profile, job, autoSubmit]) => new Promise((resolve) => {
-    window.__apply({ type: 'qaddim:apply', profile, job, autoSubmit }, null, resolve);
-  }), [profile, job, autoSubmit]);
+  if (leave !== undefined) await page.evaluate((v) => { window.__leave = v; }, leave);
+  const result = await page.evaluate(([profile, job, autoSubmit, waitMs, patienceS]) => new Promise((resolve) => {
+    window.__apply({ type: 'qaddim:apply', profile, job, autoSubmit, waitMs, patienceS }, null, resolve);
+  }), [profile, job, autoSubmit, waitMs ?? null, patienceS ?? null].map((v) => v ?? undefined));
   return { page, result };
 };
 const val = (page, sel) => page.evaluate((s) => document.querySelector(s)?.value ?? null, sel);
@@ -262,6 +270,84 @@ console.log('\nالتوقف');
 {
   const { page, result } = await run(BLOCKED, { autoSubmit: true });
   check('وما توقف قبل الإرسال لم يُضغط فيه شيء', result.pressed !== true);
+  await page.close();
+}
+
+console.log('\nالضغطة');
+const after = (html, script) => html.replace("document.body.insertAdjacentHTML('beforeend', '<p>Thank you for applying</p>');", script);
+{
+  const { page, result } = await run(FULL, { autoSubmit: true });
+  const told = await page.evaluate(() => window.__told);
+  check('الضغطة تُعلَن قبل أن تقع، ومعها ما عُبّئ', told?.length === 1 && told[0].type === 'qaddim:pressing' && told[0].afterSubmit === false && told[0].filled > 5, JSON.stringify(told));
+  check('والتأكيد دليله من الصفحة نفسها', result.outcome === 'confirmed' && result.evidence?.kind === 'text' && /Thank you for applying/.test(result.evidence.said));
+  check('ومعها صورة الصفحة قبل الضغط', told[0].base?.done === 0 && told[0].base?.errors === 0 && typeof told[0].base?.href === 'string', JSON.stringify(told[0].base));
+  const asked = await page.evaluate((base) => new Promise((r) => window.__apply({ type: 'qaddim:outcome', base }, null, r)), told[0].base);
+  check('ومن يسأل الصفحة بعدها يسمع الجواب نفسه', asked.outcome === 'confirmed');
+  // Asked with no picture of "before", a page whose form is still standing proves nothing.
+  const blind = await page.evaluate(() => new Promise((r) => window.__apply({ type: 'qaddim:outcome' }, null, r)));
+  check('وبلا صورة «قبل»، استمارة ما زالت قائمة ليست تأكيداً', blind.outcome === null, JSON.stringify(blind));
+  await page.close();
+}
+{
+  // The sentence that sits above a great many forms — there before anything was pressed.
+  const INTRO = '<p>Thank you for your interest in Acme. Once your application is submitted, our team will review it.</p>';
+  const intro = (html) => html.replace('<form>', INTRO + '<form>');
+  const quiet = await run(intro(after(FULL, '')), { autoSubmit: true, waitMs: 2500 });
+  check('كلام كان في الصفحة قبل الضغط ليس تأكيداً', quiet.result.pressed === true && quiet.result.outcome === 'unverified', `${quiet.result.outcome} · ${quiet.result.evidence?.said ?? ''}`);
+  await quiet.page.close();
+  const real = await run(intro(FULL), { autoSubmit: true });
+  check('والتأكيد الذي ظهر بعده هو الدليل', real.result.outcome === 'confirmed' && /Thank you for applying/.test(real.result.evidence?.said ?? ''), real.result.evidence?.said);
+  await real.page.close();
+  const both = await run(intro(after(FULL, "document.querySelector('#first').insertAdjacentHTML('afterend', '<p>This field is required</p>'); document.body.insertAdjacentHTML('beforeend', '<p>Your application was received</p>');")), { autoSubmit: true, waitMs: 8000 });
+  check('كلمة تأكيد ومعها خطأ جديد: ليست تأكيداً', both.result.outcome === 'rejected', both.result.outcome);
+  await both.page.close();
+  const polite = await run(after(FULL, "document.body.insertAdjacentHTML('beforeend', '<p>Thank you for your interest in this role.</p>');"), { autoSubmit: true, waitMs: 2500 });
+  check('«شكراً لاهتمامك» ليست «شكراً لتقديمك»', polite.result.outcome === 'unverified', polite.result.outcome);
+  await polite.page.close();
+}
+{
+  const { page, result } = await run(FULL, { autoSubmit: true, leave: { ok: false, why: 'أوقفتَ الأتمتة قبل الإرسال' } });
+  check('لم يُؤذن بالضغط: لا ضغط', await page.evaluate(() => !window.__submitted) && result.status === 'needs_you' && result.pressed !== true, result.reason);
+  await page.close();
+}
+{
+  const { page, result } = await run(FULL, { autoSubmit: true, leave: null });
+  check('لا أحد يسجّل الضغطة: لا ضغط', await page.evaluate(() => !window.__submitted) && /أعد تحميل الإضافة/.test(result.reason), result.reason);
+  await page.close();
+}
+{
+  // The page says nothing at all after the click.
+  const { page, result } = await run(after(FULL, ''), { autoSubmit: true, waitMs: 2500 });
+  check('صمت بعد الضغط: «ضُغط ولم يتأكد»، لا «أُرسل»', result.status === 'needs_you' && result.pressed === true && result.outcome === 'unverified', result.reason);
+  await page.close();
+}
+{
+  const { page, result } = await run(after(FULL, "document.body.insertAdjacentHTML('beforeend', '<p>Thank you</p>');"), { autoSubmit: true, waitMs: 2500 });
+  check('«Thank you» وحدها ليست تأكيداً', result.outcome === 'unverified');
+  await page.close();
+}
+{
+  const { page, result } = await run(after(FULL, "document.querySelector('#first').insertAdjacentHTML('afterend', '<p>This field is required</p>');"), { autoSubmit: true, waitMs: 4000 });
+  check('الاستمارة رجعت بأخطاء جديدة: لم يُرسل شيء', result.outcome === 'rejected' && result.pressed === true, result.reason);
+  await page.close();
+}
+{
+  // A send button that is switched off while the page finishes something of its own.
+  const slow = FULL.replace('<button type="submit">Submit application</button>', '<button type="submit" disabled id="go">Submit application</button>')
+    .replace('<script>', '<script>setTimeout(() => { document.getElementById("go").disabled = false; }, 1500);');
+  const { page, result } = await run(slow, { autoSubmit: true });
+  check('زر معطّل ثم يُفعَّل: يُنتظر ثم يُضغط', result.status === 'submitted', result.reason);
+  await page.close();
+  const stuck = FULL.replace('<button type="submit">Submit application</button>', '<button type="submit" disabled>Submit application</button>');
+  const never = await run(stuck, { autoSubmit: true, patienceS: 2 });
+  check('زر يبقى معطّلاً: يُقال ذلك، ولا يُضغط', /معطّل/.test(never.result.reason) && never.result.pressed !== true && await never.page.evaluate(() => !window.__submitted), never.result.reason);
+  await never.page.close();
+}
+{
+  // Workable's own button: plain words, type=submit, marked with data-ui.
+  const workable = FULL.replace('<button type="submit">Submit application</button>', '<button type="submit" data-ui="apply-button">Submit application</button>');
+  const { page, result } = await run(workable, { autoSubmit: true });
+  check('زر Workable كما هو في صفحته', result.status === 'submitted');
   await page.close();
 }
 

@@ -193,6 +193,18 @@ input[type="range"] { width: 100%; accent-color: var(--blue); }
 .runbar b { color: var(--text); font-weight: 800; }
 .runbar .on { color: var(--good); }
 .runbar .off { color: var(--faint); }
+/* The stop: last in the bar, quiet until wanted, never smaller than a thumb. */
+.runbar-stop {
+  margin-inline-start: auto; padding: 6px 12px; border-radius: 999px; background: none; cursor: pointer;
+  border: 1px solid #4a2630; color: var(--bad); font: inherit; font-size: 13px; font-weight: 700;
+}
+.runbar-stop:disabled { opacity: .5; }
+.runbar-stopped { align-items: center; justify-content: space-between; background: #2a1f05; border-color: #5a4310; color: var(--warn); }
+.runbar-stopped b { color: var(--warn); }
+.runbar-stopped .btn { margin: 0; padding: 8px 18px; }
+@media (pointer: coarse) { .runbar-stop { min-height: 44px; padding-inline: 16px; } }
+.unverified { border-color: var(--warn); }
+
 
 /* ── what the phone actually does ────────────────────────────────────────
    Measured at 360 / 390 / 430 / 768 against the live build, not guessed.

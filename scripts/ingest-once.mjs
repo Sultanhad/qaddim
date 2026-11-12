@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
 import { fetchAll, fingerprintOf, checkLink, autoApplyable } from '../packages/engine/src/sources.js';
+import { awaitingProof, isPaused } from '../packages/engine/src/applications.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 import { answerPending } from './answer-questions.mjs';
@@ -161,9 +162,12 @@ if (HAS_LIFECYCLE) {
 // with nothing a person could do about it. Both are settled here, every run.
 {
   const { data: waiting } = await db.from('applications')
-    .select('id, auto_status, job:jobs(url, is_open)').in('auto_status', ['queued', 'needs_you']);
-  const shut = (waiting ?? []).filter((a) => a.job && a.job.is_open === false).map((a) => a.id);
-  const byHand = (waiting ?? []).filter((a) => a.job && a.job.is_open !== false && !autoApplyable(a.job.url)).map((a) => a.id);
+    .select('id, auto_status, auto_report, job:jobs(url, is_open)').in('auto_status', ['queued', 'needs_you']);
+  // Not the ones whose send was pressed and never confirmed. Marking one of those "closed" —
+  // which means dismissed before applying — would bury an application that may well be in.
+  const idle = (waiting ?? []).filter((a) => !awaitingProof(a));
+  const shut = idle.filter((a) => a.job && a.job.is_open === false).map((a) => a.id);
+  const byHand = idle.filter((a) => a.job && a.job.is_open !== false && !autoApplyable(a.job.url)).map((a) => a.id);
   if (shut.length) {
     await db.from('applications')
       .update({ status: 'closed', auto_status: null, auto_reason: 'أُغلق الإعلان قبل أن يُرسل الطلب' }).in('id', shut);
@@ -199,7 +203,9 @@ for (const p of profiles ?? []) {
   // decide what actually gets sent live in my_apply_queue; this only decides what is offered
   // to it, so over-queueing here cannot turn into over-applying.
   let auto = 0;
-  if (p.auto_queue && p.auto_apply) {
+  // (Not for someone who has stopped everything. What they would have been offered stays in
+  // their matches, to be picked by hand.)
+  if (p.auto_queue && p.auto_apply && !isPaused(p)) {
     const bar = Math.max(50, p.auto_queue_above ?? 75);
     // Strong, and on a system the extension can actually send on.
     const strong = batch.filter((m) => m.score >= bar && autoApplyable(byId.get(m.job_id)?.url));

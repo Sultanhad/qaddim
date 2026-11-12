@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "sync:engine": "node scripts/sync-engine.mjs",
-    "test": "node scripts/check-extension.mjs && node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js && node packages/engine/tests/answering.test.js",
+    "test": "node scripts/check-extension.mjs && node scripts/sync-engine.mjs --check && sh scripts/check-migrations.sh && node packages/engine/tests/score.test.js && node packages/engine/tests/sources.test.js && node packages/engine/tests/answering.test.js && node packages/engine/tests/applications.test.js",
     "dev": "npm --prefix apps/web run dev",
     "build": "sh scripts/pack-extension.sh && npm --prefix apps/web run build",
     "deploy": "npm run build && node scripts/deploy-netlify.mjs",
@@ -19,6 +19,7 @@
     "test:fill": "node extension/tests/fill.test.mjs",
     "test:background": "node extension/tests/background.test.mjs",
     "test:questions": "node apps/web/tests/questions.test.mjs",
+    "test:sending": "node apps/web/tests/sending.test.mjs",
     "test:answers": "node supabase/tests/answers.test.mjs",
     "answer": "node scripts/answer-questions.mjs",
     "measure:forms": "node scripts/measure-forms.mjs",

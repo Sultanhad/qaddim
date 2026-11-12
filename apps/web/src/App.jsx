@@ -5,6 +5,7 @@ import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/
 import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
 import { autoApplyable } from '@engine/sources.js';
 import { mayGuess, sameWords } from '@engine/answering.js';
+import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR } from '@engine/applications.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { forExtension } from './extension-profile.js';
 import { reasonAr, flagAr, gapAr } from './explain.js';
@@ -1282,6 +1283,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
     // and the next attempt is how anyone finds out which half.
     const now = new Set(written.map((x) => x.k));
     const ready = waiting.filter((row) => {
+      if (awaitingProof(row)) return false;
       const split = whose(row, profile);
       return !split.soon && split.mine.every((m) => now.has(m.scope === 'job' ? `${sameWords(m.q)}@${row.job?.id}` : sameWords(m.q)));
     });
@@ -1394,13 +1396,82 @@ function Stopped({ row, profile, onDone }) {
   );
 }
 
+/**
+ * Send was pressed, and the employer's page never said it arrived.
+ *
+ * This is the one place an application can be sent twice, so it is the one card with no
+ * "try again". It has two answers and both are the person's: it arrived (they found the
+ * confirmation), or it did not — and that one takes a second, differently worded press,
+ * because the cost of being wrong is a duplicate under their name.
+ */
+function Unverified({ row, profile, onArrived, onDone }) {
+  const toast = useToast();
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const sent = sentOf(row);
+  const at = new Date(sent.pressed_at);
+  const when = Number.isNaN(at.getTime()) ? '' : at.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+  const company = row.job?.company || 'الشركة';
+
+  async function again() {
+    setBusy(true);
+    // Its owner's word is what re-arms it; the record of the first press stays on the report.
+    const back = profile.auto_apply && autoApplyable(row.job?.url);
+    const { error } = await supabase.from('applications').update({
+      auto_report: { ...(row.auto_report ?? {}), sent: { ...sent, rearmed: new Date().toISOString() } },
+      auto_status: back ? 'queued' : null, auto_reason: null, auto_attempts: 0
+    }).eq('id', row.id);
+    if (!error) {
+      await supabase.from('application_events').insert({
+        application_id: row.id, user_id: profile.id, kind: 'note', detail: 'قلتَ إنه لم يصل — يُعاد الإرسال'
+      });
+    }
+    setBusy(false);
+    if (error) toast.fail(errorAr(error)); else { toast.ok(back ? 'عاد للطابور' : 'صار لك أن تقدّم عليه من صفحته'); onDone(); }
+  }
+
+  return (
+    <div className="blocked unverified">
+      <p className="blocked-h">ضُغط زر الإرسال{when ? ` ${when}` : ''} — ولم تؤكّد صفحة {company} الاستلام</p>
+      <p className="faint" style={{ margin: '0 0 12px' }}>
+        {sent.outcome === 'code'
+          ? <>الشركة أرسلت رمز تحقق إلى بريدك. أدخله في تبويبها المفتوح، ثم علّمه «قدّمت».</>
+          : <>قد يكون وصل. ابحث في بريدك عن رسالة تأكيد من {company} قبل أي شيء: إعادة الإرسال وهو واصل تجعله طلبين باسمك.</>}
+        {sent.inferred && <> (سُجّل قبل أن يحفظ قدّم لحظة الضغط، فالضغطة نفسها مرجَّحة لا مؤكَّدة.)</>}
+      </p>
+      <div className="card-actions" style={{ marginTop: 0 }}>
+        <button className="btn btn-go" onClick={onArrived}>وصل — قدّمت</button>
+        {!sure
+          ? <button className="btn" onClick={() => setSure(true)}>لم يصل</button>
+          : <button className="btn btn-no" disabled={busy} onClick={again}>{busy ? '…' : 'تأكدتُ من بريدي — أعد الإرسال'}</button>}
+      </div>
+    </div>
+  );
+}
+
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 
-/** What the robot is doing right now, in the user's own words. */
-function RunBar({ stats }) {
-  if (!stats) return null;
-  const { queued, sent_today, cap, approved, auto_submit, submitting, auto_today, skipped_gate } = stats;
+/**
+ * What the robot is doing right now, in the user's own words — and the one control that
+ * stops all of it. Stopping holds the queue where it is: nothing is opened, nothing is sent,
+ * nothing is answered by estimate, nothing is queued on its own, until it is resumed.
+ */
+function RunBar({ stats, paused, onPause }) {
+  const [busy, setBusy] = useState(false);
+  const flip = async () => { setBusy(true); await onPause(!paused); setBusy(false); };
+  // Stopped is said even when the numbers could not be read: it is the one line here that
+  // must never be missing.
+  if (!stats && !paused) return null;
+  const { queued = 0, sent_today, cap, approved, auto_submit, submitting, auto_today } = stats ?? {};
+  if (paused) {
+    return (
+      <div className="runbar runbar-stopped" role="status">
+        <span><b>الأتمتة موقوفة</b> — لا شيء يُفتح ولا يُرسل{queued > 0 && <> · {queued} في الطابور تنتظر</>}</span>
+        <button className="btn btn-go" disabled={busy} onClick={flip}>{busy ? '…' : 'استأنف'}</button>
+      </div>
+    );
+  }
   return (
     <div className="runbar">
       <span><b>{sent_today}</b> من {cap} أُرسلت اليوم</span>
@@ -1411,6 +1482,7 @@ function RunBar({ stats }) {
         : submitting
           ? <span className="on"><span className="dot" /> يرسل وحده</span>
           : <span className="off">يعبّي ويتركها لك · {3 - approved} باقية قبل أن يرسل وحده</span>}
+      <button className="runbar-stop" disabled={busy} onClick={flip}>{busy ? '…' : 'أوقف كل شيء'}</button>
     </div>
   );
 }
@@ -1465,6 +1537,28 @@ function Applications({ user, profile, onProfile }) {
       toast.fail(errorAr(error), () => setStatus(row, status));
     } else load();
   }
+  /** The kill switch. Kept with the person's other settings, where every part of قدّم reads it. */
+  async function setPaused(paused) {
+    // Read just before writing: the worker saves its estimates in the same column.
+    const { data: fresh } = await supabase.from('profiles').select('answers').eq('id', profile.id).single();
+    const answers = { ...(fresh?.answers ?? profile.answers ?? {}) };
+    answers._settings = { ...(answers._settings ?? {}), paused };
+    const { data, error } = await supabase.from('profiles').update({ answers }).eq('id', profile.id).select().single();
+    if (error) { toast.fail(errorAr(error), () => setPaused(paused)); return; }
+    onProfile(data);
+    toast.ok(paused ? 'أُوقف كل شيء — الطابور يحتفظ بمكانه' : 'استؤنف');
+    load();
+  }
+  /** One application out of the robot's hands: it stays saved, and is theirs to send or not. */
+  async function unqueue(row) {
+    const { error } = await supabase.from('applications')
+      .update({ auto_status: null, auto_reason: 'أخرجتَه من الطابور' }).eq('id', row.id);
+    if (error) toast.fail(errorAr(error), () => unqueue(row)); else { toast.ok('خرج من الطابور'); load(); }
+  }
+  async function requeue(row) {
+    const { error } = await supabase.rpc('retry_application', { app_id: row.id });
+    if (error) toast.fail(errorAr(error), () => requeue(row)); else { toast.ok('دخل الطابور'); load(); }
+  }
   async function setNotes(row, notes) {
     if ((row.notes ?? '') === notes) return;
     const { error } = await supabase.from('applications').update({ notes }).eq('id', row.id);
@@ -1477,24 +1571,42 @@ function Applications({ user, profile, onProfile }) {
 
   // Two things interrupt a day: an application the robot stopped on, and one due for a nudge.
   // They lead, whatever filter is on, because a list sorted only by date buries both.
-  const urgent = rows.filter((r) => r.auto_status === 'needs_you' || r.auto_status === 'failed'
+  // (Where an application stands is asked of one place — the same one the worker asks — so
+  // that "send was pressed and never confirmed" is urgent whatever the two status fields say.)
+  const state = new Map(rows.map((r) => [r.id, stateOf(r)]));
+  const urgent = rows.filter((r) => state.get(r.id) === 'ACTION_REQUIRED' || state.get(r.id) === 'FAILED'
     || (r.status === 'applied' && r.follow_up_on && r.follow_up_on <= today));
+  const paused = isPaused(profile);
+  const TONE = { SUBMITTED: 'var(--good)', READY: 'var(--blue-soft)', PREPARING: 'var(--blue-soft)', SUBMITTING: 'var(--blue-soft)' };
   const rest = rows.filter((r) => !urgent.includes(r));
   const shown = filter === 'all' ? rest : rest.filter((r) => r.status === filter);
   const count = (s) => rows.filter((r) => r.status === s).length;
 
-  const card = (row, lead) => (
+  const card = (row, lead) => {
+    const st = state.get(row.id), unproven = awaitingProof(row);
+    // Saved, not in the robot's hands, and on a system it can send on: it can be handed over.
+    const idle = st === 'MATCHED' && profile.auto_apply && row.job?.is_open !== false && autoApplyable(row.job?.url);
+    // "Sent ✓" is said for one thing only: the employer's own page confirmed it.
+    const line = unproven && st === 'ACTION_REQUIRED' ? 'ضُغط الإرسال ولم يتأكد'
+      : st === 'SUBMITTED' ? (row.auto_status === 'submitted' ? 'أُرسل تلقائياً ✓' : null)
+        : st === 'MATCHED' || st === 'CANCELLED' ? null
+          : st === 'READY' && paused ? 'في الطابور — موقوف'
+            : STATE_AR[st];
+    const said = st === 'SUBMITTED' && row.auto_status === 'submitted' ? sentOf(row)?.evidence?.said : null;
+    return (
     <article className="card" key={row.id} style={lead ? { borderColor: 'var(--warn)' } : undefined}>
       <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{row.job?.title}</p>
       <p className="muted" style={{ margin: '4px 0 0' }}>
         {row.job?.company} · {AR_CITY[row.job?.city] || row.job?.location}
       </p>
-      {row.auto_status && (
-        <p style={{ marginTop: 8, fontSize: 14, color: row.auto_status === 'submitted' ? 'var(--good)' : row.auto_status === 'queued' ? 'var(--blue-soft)' : 'var(--warn)' }}>
-          {{ queued: 'في الطابور', filling: 'يُعبّأ الآن…', submitted: 'أُرسل تلقائياً ✓', needs_you: 'يحتاجك', failed: 'تعذّر' }[row.auto_status]}
-          {row.auto_reason ? <span className="faint"> — {row.auto_reason}</span> : null}
+      {line && (
+        <p style={{ marginTop: 8, fontSize: 14, color: TONE[st] ?? 'var(--warn)' }}>
+          {line}
+          {row.auto_reason && !unproven && st !== 'SUBMITTED' ? <span className="faint"> — {row.auto_reason}</span> : null}
+          {said ? <span className="faint" dir="auto"> — «{said.slice(0, 70)}»</span> : null}
         </p>
       )}
+      {st === 'MATCHED' && row.auto_reason && <p className="faint" style={{ marginTop: 8 }}>{row.auto_reason}</p>}
       {row.applied_on && <p className="faint" style={{ marginTop: 8 }}>قدّمت في {row.applied_on}</p>}
       {row.follow_up_on && row.status === 'applied' && (
         <p style={{ color: row.follow_up_on <= today ? 'var(--warn)' : 'var(--blue-soft)', fontSize: 14, margin: '6px 0 0' }}>
@@ -1509,19 +1621,25 @@ function Applications({ user, profile, onProfile }) {
         <Notes row={row} onSave={(v) => setNotes(row, v)} />
       </div>
       <Estimated row={row} profile={profile} />
-      {(row.auto_status === 'needs_you' || row.auto_status === 'failed') && (
-        <Stopped row={row} profile={profile} onDone={load} />
-      )}
+      {unproven && st === 'ACTION_REQUIRED'
+        ? <Unverified row={row} profile={profile} onArrived={() => setStatus(row, 'applied')} onDone={load} />
+        : (st === 'ACTION_REQUIRED' || st === 'FAILED') && <Stopped row={row} profile={profile} onDone={load} />}
       <div className="card-actions">
         <button className="btn btn-go" onClick={() => setSheetFor(row.job)}>ورقة التعبئة</button>
         {row.job?.url && <a className="btn" href={row.job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a>}
       </div>
+      {/* Out of the queue is possible until send is pressed; after that there is nothing to take back. */}
+      {(st === 'READY' || st === 'PREPARING') && (
+        <button type="button" className="notes-add" onClick={() => unqueue(row)}>أخرجه من الطابور</button>
+      )}
+      {idle && <button type="button" className="notes-add" onClick={() => requeue(row)}>قدّم عليه تلقائياً</button>}
     </article>
-  );
+    );
+  };
 
   return (
     <>
-      <RunBar stats={stats} />
+      <RunBar stats={stats} paused={paused} onPause={setPaused} />
       {!!urgent.length && (
         <>
           <p className="section">يحتاج منك شيئاً · {urgent.length}</p>

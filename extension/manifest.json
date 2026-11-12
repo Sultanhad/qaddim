@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "قدّم — تعبئة وإرسال طلبات التوظيف",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "يعبّي استمارات التوظيف من ملفك ويرسلها، داخل متصفحك أنت.",
   "default_locale": "ar",
   "icons": {

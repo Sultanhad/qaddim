@@ -30,6 +30,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { mayGuess, sameWords } from '../packages/engine/src/answering.js';
+import { awaitingProof, isPaused } from '../packages/engine/src/applications.js';
 
 export const MODEL_DEFAULT = 'claude-opus-5-5';
 // A form can reveal more questions once the first ones are answered. Three rounds is enough
@@ -180,7 +181,9 @@ export async function answerPending({ db, env = {}, client, log = console.log, o
   if (error) throw new Error('profiles: ' + error.message);
   const tally = { people: 0, asked: 0, answered: 0, left: 0, requeued: 0 };
 
-  for (const profile of (profiles ?? []).filter((p) => p.answers?._settings?.guess === true)) {
+  // Someone who has stopped everything has stopped this too: no questions are sent to the
+  // model on their behalf, and nothing of theirs is put back in the queue.
+  for (const profile of (profiles ?? []).filter((p) => p.answers?._settings?.guess === true && !isPaused(p))) {
     tally.people++;
     const { data: apps } = await db.from('applications')
       .select('id, job_id, auto_status, auto_report, job:jobs(id, title, company, location, city, country, description, is_open)')
@@ -190,6 +193,9 @@ export async function answerPending({ db, env = {}, client, log = console.log, o
 
     for (const app of apps ?? []) {
       if (app.job?.is_open === false) continue;
+      // Send was pressed on this one and never confirmed: it is waiting for its owner's word,
+      // not for an answer, and nothing here may queue it.
+      if (awaitingProof(app)) continue;
       const rounds = answers._for?.[app.job_id]?.rounds ?? 0;
       const plan = planFor({ ...profile, answers }, app);
       const declined = Object.keys(plan.declined).length;
