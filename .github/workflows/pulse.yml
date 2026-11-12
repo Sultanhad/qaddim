@@ -1,0 +1,64 @@
+# Is the worker alive? Asked twice an hour, by a separate job that shares nothing with it.
+#
+# When two passes have been missed — or a quarter of the boards stopped answering — this opens
+# one issue, which is what sends the owner an email, and closes it again when things are back.
+# One message per outage, not one per check. It uses nothing private: the pulse is public, and
+# so is the key that reads it.
+#
+# What it cannot see: it runs on the same service as the worker (worker.yml). A pass that
+# fails, hangs, loses its secret or is refused by the boards is caught here. GitHub's own
+# scheduler stopping for both is not — the site's "last updated" line is what shows that.
+name: نبض العامل
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: pulse
+  cancel-in-progress: false
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: read the pulse
+        id: pulse
+        continue-on-error: true
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/check-pulse.mjs --github
+
+      - name: open the alarm, or close it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STATE: ${{ steps.pulse.outputs.state }}
+          SUMMARY: ${{ steps.pulse.outputs.summary }}
+        run: |
+          gh label create worker-down --color B60205 --description "العامل متوقف أو لوحات كثيرة لا تجيبه" --force >/dev/null
+          open=$(gh issue list --label worker-down --state open --json number --jq '.[0].number // empty')
+          case "$STATE" in
+            down)     title="العامل متوقف — الوظائف لا تتحدّث" ;;
+            degraded) title="العامل يعمل لكن ربع اللوحات لا يجيبه" ;;
+          esac
+          if [ -n "${title:-}" ] && [ -z "$open" ]; then
+            gh issue create --label worker-down --title "$title" \
+              --body "$(printf '%s\n\n%s\n' "$SUMMARY" 'يُغلق هذا التنبيه وحده حين يعود النبض سليماً. للفحص: تبويب Actions ← «العامل» ← آخر تشغيل وسجلّه، ثم «Run workflow» لتشغيله يدوياً.')"
+          elif [ "$STATE" = "ok" ] && [ -n "$open" ]; then
+            gh issue close "$open" --comment "عاد سليماً: $SUMMARY"
+          fi

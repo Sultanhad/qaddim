@@ -1,0 +1,50 @@
+# The worker: one pass an hour, on a hosted runner — instead of on a laptop that sleeps.
+#
+# A pass answers what can be answered, reads the hiring boards, stores what it found, settles
+# what closed, scores for every user, and leaves a pulse (see scripts/ingest-once.mjs).
+#
+# Two things about running it here, where anyone can read the log:
+#   · the log names no person and no employer a person applied to — counts only;
+#   · the one secret it needs (the database's service key) is in this repository's Actions
+#     secrets, reaches the pass as an environment variable, and is never printed. A pull
+#     request cannot start this workflow, so a fork cannot reach it.
+#
+# GitHub starts scheduled runs late when it is busy, and stops scheduling a repository nobody
+# has touched for sixty days. The pulse (pulse.yml) is what notices either.
+name: العامل
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never two at once: a pass that overruns its hour makes the next one wait, not race it.
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      # The worker's own four libraries; nothing of the site's.
+      - run: npm ci --workspaces=false --omit=dev --ignore-scripts --no-audit --no-fund
+
+      - name: one pass
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          # Optional: without it, nothing is answered by estimate and the pass says so.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          QADDIM_HOST: github
+          QADDIM_EVERY_MIN: '60'
+        run: node scripts/ingest-once.mjs

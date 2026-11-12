@@ -1,0 +1,65 @@
+# Every push: the checks that need no account and no employer.
+#
+#   · the extension's files parse; the engine copy is in step
+#   · every migration replays, in order, into an empty Postgres — and keeps its promises
+#   · the engine: scoring, sources, answering, application states
+#   · the extension in a real browser, against forms and an "employer" served on the runner
+#
+# The suites that create accounts (rls, auto, answers, and the browser suites of the site) are
+# not here yet: they need a database that is not production, and run the day one exists.
+name: الفحوص
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PSQL: psql
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: engine, migrations, extension files
+        run: npm test
+
+      - name: a browser for the extension suites
+        run: npx playwright install --with-deps chromium
+
+      - name: the filler, on forms built here
+        run: npm run test:fill
+
+      - name: the extension end to end, against a stand-in employer
+        run: npm run test:background
+
+      - name: the site builds
+        run: npm run build
