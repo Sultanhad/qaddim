@@ -1,14 +1,13 @@
 // Does a failed write say so? The screens used to move as if every request succeeded, so the
 // only way to know this works is to make a request fail and look at what the page does.
-import { readFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { testEnv, siteMatches } from '../../../scripts/test-env.mjs';
+import { chromium } from 'playwright';
 
 const root = new URL('../../../', import.meta.url).pathname;
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const base = process.argv[2] || 'http://localhost:4173';
+await siteMatches(base, env);
 const ref = new URL(URL_).hostname.split('.')[0];
 const admin = (p, o = {}) => fetch(`${URL_}${p}`, { ...o,
   headers: { apikey: SRV, Authorization: `Bearer ${SRV}`, 'Content-Type': 'application/json', ...o.headers } });

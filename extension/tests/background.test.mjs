@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 // QADDIM_EXT points the same checks at another copy of the extension — a deliberately broken
 // one, to see that these checks notice.

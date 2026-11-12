@@ -8,7 +8,7 @@
 // Workable's on click. They are stand-ins: what they prove is that the filler handles that
 // structure, not that either vendor's script behaves the same way tomorrow.
 import { readFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const root = new URL('../../', import.meta.url).pathname;
 const src = (f) => readFile(root + 'extension/src/' + f, 'utf8');

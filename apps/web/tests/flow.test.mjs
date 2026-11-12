@@ -1,11 +1,9 @@
 // Walks a brand-new account through the whole product, the way a stranger would,
 // and photographs each step. Nothing here touches the real owner's data.
-import { readFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { testEnv, siteMatches } from '../../../scripts/test-env.mjs';
+import { chromium } from 'playwright';
 
-const env = Object.fromEntries((await readFile('.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const ref = new URL(URL_).hostname.split('.')[0];
@@ -28,6 +26,7 @@ const sess = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
 if (!sess.access_token) { console.error('signIn:', sess); process.exit(1); }
 
 const base = process.argv[2] || 'http://localhost:4173';
+await siteMatches(base, env);
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 430, height: 940 }, deviceScaleFactor: 2 });
 const errors = [];

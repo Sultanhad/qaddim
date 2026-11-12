@@ -166,10 +166,12 @@ async function cvOf(db, profile) {
  * @param client  injected by tests; in use it is built from the key in .env.local
  * @param only    limit the pass to one user id (tests)
  */
+// (No line logged here names a company or a person: which employer someone is applying to is
+// not for a log that may be public.)
 export async function answerPending({ db, env = {}, client, log = console.log, only } = {}) {
   const key = env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
   if (!client && !key && !process.env.ANTHROPIC_AUTH_TOKEN) {
-    log('  answers: no ANTHROPIC_API_KEY in .env.local — nothing is answered by estimate');
+    log('  answers: no ANTHROPIC_API_KEY set — nothing is answered by estimate');
     return { skipped: 'no-key' };
   }
   const ai = client ?? new Anthropic(key ? { apiKey: key } : {});
@@ -209,16 +211,16 @@ export async function answerPending({ db, env = {}, client, log = console.log, o
         try {
           const response = await ai.beta.messages.parse(requestFor({ profile: { ...profile, answers }, cv, job: app.job, ask: plan.ask, model }));
           if (response.stop_reason === 'refusal') {
-            log(`  answers: declined by the model for ${app.job?.company ?? app.job_id} — left for the person`);
+            log('  answers: declined by the model for one application — left for the person');
           } else if (response.stop_reason === 'max_tokens' || !response.parsed_output) {
-            log(`  answers: no usable reply for ${app.job?.company ?? app.job_id} (${response.stop_reason})`);
+            log(`  answers: no usable reply for one application (${response.stop_reason})`);
           } else {
             drafted = accept(plan.ask, response.parsed_output);
           }
         } catch (e) {
           if (e instanceof Anthropic.AuthenticationError) { log('  answers: the API key was refused — check ANTHROPIC_API_KEY'); return { ...tally, stopped: 'auth' }; }
           if (e instanceof Anthropic.RateLimitError) { log('  answers: rate limited — the rest waits for the next pass'); return { ...tally, stopped: 'rate' }; }
-          if (e instanceof Anthropic.APIError) { log(`  answers: API error ${e.status} for ${app.job?.company ?? app.job_id} — ${e.message}`); continue; }
+          if (e instanceof Anthropic.APIError) { log(`  answers: API error ${e.status} for one application — ${e.message}`); continue; }
           throw e;
         }
       }
@@ -257,10 +259,8 @@ export async function answerPending({ db, env = {}, client, log = console.log, o
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const { createClient } = await import('@supabase/supabase-js');
   const { default: ws } = await import('ws');
-  const root = new URL('../', import.meta.url);
-  const env = Object.fromEntries((await readFile(new URL('.env.local', root), 'utf8')).split('\n')
-    .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))
-    .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+  const { loadEnv } = await import('./env.mjs');
+  const env = await loadEnv();
   const db = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false }, realtime: { transport: ws } });
   const result = await answerPending({ db, env });
   if (result.skipped) process.exit(0);

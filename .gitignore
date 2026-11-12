@@ -7,3 +7,5 @@ dist/
 *.log
 # built from extension/ on every build — see scripts/pack-extension.sh
 apps/web/public/qaddim-extension.zip
+dist-test/
+docs/internal/

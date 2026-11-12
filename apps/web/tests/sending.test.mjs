@@ -5,15 +5,14 @@
 //
 // The applications are seeded as the extension would leave them, on a throwaway account that
 // is deleted at the end; no employer's site is opened and nothing is sent anywhere.
-import { readFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { testEnv, siteMatches } from '../../../scripts/test-env.mjs';
+import { chromium } from 'playwright';
 
 const root = new URL('../../../', import.meta.url).pathname;
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const base = (process.argv[2] || 'http://localhost:4173').replace(/\/$/, '');
+await siteMatches(base, env);
 const shots = process.env.QADDIM_SHOTS || '/tmp';
 const ref = new URL(URL_).hostname.split('.')[0];
 const admin = (p, o = {}) => fetch(`${URL_}${p}`, { ...o,

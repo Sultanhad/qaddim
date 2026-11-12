@@ -3,16 +3,14 @@
 //
 // Sending is locked OFF (`neverSubmit`): this opens a real hiring form and types into it, and
 // nothing is ever sent to an employer from a test — whatever the test account's settings say.
-import { readFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { testEnv, siteMatches } from '../../../scripts/test-env.mjs';
+import { chromium } from 'playwright';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const root = new URL('../../../', import.meta.url).pathname;
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const site = process.argv[2] || 'http://localhost:4173';
 const ref = new URL(URL_).hostname.split('.')[0];

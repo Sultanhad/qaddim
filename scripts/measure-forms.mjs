@@ -23,7 +23,7 @@
 // whether an *invisible* check would refuse a send — that only shows when a real application
 // goes out, so those forms are counted on their own rather than guessed into either column.
 import { readFile, writeFile } from 'node:fs/promises';
-import { chromium } from '/Users/sultan_kill/Downloads/riyadh-job-agent/local-apply/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 import { forExtension } from '../apps/web/src/extension-profile.js';
 
 const root = new URL('../', import.meta.url).pathname;

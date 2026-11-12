@@ -79,6 +79,36 @@ check('Resilience', 'A failing board is recorded and the others still load',
   partial.errors.length === 1 && partial.errors[0].source === 'lever:rewaatech' && partial.jobs.length === 4,
   JSON.stringify(partial.errors));
 
+// A board that answers, but not completely. Workday's search lists a job and the job's own
+// page then fails to load: stored from the search alone it had no country and no description,
+// overwrote the good copy, fell out of the region filter and was closed — thirty postings in
+// one run, the night the network dropped for a few minutes.
+{
+  const WD = [{ system: 'workday', slug: 'acme.wd3/Careers', label: 'Acme' }];
+  const listing = { jobPostings: [
+    { title: 'Analyst', externalPath: '/job/Riyadh/Analyst_R1', locationsText: 'Riyadh' },
+    { title: 'Planner', externalPath: '/job/Riyadh/Planner_R2', locationsText: '2 Locations' }] };
+  const pageOf = (path) => ({ jobPostingInfo: {
+    title: path.includes('R1') ? 'Analyst' : 'Planner', jobReqId: path.split('_').pop(), location: 'Riyadh, Saudi Arabia',
+    jobDescription: '<p>Plan things.</p>', externalUrl: 'https://acme.wd3.myworkdayjobs.com/Careers' + path } });
+  const wd = (failOn) => async (url, init) => {
+    if (init?.method === 'POST') {
+      const first = JSON.parse(init.body).searchText === 'Saudi Arabia';
+      return { ok: true, status: 200, json: async () => (first ? listing : { jobPostings: [] }) };
+    }
+    if (failOn && url.includes(failOn)) throw new Error('fetch failed');
+    return { ok: true, status: 200, json: async () => pageOf(url) };
+  };
+  const whole = await fetchAll(WD, { fetchImpl: wd(null) });
+  check('Resilience', 'A board read in full says so', whole.jobs.length === 2 && whole.partial.length === 0 && whole.errors.length === 0, JSON.stringify(whole.partial));
+  const some = await fetchAll(WD, { fetchImpl: wd('R2') });
+  check('Resilience', 'A job whose page will not load is left out, not stored half-read',
+    some.jobs.length === 1 && some.jobs[0].source_job_id === 'R1' && some.jobs.every((j) => j.country === 'sa' && j.description), JSON.stringify(some.jobs.map((j) => j.source_job_id)));
+  check('Resilience', 'And the read is marked incomplete, with how much was missed',
+    some.partial.length === 1 && some.partial[0].source === 'workday:acme.wd3/Careers' && /1 of 2/.test(some.partial[0].why), JSON.stringify(some.partial));
+  check('Resilience', 'It is not an error: the jobs that did load are real', some.errors.length === 0);
+}
+
 // Re-posting. The same role comes back with a new id every year, and all of them were being
 // shown as current; the fingerprint is what lets the newest stand in for the rest.
 const fp = (t, c, city) => fingerprintOf({ title: t, company: c, city });

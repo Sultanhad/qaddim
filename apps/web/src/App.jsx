@@ -46,7 +46,7 @@ function ageOf(published) {
 // same scores to `matches`, but waiting for it would mean a new account sees an empty screen
 // for fifteen minutes — and changing a city would do nothing until the next sweep. Scoring
 // locally makes every choice answer back immediately, which is the whole feel of the product.
-const POOL_TTL = 300000;                 // the worker sweeps every 15 minutes; 5 is well inside that
+const POOL_TTL = 300000;                 // the worker sweeps every hour; five minutes is well inside that
 const COLUMNS = 'id,title,company,location,city,country,arrangement,salary_published,description,url,published_at,last_seen';
 let POOL = null, POOL_AT = 0, POOL_FOR = '';
 
@@ -817,7 +817,7 @@ function Settings({ user, profile, onDone }) {
                 onChange={(e) => set('auto_queue', e.target.checked)} /> <b>ولا تنتظر ضغطة «يهمني»</b>
             </label>
             <p className="hint">
-              كل ١٥ دقيقة نقرأ اللوحات. ما تجاوز درجتك أدناه يدخل الطابور وحده، ومتصفّحك يقدّم
+              كل ساعة نقرأ اللوحات. ما تجاوز درجتك أدناه يدخل الطابور وحده، ومتصفّحك يقدّم
               عليه. لا تفتح الموقع ولا تضغط شيئاً — يكفي أن يبقى Chrome مفتوحاً والإضافة فيه.
             </p>
             {form.auto_queue && (
@@ -1093,7 +1093,7 @@ function Jobs({ user, profile, onProfile }) {
         <div className="card" style={{ borderColor: 'var(--line)' }}>
           <p style={{ margin: 0, fontWeight: 700 }}>لا شيء فوق {profile.min_score ?? START_SCORE} اليوم</p>
           <p className="faint" style={{ margin: '6px 0 0' }}>
-            هذه أقرب ما وجدنا، بدرجاتها كما هي. نقرأ اللوحات كل ١٥ دقيقة.
+            هذه أقرب ما وجدنا، بدرجاتها كما هي. نقرأ اللوحات كل ساعة.
           </p>
         </div>
       )}
@@ -1249,7 +1249,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
     return soon ? (
       <div className="card questions">
         <p className="questions-h">{soon} سؤالاً يجيب عنها قدّم بالتقدير</p>
-        <p className="faint" style={{ margin: '4px 0 0' }}>خلال ربع ساعة تقريباً، ثم تعود طلباتها للطابور وحدها.</p>
+        <p className="faint" style={{ margin: '4px 0 0' }}>خلال ساعة تقريباً، ثم تعود طلباتها للطابور وحدها.</p>
       </div>
     ) : null;
   }
@@ -1304,7 +1304,7 @@ function Questions({ rows, profile, onProfile, onDone }) {
       <p className="questions-h">أسئلة تنتظرك · {list.length}</p>
       <p className="faint" style={{ margin: '4px 0 16px' }}>
         أجب مرة واحدة: الجواب يُحفظ ويُستعمل في كل استمارة تسأل السؤال نفسه. اكتب بلغة السؤال.
-        {soon > 0 && <> و{soon} غيرها يجيب عنها قدّم بالتقدير خلال ربع ساعة.</>}
+        {soon > 0 && <> و{soon} غيرها يجيب عنها قدّم بالتقدير خلال ساعة تقريباً.</>}
       </p>
       {list.map((x, i) => (
         // An English question lays out left to right, controls included: "Yes / No" sitting

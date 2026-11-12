@@ -4,15 +4,13 @@
 // stored and where the application goes back in the queue.
 //
 //   npm run test:answers
-import { readFile } from 'node:fs/promises';
+import { testEnv } from '../../scripts/test-env.mjs';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import { answerPending, planFor, requestFor, accept, settled, MAX_ROUNDS, MODEL_DEFAULT } from '../../scripts/answer-questions.mjs';
 
 const root = new URL('../../', import.meta.url).pathname;
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY;
 const db = createClient(URL_, SRV, { auth: { persistSession: false }, realtime: { transport: ws } });
 const admin = (p, o = {}) => fetch(`${URL_}${p}`, { ...o,

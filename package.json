@@ -28,12 +28,17 @@
     "test:all": "npm test && npm run test:rls && npm run test:auto && npm run clean:tests",
     "test:sql": "sh scripts/check-migrations.sh",
     "clean:cvs": "node scripts/clean-orphan-cvs.mjs",
-    "test:states": "node apps/web/tests/states.test.mjs"
+    "test:states": "node apps/web/tests/states.test.mjs",
+    "preview:test": "npm --prefix apps/web run build -- --mode test --outDir dist-test && npm --prefix apps/web run preview -- --outDir dist-test --port 4173 --strictPort",
+    "pulse": "node scripts/check-pulse.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@supabase/supabase-js": "^2.109.0",
     "ws": "^8.22.1",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
   }
 }

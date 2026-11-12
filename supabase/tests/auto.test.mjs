@@ -1,11 +1,9 @@
 // The limits that make automatic sending defensible — tested against the database, because
 // that is where they have to hold. An extension can be edited; a policy in SQL cannot.
-import { readFile } from 'node:fs/promises';
+import { testEnv } from '../../scripts/test-env.mjs';
 
 const root = new URL('../../', import.meta.url).pathname;
-const env = Object.fromEntries((await readFile(root + '.env.local', 'utf8')).split('\n')
-  .map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-  .map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const env = await testEnv();
 const URL_ = env.VITE_SUPABASE_URL, SRV = env.SUPABASE_SERVICE_KEY, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const admin = (p, o = {}) => fetch(`${URL_}${p}`, { ...o,

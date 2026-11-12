@@ -245,6 +245,7 @@ const ADAPTERS = {
     }
 
     const out = [];
+    let unread = 0;
     for (const x of found.slice(0, wanted)) {
       const path = String(x.externalPath || '');
       if (!path) continue;
@@ -252,7 +253,15 @@ const ADAPTERS = {
       try {
         const detail = await getJson(base + path, opts);
         info = detail?.jobPostingInfo ?? {};
-      } catch { /* a job whose page will not load is still a job; keep what the search gave */ }
+      } catch {
+        // The search listed it and its page would not load. It used to be stored anyway, from
+        // the search alone — no description, no country — and that copy then overwrote the
+        // good one, fell out of the region filter for want of a country, and was closed. It
+        // is left out instead, and the read is marked incomplete so nobody concludes from
+        // its absence that the job has gone.
+        unread++;
+        continue;
+      }
       const places = [info.location, ...(info.additionalLocations || [])].filter(Boolean);
       out.push(raw({
         source: `workday:${slug}`, source_job_id: info.jobReqId || info.id || path.split('/').pop(),
@@ -264,6 +273,7 @@ const ADAPTERS = {
         published_at: info.startDate || info.postedOn || null, salary: ''
       }));
     }
+    if (unread) incomplete(out, `${unread} of ${found.length} job pages did not load`);
     return out;
   },
 
@@ -425,11 +435,29 @@ export function servesRegion(job) {
 }
 
 /** Fetch every source, collecting failures instead of aborting. */
+/**
+ * Marks what an adapter returns as not the whole board. The jobs in it are good; what must
+ * not be read from it is that a job missing from the list has closed.
+ */
+function incomplete(list, why) {
+  Object.defineProperty(list, 'partial', { value: why, enumerable: false });
+  return list;
+}
+
+/**
+ * Reads every source. Three things come back about how the reading went, and they mean
+ * different things to whoever closes postings:
+ *
+ *   errors   the board did not answer — nothing is known about it this time
+ *   partial  it answered, but not completely — its jobs are real, its silences are not
+ *   (neither) it answered in full — a job it no longer lists is gone
+ */
 export async function fetchAll(sources, opts = {}) {
-  const jobs = [], errors = [];
+  const jobs = [], errors = [], partial = [];
   for (const s of sources) {
     try {
       const found = await fetchSource(s, opts);
+      if (found.partial) partial.push({ source: `${s.system}:${s.slug}`, why: found.partial });
       jobs.push(...found);
     } catch (e) {
       errors.push({ source: `${s.system}:${s.slug}`, error: String(e?.message || e) });
@@ -445,5 +473,5 @@ export async function fetchAll(sources, opts = {}) {
     if (opts.allRegions !== true && !servesRegion(j)) { elsewhere++; continue; }
     unique.push(j);
   }
-  return { jobs: unique, errors, elsewhere };
+  return { jobs: unique, errors, partial, elsewhere };
 }
