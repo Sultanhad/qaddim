@@ -80,6 +80,11 @@ const finish = async (code) => { await db.from('ops_heartbeat').delete().eq('nam
 // Told to stop — the server is being replaced, or someone pressed ctrl-c. The marker goes with
 // it, so the next pass does not wait half an hour for one that is no longer running.
 for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { console.log(`${sig} — stopping`); finish(130).catch(() => process.exit(130)); });
+// And a pass that falls over — the database refusing a read, anything not foreseen — says so
+// in one line and puts its marker away too, instead of leaving the next pass to wait it out.
+for (const ev of ['uncaughtException', 'unhandledRejection']) {
+  process.once(ev, (e) => { console.error('pass failed: ' + (e?.message ?? e)); finish(1).catch(() => process.exit(1)); });
+}
 
 // First, before six minutes of reading boards: the questions that stopped someone's
 // application, for the people who asked to have them answered by estimate. Whatever goes
