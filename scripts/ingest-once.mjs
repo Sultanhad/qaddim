@@ -11,6 +11,7 @@
 // Nothing printed here names a person. These lines end up in a host's log viewer, and who is
 // looking for work is not that host's business: people are a short id, never a name.
 
+import dns from 'node:dns';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
 import { fetchAll, fingerprintOf, checkLink, autoApplyable, servesRegion } from '../packages/engine/src/sources.js';
@@ -19,6 +20,12 @@ import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 import { answerPending } from './answer-questions.mjs';
 import { loadEnv } from './env.mjs';
+
+// Addresses in the order that works everywhere. On a network that hands out only translated
+// IPv6 (a phone's hotspot does), Node tried that route first and a whole hiring system — every
+// Greenhouse board, fifteen of them — timed out for a night while the same boards answered
+// over IPv4 in a third of a second.
+dns.setDefaultResultOrder('ipv4first');
 
 const env = await loadEnv();
 const url = env.VITE_SUPABASE_URL;
