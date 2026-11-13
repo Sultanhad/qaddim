@@ -304,6 +304,9 @@ if (HAS_LIFECYCLE) {
 }
 
 const byId = new Map(jobs.map((j) => [j.id, j]));
+const STALE_DAYS = 60;
+const tooOldToSend = (published) =>
+  !!published && (Date.now() - new Date(published).getTime()) / 864e5 > STALE_DAYS;
 const profiles = await everyRow(() => db.from('profiles').select('*').eq('onboarded', true));
 console.log(`scoring for ${profiles?.length ?? 0} user(s)…`);
 let written = 0, queuedAuto = 0;
@@ -332,7 +335,13 @@ for (const p of profiles ?? []) {
   if (p.auto_queue && p.auto_apply && !isPaused(p)) {
     const bar = Math.max(50, p.auto_queue_above ?? 75);
     // Strong, and on a system the extension can actually send on.
-    const strong = batch.filter((m) => m.score >= bar && autoApplyable(byId.get(m.job_id)?.url));
+    // And fresh: an advert up for more than two months has usually been filled or forgotten,
+    // and each one sent there spends a place in the daily cap. It stays in the list, dated,
+    // for anyone who wants it by hand.
+    const strong = batch.filter((m) => {
+      const j = byId.get(m.job_id);
+      return m.score >= bar && autoApplyable(j?.url) && !tooOldToSend(j?.published_at);
+    });
     if (strong.length) {
       const have = await everyRow(() => db.from('applications').select('job_id').eq('user_id', p.id), 'job_id');
       const seenJobs = new Set((have ?? []).map((a) => a.job_id));

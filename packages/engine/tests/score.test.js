@@ -1,6 +1,6 @@
 // The engine's contract, checked against three very different users.
 // Run: node packages/engine/tests/score.test.js
-import { scoreJob, filterReason, normaliseProfile, classifyLocation, roleFamilyOf, seniorityLevel, yearsRequired } from '../src/score.js';
+import { scoreJob, filterReason, normaliseProfile, classifyLocation, roleFamilyOf, seniorityLevel, yearsRequired, arrangementOf } from '../src/score.js';
 import { canonicalUrl, stripHtml, norm } from '../src/text.js';
 
 const results = [];
@@ -127,6 +127,19 @@ check('Helpers', 'URLs canonicalise to one form per job',
 check('Helpers', 'Entity-escaped HTML becomes plain text',
   stripHtml('&lt;p&gt;Hello &amp; welcome&lt;/p&gt;') === 'Hello & welcome');
 check('Helpers', 'Normalisation survives accents and tashkeel', norm('Résumé').trim() === 'resume');
+
+// ── arrangement ──────────────────────────────────────────────────────────────
+check('Arrangement', 'Board spellings collapse to one word each',
+  arrangementOf('onsite') === 'On-site' && arrangementOf('OnSite') === 'On-site' &&
+  arrangementOf('remote') === 'Remote' && arrangementOf('Remote') === 'Remote' && arrangementOf('Hybrid') === 'Hybrid');
+check('Arrangement', 'The location field is read when the board declared nothing',
+  arrangementOf(null, 'Remote, KSA; Remote, UAE') === 'Remote' && arrangementOf(null, 'Riyadh - Hybrid') === 'Hybrid');
+check('Arrangement', 'A sentence about this role counts',
+  arrangementOf(null, 'Riyadh', '<p>This role is an on-site role, based in our office in Riyadh.</p>') === 'On-site' &&
+  arrangementOf(null, 'Dubai', 'The position is fully remote across the GCC.') === 'Remote');
+check('Arrangement', 'Company boilerplate is not the role\'s terms',
+  arrangementOf(null, 'Riyadh', 'Benefits: remote-first, work-from-home arrangement. Hybrid working flexibility where role permits.') === null);
+check('Arrangement', 'Saying nothing stays unstated', arrangementOf(null, 'Riyadh, Saudi Arabia', '') === null);
 
 // ── report ───────────────────────────────────────────────────────────────────
 let fail = 0;

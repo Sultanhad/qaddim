@@ -7,6 +7,7 @@
 import { stripHtml, clean, dateOnly, canonicalUrl, fnv1a, decodeEntities } from './text.js';
 import { CITY_ALIASES, CITY_COUNTRY, COUNTRY_ALIASES, ELSEWHERE, COVERS_REGION, SHARED_CITY_NAMES, US_STATE_CODE } from './taxonomy.js';
 import { norm, hasAny } from './text.js';
+import { arrangementOf } from './score.js';
 
 export const ALLOWED_HOSTS = [
   'api.ashbyhq.com', 'api.lever.co', 'api.eu.lever.co',
@@ -106,7 +107,7 @@ function raw(o) {
     location,
     city,
     country,
-    arrangement: o.arrangement || null,
+    arrangement: arrangementOf(o.arrangement, location, o.description),
     salary_published: clean(o.salary, 120) || null,
     description: String(o.description || '').slice(0, 20000),
     url,

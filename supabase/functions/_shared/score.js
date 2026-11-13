@@ -81,6 +81,30 @@ export function normaliseArrangement(raw) {
   return null;
 }
 
+// Only a sentence about THIS role counts. Measured on the 1,404 postings that declared nothing:
+// "remote-first", "hybrid working flexibility where role permits" and their kind are company
+// boilerplate, not the role's terms, and reading them would have stamped wrong labels on dozens.
+const ROLE_SAYS = {
+  Remote: /\b(?:this|the) (?:role|position|job) is (?:fully |100% )?remote\b|\bfully remote (?:role|position|job)\b/i,
+  Hybrid: /\b(?:this|the) (?:role|position|job) is (?:a )?hybrid\b/i,
+  'On-site': /\b(?:this|the) (?:role|position|job) (?:is|will be) (?:an |based )?on-?site\b|\b(?:is|be) an on-?site (?:role|position)\b/i
+};
+
+/**
+ * The arrangement to store: what the board declared, else what its location field says, else an
+ * explicit sentence about the role. Otherwise null — "not stated" is the truth for most postings,
+ * and a guess here would decide a remote-only reader's matches.
+ */
+export function arrangementOf(declared, location, description) {
+  const said = normaliseArrangement(declared);
+  if (said) return said;
+  const loc = normaliseArrangement(location);
+  if (loc) return loc;
+  const d = String(description || '').replace(/<[^>]+>/g, ' ').slice(0, 20000);
+  for (const [a, re] of Object.entries(ROLE_SAYS)) if (re.test(d)) return a;
+  return null;
+}
+
 /** Where a posting is, judged against the cities and countries this user accepts. */
 export function classifyLocation(job, profile) {
   // `arrangement` is what the board declared; `arrangement_raw` was read here for a long time

@@ -5,6 +5,7 @@
 // in Arabic here and in English elsewhere.
 
 import { ROLE_FAMILIES, SKILL_AREAS } from '@engine/taxonomy.js';
+import { normaliseArrangement } from '@engine/score.js';
 
 const familyAr = Object.fromEntries(ROLE_FAMILIES.map((f) => [f.id, f.label_ar || f.label]));
 const areaAr = Object.fromEntries(SKILL_AREAS.map((a) => [a.id, a.label_ar || a.label]));
@@ -50,6 +51,11 @@ export function reasonAr(r) {
       return `إعلان واضح: ${(r.notes || []).map((n) => AR_EVIDENCE[n] ?? n.replace(/posted (\d+)d ago/, 'نُشرت قبل $1 يوم')).join('، ')}`;
     default: return r.text ?? '';
   }
+}
+
+/** "onsite", "OnSite", "On-site" — however the board spelled it — in the reader's language, or ''. */
+export function arrangementAr(a) {
+  return AR_ARRANGEMENT[normaliseArrangement(a)] || '';
 }
 
 export function flagAr(f) {

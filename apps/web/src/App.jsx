@@ -8,7 +8,7 @@ import { mayGuess, sameWords } from '@engine/answering.js';
 import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR } from '@engine/applications.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { forExtension } from './extension-profile.js';
-import { reasonAr, flagAr, gapAr } from './explain.js';
+import { reasonAr, flagAr, gapAr, arrangementAr } from './explain.js';
 import { useToast, errorAr, useOnline } from './toast.jsx';
 import ApplySheet from './ApplySheet.jsx';
 import Privacy from './Privacy.jsx';
@@ -37,8 +37,10 @@ function ageOf(published) {
   if (days < 7) return `قبل ${days} أيام`;
   if (days < 30) return `قبل ${Math.floor(days / 7)} أسابيع`;
   if (days < 60) return 'قبل شهر';
-  if (days < 365) return `قبل ${Math.floor(days / 30)} أشهر`;
-  return 'قبل أكثر من سنة';
+  // Past two months an advert has usually been filled or forgotten. Said once, here, so the
+  // reader weighs it — and the same line is why the worker no longer sends to these by itself.
+  if (days < 365) return `قبل ${Math.floor(days / 30)} أشهر — قد تكون شُغلت`;
+  return 'قبل أكثر من سنة — قد تكون شُغلت';
 }
 
 // ───────────────────────────────────────────────────────── the job pool ──
@@ -1236,7 +1238,7 @@ function Jobs({ user, profile, onProfile }) {
         <article className="card" key={job.id}>
           <div style={{ marginBottom: 10 }}>
             <Score value={score} />
-            <span className="faint" style={{ marginInlineStart: 10 }}>{job.arrangement || ''}</span>
+            <span className="faint" style={{ marginInlineStart: 10 }}>{arrangementAr(job.arrangement)}</span>
           </div>
           <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1.25 }}>{job.title}</p>
           {/* The raw location is whatever the board typed — "Riyadh Saudi Arabia, Dubai United
