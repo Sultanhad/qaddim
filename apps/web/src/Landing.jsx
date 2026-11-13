@@ -78,19 +78,9 @@ export default function Landing({ loading, authError }) {
           <a className="brand" href="#top" onClick={(e) => { e.preventDefault(); go('top'); }}>
             <Mark size={30} radius={9} /><b>{t.brand}</b>
           </a>
-          <div className="nav-mid">
-            <button type="button" onClick={() => go('how')}>{t.howItWorks}</button>
-            <button type="button" onClick={() => go('faq')}>{t.faq}</button>
-          </div>
+          {/* The bar holds the name and one way in — nothing else. */}
           <div className="nav-end">
-            <button type="button" className="lang" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>
-              {lang === 'ar' ? 'English' : 'العربية'}
-            </button>
-            <button type="button" className="icon" aria-label="theme"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? '☀' : '☾'}
-            </button>
-            <button type="button" className="btn btn-white" style={{ margin: 0 }} onClick={() => go('start')}>{t.cta}</button>
+            <button type="button" className="btn btn-white" style={{ margin: 0 }} onClick={() => go('start')}>{t.signIn}</button>
           </div>
         </div>
       </nav>

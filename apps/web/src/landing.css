@@ -338,3 +338,7 @@
   .lp-nav .icon { width: 44px; }
   footer a, footer button { min-height: 44px; display: inline-flex; align-items: center; }
 }
+
+/* Name on one side, «الدخول» on the other. */
+.lp-nav-inner { justify-content: space-between; }
+.lp-nav .nav-end { margin-inline-start: auto; }
