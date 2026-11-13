@@ -1,0 +1,22 @@
+# Temporary: does GitHub's free model service answer this repository's own token?
+name: probe models
+on: workflow_dispatch
+permissions:
+  models: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for m in openai/gpt-4.1 openai/gpt-4.1-mini openai/gpt-4o; do
+            printf '%s → ' "$m"
+            curl -s -m 60 https://models.github.ai/inference/chat/completions \
+              -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"model\":\"$m\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with JSON {\\\"ok\\\":true}\"}],\"response_format\":{\"type\":\"json_object\"},\"max_tokens\":20}" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('choices',[{}])[0].get('message',{}).get('content') or d)"
+          done
+          echo '--- limits for this token'
+          curl -s -m 30 -D - -o /dev/null https://models.github.ai/inference/chat/completions -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/json" \
+            -d '{"model":"openai/gpt-4.1","messages":[{"role":"user","content":"hi"}],"max_tokens":2}' | grep -i 'ratelimit' || true
