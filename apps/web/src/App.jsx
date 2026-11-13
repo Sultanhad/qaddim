@@ -990,6 +990,10 @@ function Jobs({ user, profile, onProfile }) {
   const [sheetFor, setSheetFor] = useState(null);
   const [needFor, setNeedFor] = useState(null);   // job that is waiting on a missing answer
   const [undo, setUndo] = useState(null);
+  // One job at a time, two buttons — or the full list. The person's choice, remembered here.
+  const [view, setView] = useState(() => { try { return localStorage.getItem('qaddim:view') || 'deck'; } catch { return 'deck'; } });
+  const showAs = (v) => { setView(v); try { localStorage.setItem('qaddim:view', v); } catch { /* private window */ } };
+  const [more, setMore] = useState(false);
   const [queued, setQueued] = useState(0);
   const ext = useExtension();
   // Something applies for this person when either their own browser has the extension or they
@@ -1077,9 +1081,93 @@ function Jobs({ user, profile, onProfile }) {
     : !r.done[2] ? 'أجب ما يسأله أصحاب العمل'
       : 'فعّل «من الخادم» أو ثبّت الإضافة';
 
+  // When something applies for them, the deck holds only jobs it can apply to: a job that
+  // must be done by hand on the employer's site does not belong behind a one-tap «يهمني».
+  const sends = profile.auto_apply && (ext || server);
+  const deck = sends ? rows.filter((x) => autoApplyable(x.job.url)) : rows;
+  const byHand = rows.length - deck.length;
+  const top = deck[0];
+  const ready = r.done.every(Boolean);
+
+  if (view === 'deck') {
+    return (
+      <div className="deck">
+        {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
+        {/* Only what stands in the way is said here; everything else lives in the list view. */}
+        {!ready && <a className="deck-need" href={r.done[1] && r.done[2] ? '#settings' : '#profile'}>{nextStep} ←</a>}
+        {needFor && (
+          <div className="card" style={{ borderColor: 'var(--blue-soft)' }}>
+            <p style={{ margin: 0, fontWeight: 800, color: '#fff' }}>قبل أن نقدّم على «{needFor.title}»</p>
+            <p className="faint" style={{ margin: '6px 0 14px' }}>
+              ينقص: {r.missingApply.map((f) => f.label).join('، ')}. اكتبها مرة واحدة وتُستخدم في كل طلب بعدها.
+            </p>
+            <ApplyProfile user={user} profile={profile} compact onDone={onProfile}
+              onSaved={(saved) => { const j = needFor; setNeedFor(null); act(j, 'saved', saved); }} />
+            <button className="btn" onClick={() => setNeedFor(null)}>ليس الآن</button>
+          </div>
+        )}
+        {sheetFor && <div id="apply-sheet" style={{ scrollMarginTop: 72 }}><ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} /></div>}
+
+        {!top ? (
+          <div className="card deck-card deck-empty">
+            <p className="deck-title">خلصت الوظائف لليوم</p>
+            <p className="faint" style={{ margin: '8px 0 0' }}>نقرأ اللوحات كل ١٥ دقيقة، وما يطابقك يظهر هنا.</p>
+            <a className="btn" href="#settings" style={{ marginTop: 16 }}>وسّع بحثك</a>
+          </div>
+        ) : (
+          <article className="card deck-card" key={top.job.id}>
+            <div className="deck-meta">
+              <Score value={top.score} />
+              <span className="faint">{deck.length > 1 ? `باقي ${deck.length - 1}` : 'الأخيرة'}</span>
+            </div>
+            <p className="deck-title">{top.job.title}</p>
+            <p className="deck-where">{top.job.company} · {AR_CITY[top.job.city] || top.job.location}</p>
+            <p className="faint" style={{ margin: '6px 0 0' }}>
+              {top.job.salary_published ? `الراتب ${top.job.salary_published}` : L.noSalary}
+              {ageOf(top.job.published_at) && <> · {ageOf(top.job.published_at)}</>}
+            </p>
+            {!!top.reasons?.length && <ul className="reasons">{top.reasons.slice(0, 3).map((x, i) => <li key={i}>{reasonAr(x)}</li>)}</ul>}
+            {more ? (
+              <>
+                {!!top.gaps?.length && <p className="faint" style={{ marginTop: 8 }}>فجوات: {top.gaps.slice(0, 3).map(gapAr).join(' · ')}</p>}
+                <p style={{ margin: '10px 0 0', fontSize: 14 }}><a href={top.job.url} target="_blank" rel="noopener noreferrer">{L.openListing} ↗</a></p>
+              </>
+            ) : (
+              <button type="button" className="notes-add" onClick={() => setMore(true)}>تفاصيل</button>
+            )}
+          </article>
+        )}
+
+        {top && (
+          <div className="deck-actions">
+            <button className="btn deck-no" disabled={busyId === top.job.id} onClick={() => { setMore(false); act(top.job, 'closed'); }}>لا يهمني</button>
+            <button className="btn btn-go deck-yes" disabled={busyId === top.job.id} onClick={() => { setMore(false); act(top.job, 'saved'); }}>يهمني</button>
+          </div>
+        )}
+
+        {undo && (
+          <div className="snack">
+            أُخفيت «{undo.title}»
+            <button className="btn" onClick={() => undoReject(undo)}>تراجع</button>
+          </div>
+        )}
+
+        <p className="deck-foot">
+          {sends && <><span className="dot" /> يقدّم عنك {ext ? 'من متصفحك' : 'من الخادم'}{queued > 0 && <> · {queued} في الطابور</>} · </>}
+          <button type="button" className="linkish" onClick={() => showAs('list')}>
+            {byHand > 0 ? `القائمة كاملة (+${byHand} تقدّم عليها بنفسك)` : 'القائمة كاملة'}
+          </button>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
+      <p className="deck-foot" style={{ marginTop: 0 }}>
+        <button type="button" className="linkish" onClick={() => showAs('deck')}>وظيفة وحدة بزرّين ←</button>
+      </p>
       <Live open={pool?.length ?? null} updatedAt={pool?.[0]?.last_seen} />
 
       <Ladder rungs={RUNGS} done={r.done} nextLabel={nextStep}
