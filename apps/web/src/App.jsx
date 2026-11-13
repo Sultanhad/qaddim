@@ -544,7 +544,7 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const live = { ...profile, ...form, cv_path: cv ? 'pending' : profile?.cv_path };
-  const r = readiness(live, { extension: !!ext });
+  const r = readiness(live, { extension: !!ext || live.answers?._settings?.server === true });
   // When opened because an application needed something, lead with what is missing.
   // Asked in the middle of applying, the list is only what a form will actually reject you
   // for. The rest is worth having, but not worth standing between someone and the job.
@@ -698,7 +698,7 @@ function Settings({ user, profile, onDone }) {
   // Every control shows what it costs: how many jobs survive it, recomputed as you touch it.
   const scored = useMemo(() => scoreAll(pool, { ...profile, ...patch }), [pool, patch]);
   const shown = scored?.filter((r) => r.score >= patch.min_score).length;
-  const r = readiness(profile, { extension: !!ext });
+  const r = readiness(profile, { extension: !!ext || form.server });
 
   async function save(e) {
     e.preventDefault();
@@ -991,7 +991,11 @@ function Jobs({ user, profile, onProfile }) {
   const [undo, setUndo] = useState(null);
   const [queued, setQueued] = useState(0);
   const ext = useExtension();
-  const r = readiness(profile, { extension: !!ext });
+  // Something applies for this person when either their own browser has the extension or they
+  // chose the server. The page used to ask only about the extension, so on a phone — where no
+  // extension can ever be — it went on saying "install the extension" after the server was on.
+  const server = profile.answers?._settings?.server === true;
+  const r = readiness(profile, { extension: !!ext || server });
 
   useEffect(() => {
     supabase.from('applications').select('job_id').eq('user_id', user.id)
@@ -1026,7 +1030,7 @@ function Jobs({ user, profile, onProfile }) {
     const me = fresh ?? profile;
     // "Interested" means apply. If we cannot apply yet, ask for the missing answers first —
     // at the moment they matter, not in a form before any job was ever seen.
-    if (status === 'saved' && !readiness(me, { extension: !!ext }).canApply) { setNeedFor(job); return; }
+    if (status === 'saved' && !readiness(me, { extension: !!ext || me.answers?._settings?.server === true }).canApply) { setNeedFor(job); return; }
     setBusyId(job.id);
     const row = { user_id: user.id, job_id: job.id, status };
     // Only queue when something will actually drain the queue. Without the extension these
@@ -1044,9 +1048,18 @@ function Jobs({ user, profile, onProfile }) {
       setUndo(job);
       setTimeout(() => setUndo((u) => (u?.id === job.id ? null : u)), 7000);
     } else if (sendable) {
-      sendToExtension(me); setQueued((n) => n + 1);
+      if (ext) sendToExtension(me);
+      setQueued((n) => n + 1);
+      toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن' : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
     } else {
+      // Not one that can be sent for them: say why, and bring the fill sheet into view. On a
+      // phone it opened at the top of a page scrolled half-way down, and the press looked like
+      // it had done nothing at all.
       setSheetFor(job);
+      toast.ok(me.auto_apply && !autoApplyable(job.url)
+        ? 'حُفظت في «طلباتي» · هذه يُقدَّم عليها من صفحة الشركة — ورقة التعبئة فوق'
+        : 'حُفظت في «طلباتي» · ورقة التعبئة فوق');
+      setTimeout(() => document.getElementById('apply-sheet')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     }
   }
 
@@ -1061,7 +1074,7 @@ function Jobs({ user, profile, onProfile }) {
 
   const nextStep = !r.done[1] ? 'أكمل ملفك لتقدّم'
     : !r.done[2] ? 'أجب ما يسأله أصحاب العمل'
-      : 'ثبّت الإضافة ليقدّم عنك';
+      : 'فعّل «من الخادم» أو ثبّت الإضافة';
 
   return (
     <>
@@ -1069,24 +1082,24 @@ function Jobs({ user, profile, onProfile }) {
       <Live open={pool?.length ?? null} updatedAt={pool?.[0]?.last_seen} />
 
       <Ladder rungs={RUNGS} done={r.done} nextLabel={nextStep}
-        onNext={() => { location.hash = r.done[1] && r.done[2] ? 'help' : 'profile'; }} />
+        onNext={() => { location.hash = r.done[1] && r.done[2] ? 'settings' : 'profile'; }} />
 
-      {profile.auto_apply && ext && (
+      {profile.auto_apply && (ext || server) && (
         <p className="faint" style={{ margin: '0 0 14px' }}>
-          <span className="dot" /> التقديم التلقائي يعمل · الإضافة {ext}
+          <span className="dot" /> التقديم التلقائي يعمل · {ext ? `الإضافة ${ext}` : 'من الخادم، بلا حاسب'}
           {queued > 0 && <> · {queued} في الطابور</>}
         </p>
       )}
 
-      {profile.auto_apply && !ext && (
+      {profile.auto_apply && !ext && !server && (
         <div className="card" style={{ borderColor: 'var(--warn)' }}>
           <p style={{ margin: 0, fontWeight: 700 }}>التقديم التلقائي مفعّل — والإضافة غير متصلة</p>
           <p className="faint" style={{ margin: '6px 0 0' }}>
             «يهمني» الآن يحفظ الوظيفة ويفتح لك ورقة التعبئة، ولا يدخل الطابور — لأن لا شيء
             سيُفرغه. {browserKind() === 'chrome'
               ? 'ثبّت الإضافة ثم ارجع لهذه الصفحة.'
-              : `الإضافة تعمل في Chrome على حاسب، وأنت الآن في ${BROWSER_AR[browserKind()]}: اختر وأجب من هنا، وافتح قدّم في Chrome ليرسل.`}
-            {' '}<a href="#help">كيف أثبّتها</a>
+              : `الإضافة تعمل في Chrome على حاسب، وأنت الآن في ${BROWSER_AR[browserKind()]}.`}
+            {' '}<a href="#settings">أو فعّل «وقدّم من الخادم» في الضبط</a> — فيقدّم عنك بلا حاسب.
           </p>
         </div>
       )}
@@ -1128,7 +1141,7 @@ function Jobs({ user, profile, onProfile }) {
         </div>
       )}
 
-      {sheetFor && <ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} />}
+      {sheetFor && <div id="apply-sheet" style={{ scrollMarginTop: 72 }}><ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} /></div>}
 
       {rows.map(({ job, score, reasons, gaps, flags }) => (
         <article className="card" key={job.id}>
@@ -1171,7 +1184,7 @@ function Jobs({ user, profile, onProfile }) {
               as "delete my account", which made the quieter of the two choices the louder one. */}
           <div className="card-actions">
             <button className="btn btn-go" disabled={busyId === job.id} onClick={() => act(job, 'saved')}>
-              {profile.auto_apply && ext && autoApplyable(job.url) ? 'يهمني — قدّم لي' : L.approve}
+              {profile.auto_apply && (ext || server) && autoApplyable(job.url) ? 'يهمني — قدّم لي' : L.approve}
             </button>
             <button className="btn" disabled={busyId === job.id} onClick={() => act(job, 'closed')}>{L.reject}</button>
           </div>
@@ -1676,7 +1689,7 @@ function Applications({ user, profile, onProfile }) {
           <button key={s} className="chip" aria-pressed={filter === s} onClick={() => setFilter(s)}>{L[s]} {count(s)}</button>
         ))}
       </div>
-      {sheetFor && <ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} />}
+      {sheetFor && <div id="apply-sheet" style={{ scrollMarginTop: 72 }}><ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} /></div>}
       {!shown.length && !urgent.length && (
         <div className="card">
           <p style={{ margin: 0 }}>لا شيء هنا بعد.</p>

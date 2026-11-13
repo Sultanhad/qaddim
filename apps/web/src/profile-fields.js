@@ -78,4 +78,6 @@ export function readiness(profile, { extension = false } = {}) {
   };
 }
 
-export const RUNGS = ['مجالك ومدنك', 'ما يكفي للتقديم', 'ما يكفي ليقدّم عنك', 'إضافة المتصفح'];
+// The last rung is "something that sends for you": the extension in your own Chrome, or the
+// server's browser for anyone without one (a phone).
+export const RUNGS = ['مجالك ومدنك', 'ما يكفي للتقديم', 'ما يكفي ليقدّم عنك', 'من يقدّم عنك'];
