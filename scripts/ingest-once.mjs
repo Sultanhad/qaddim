@@ -309,9 +309,10 @@ if (HAS_LIFECYCLE) {
 }
 
 const byId = new Map(jobs.map((j) => [j.id, j]));
-const STALE_DAYS = 60;
+// Not STALE_DAYS above: that one is how long a posting may go unseen before it is closed.
+const SEND_MAX_AGE_DAYS = 60;
 const tooOldToSend = (published) =>
-  !!published && (Date.now() - new Date(published).getTime()) / 864e5 > STALE_DAYS;
+  !!published && (Date.now() - new Date(published).getTime()) / 864e5 > SEND_MAX_AGE_DAYS;
 const profiles = await everyRow(() => db.from('profiles').select('*').eq('onboarded', true));
 console.log(`scoring for ${profiles?.length ?? 0} user(s)…`);
 let written = 0, queuedAuto = 0;
