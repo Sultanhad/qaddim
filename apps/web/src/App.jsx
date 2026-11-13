@@ -668,7 +668,8 @@ function Settings({ user, profile, onDone }) {
     exclude_companies: (profile.exclude_companies ?? []).join('، '),
     min_score: profile.min_score ?? 70,
     // Not a column: kept with the answers it governs (profiles.answers._settings).
-    guess: profile.answers?._settings?.guess === true
+    guess: profile.answers?._settings?.guess === true,
+    server: profile.answers?._settings?.server === true
   });
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -678,7 +679,8 @@ function Settings({ user, profile, onDone }) {
   const listOf = (s) => String(s).split(/[,،\n]/).map((x) => x.trim()).filter(Boolean);
 
   const patch = useMemo(() => {
-    const { guess, ...columns } = form;
+    const { guess, server, ...columns } = form;
+    const was = profile.answers?._settings ?? {};
     return {
       ...columns,
       extra_skills: listOf(form.extra_skills),
@@ -687,8 +689,8 @@ function Settings({ user, profile, onDone }) {
       min_score: Number(form.min_score) || 0,
       // The answers column is only written when this switch moved: the worker writes its
       // estimates there too, and a save that changed nothing must not write over them.
-      ...(guess !== (profile.answers?._settings?.guess === true)
-        ? { answers: { ...(profile.answers ?? {}), _settings: { ...(profile.answers?._settings ?? {}), guess } } }
+      ...(guess !== (was.guess === true) || server !== (was.server === true)
+        ? { answers: { ...(profile.answers ?? {}), _settings: { ...was, guess, server } } }
         : {})
     };
   }, [form, profile.answers]);
@@ -778,7 +780,9 @@ function Settings({ user, profile, onDone }) {
           {r.canApply
             ? <p className="hint">
                 كل وظيفة تضغط عليها «يهمني» تُعبّأ وتُرسل عنك.
-                {ext ? <> الإضافة متصلة ✓</> : <> تحتاج إضافة المتصفح — <a href="#help">خطوة واحدة</a>.</>}
+                {ext ? <> الإضافة متصلة ✓</>
+                  : form.server ? <> من الخادم — لا إضافة في هذا المتصفح.</>
+                    : <> تحتاج إضافة المتصفح — <a href="#help">خطوة واحدة</a>، أو فعّل «من الخادم» أدناه.</>}
               </p>
             : <p className="hint">
                 يحتاج أولاً: {r.missingApply.map((f) => f.label).join('، ')}.
@@ -852,6 +856,22 @@ function Settings({ user, profile, onDone }) {
             <p className="hint">
               لصياغة الجواب تُرسل سيرتك وملفك وأسئلة الاستمارة إلى مزوّد ذكاء اصطناعي (Anthropic).
               وكل ما أُجيب به عنك يبقى مكتوباً على طلبه في «طلباتي».
+            </p>
+
+            <hr className="rule" />
+
+            <label>
+              <input type="checkbox" checked={form.server}
+                onChange={(e) => set('server', e.target.checked)} /> <b>وقدّم من الخادم — بلا حاسب</b>
+            </label>
+            <p className="hint">
+              متصفح على خادم يفتح الاستمارة ويعبّيها ويرسلها كما تفعل الإضافة، فتضغط «يهمني» من جوالك
+              وحاسبك مغلق. لهذا يدخل الخادم بحسابك لحظة التقديم، وتمرّ به سيرتك وإجاباتك، ثم يخرج.
+            </p>
+            <p className="hint">
+              <b>تجريبي.</b> الشركات تفحص من يرسل، وقد ترفض متصفحاً على خادم — وقدّم لا يتحايل على
+              الفحص. ما أُرسل ولم يتأكد وصوله يظهر في «طلباتي» كما هو، ولا يُعاد وحده. وقد يتأخر
+              بدء التقديم حتى ساعة.
             </p>
           </div>
         )}
@@ -1012,7 +1032,9 @@ function Jobs({ user, profile, onProfile }) {
     // Only queue when something will actually drain the queue. Without the extension these
     // rows sit at "في الطابور" for ever while the bar counts them as pending work — and the
     // same is true of a job on a system the extension has no script for.
-    const sendable = me.auto_apply && ext && autoApplyable(job.url);
+    // (The server counts as "something": with it switched on, a phone with no extension can
+    // queue an application and a browser elsewhere sends it.)
+    const sendable = me.auto_apply && (ext || me.answers?._settings?.server === true) && autoApplyable(job.url);
     if (status === 'saved' && sendable) row.auto_status = 'queued';
     const { error } = await supabase.from('applications').upsert(row, { onConflict: 'user_id,job_id' });
     setBusyId(null);

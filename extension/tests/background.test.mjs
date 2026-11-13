@@ -56,8 +56,13 @@ const server = http.createServer((req, res) => {
       const hit = Object.values(db.rows).filter((r) =>
         (!q.id || 'eq.' + r.id === q.id) && (!q.status || 'eq.' + r.status === q.status) &&
         (!q.auto_status || 'eq.' + r.auto_status === q.auto_status) && (!q.auto_reason || 'eq.' + r.auto_reason === q.auto_reason) &&
-        (!q.auto_at || (r.auto_at && r.auto_at < q.auto_at.replace(/^lt\./, ''))));
+        (!q.auto_at || (q.auto_at.startsWith('eq.') ? 'eq.' + r.auto_at === q.auto_at : (r.auto_at && r.auto_at < q.auto_at.replace(/^lt\./, '')))));
       if (req.method === 'GET') return json(hit);
+      if (req.method === 'PATCH' && q.auto_status === 'eq.queued' && sent.auto_status === 'filling' && db.beforeClaim) {
+        // another browser gets there first: by the time this write lands, the row is taken
+        db.beforeClaim(); db.beforeClaim = null;
+        return json(Object.values(db.rows).filter((r) => 'eq.' + r.id === q.id && r.auto_status === 'queued'));
+      }
       if (req.method === 'PATCH') {
         // the record of a press, as distinct from the record of what came after it
         const press = sent.auto_report?.sent?.pressed_at && !sent.auto_report.sent.outcome;
@@ -141,6 +146,7 @@ const popup = await ctx.newPage();
   employer.forms = 0;
 }
 
+const VERSION = JSON.parse(await readFile(join(ext, 'manifest.json'), 'utf8')).version;
 const WAITING = 'الاستمارة مفتوحة وتنتظرك';
 const UNVERIFIED = 'ضُغط الإرسال ولم يظهر تأكيد — تحقق من بريدك قبل أي إعادة';
 const PROFILE = {
@@ -228,7 +234,7 @@ console.log('\nالضغطة: تُسجَّل قبل أن تقع، و«أُرسل�
   check('الاستمارة أُرسلت مرة واحدة', employer.posts.length === 1, `posts ${employer.posts.length} · ${r.auto_status} · ${r.auto_reason}`);
   check('وفيها ما في الملف، والسيرة', /Sara/.test(employer.posts[0]?.body ?? '') && /%PDF-1\.4/.test(employer.posts[0]?.body ?? ''));
   check('الضغطة كُتبت في القاعدة قبل أن تصل الشركة', !!press && press.at <= employer.posts[0]?.at, press ? `${employer.posts[0]?.at - press.at}ms قبلها` : 'لا تسجيل');
-  check('ومعها ما عُبّئ', (press?.body.auto_report.filled?.length ?? 0) >= 5 && press?.body.auto_report.sent.by === '1.6.0');
+  check('ومعها ما عُبّئ', (press?.body.auto_report.filled?.length ?? 0) >= 5 && press?.body.auto_report.sent.by === VERSION);
   check('الصفحة انتقلت — والتأكيد قُرئ من الصفحة الجديدة', r.auto_status === 'submitted' && r.status === 'applied' && r.auto_report?.sent?.outcome === 'confirmed', JSON.stringify(r.auto_report?.sent));
   check('والدليل محفوظ: ما قالته الصفحة وعنوانها', /confirmation/.test(r.auto_report?.sent?.evidence?.url ?? '') && !!r.auto_report?.sent?.verified_at, JSON.stringify(r.auto_report?.sent?.evidence));
   check('والمحاولة عُدّت', r.auto_attempts === 1);
@@ -350,6 +356,27 @@ console.log('\nأُخرج من الطابور والاستمارة تُعبّأ'
   employer.onForm = null;
   check('وما علّمه «قدّمت» أثناء التعبئة لا يُرسل ثانية', employer.forms === 1 && employer.posts.length === 0 && db.rows['x-2'].status === 'applied' && db.rows['x-2'].auto_status === null,
     `posts ${employer.posts.length} · ${db.rows['x-2'].status}/${db.rows['x-2'].auto_status}`);
+  await popup.waitForTimeout(1500);
+}
+
+console.log('\nمتصفحان على الطابور نفسه');
+{
+  // The same application, reachable from this browser and from one on a server.
+  row('w-1'); db.queue = [item('w-1')];
+  employer.mode = 'confirm'; employer.forms = 0; employer.posts.length = 0;
+  db.beforeClaim = () => { Object.assign(db.rows['w-1'], { auto_status: 'filling', auto_at: '2026-11-12T00:00:00.000Z', auto_attempts: 1 }); };
+  await cycle({ profile: PROFILE });
+  check('أخذه متصفح آخر قبل لحظة: لا تُفتح استمارته هنا', employer.forms === 0 && employer.posts.length === 0, `forms ${employer.forms}`);
+  check('ولا يُمسّ ما كتبه الآخر', db.rows['w-1'].auto_status === 'filling' && db.rows['w-1'].auto_at === '2026-11-12T00:00:00.000Z' && db.rows['w-1'].auto_attempts === 1);
+
+  // Overtaken while filling: a slow browser whose application was handed to another.
+  row('w-2'); db.queue = [item('w-2')];
+  employer.forms = 0;
+  employer.onForm = () => { db.rows['w-2'].auto_at = '2026-11-12T00:00:01.000Z'; };
+  await cycle({ profile: PROFILE });
+  employer.onForm = null;
+  check('سُبق والاستمارة تُعبّأ: لا يضغط', employer.forms === 1 && employer.posts.length === 0 && !db.rows['w-2'].auto_report?.sent, `forms ${employer.forms} · posts ${employer.posts.length}`);
+  check('ويترك الطلب لمن أخذه', db.rows['w-2'].auto_status === 'filling' && db.rows['w-2'].auto_at === '2026-11-12T00:00:01.000Z');
   await popup.waitForTimeout(1500);
 }
 

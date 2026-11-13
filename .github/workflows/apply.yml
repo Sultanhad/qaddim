@@ -1,0 +1,50 @@
+# The server's browser: applies for the people who switched on «وقدّم من الخادم», so that
+# someone can press "interested" on a phone and have the application go out with no computer on.
+#
+# It is the extension itself, loaded into a browser on the runner (scripts/apply-from-server.mjs):
+# every rule it keeps in a person's own browser it keeps here — a press is recorded before it
+# is made, "sent" is said only on the employer's page's word, nothing goes twice. It does not
+# try to get past any check: a form that turns a server away ends as "needs you".
+#
+# The log is public and names nobody: counts only. The one secret is the database's service
+# key; a pull request cannot start this workflow.
+name: التقديم من الخادم
+
+on:
+  schedule:
+    - cron: '23,53 * * * *'
+  workflow_dispatch:
+    inputs:
+      fill_only_for:
+        description: 'For a rehearsal only: a test account to act for, filling and never pressing send'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# One at a time: two of these would only race each other for the same queue.
+concurrency:
+  group: apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: apply for whoever is waiting
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          QADDIM_ONLY_USER: ${{ inputs.fill_only_for }}
+          QADDIM_NEVER_SUBMIT: ${{ inputs.fill_only_for != '' && '1' || '' }}
+        run: node scripts/apply-from-server.mjs

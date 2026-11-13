@@ -232,9 +232,20 @@ async function applyOne(item, profile, settings, session) {
   const submit = item.submit === true && settings.neverSubmit !== true;
   // Counted when the attempt starts, from what the database holds: the queue never carried
   // the count, so it was written as "1" every time and the three-attempt limit never tripped.
-  await markApplication(session, item.application_id, {
-    auto_status: 'filling', auto_at: new Date().toISOString(), auto_attempts: (row.auto_attempts ?? 0) + 1
-  });
+  //
+  // And it is *taken*, not merely marked: the write lands only on a row that is still queued,
+  // and hands back what it wrote. An application can now be reached by more than one browser —
+  // this one, and one running on a server for people applying from a phone — and "read, then
+  // write" let two of them start the same form. Whoever's write matches owns the application;
+  // the other gets nothing back and moves on. The moment of taking is kept: it is checked
+  // again at the press, so a browser that was overtaken cannot send.
+  const claimedAt = new Date().toISOString();
+  const taken = await api(session,
+    '/applications?id=eq.' + encodeURIComponent(item.application_id) + '&status=eq.saved&auto_status=eq.queued',
+    { method: 'PATCH', headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ auto_status: 'filling', auto_at: claimedAt, auto_attempts: (row.auto_attempts ?? 0) + 1 }) }
+  ).catch(() => null);
+  if (!Array.isArray(taken) || taken.length !== 1) return 'skipped';
 
   // Where the job is decides what a truthful answer to "do you need sponsorship?" is, and
   // whose job it is decides whether "have you worked here before?" is about the employer at
@@ -248,7 +259,7 @@ async function applyOne(item, profile, settings, session) {
   const tab = await chrome.tabs.create({ url: APPLY_URL(item.url), active: false });
   await tabReady(tab.id);
 
-  inFlight.set(tab.id, { item, session, row, pressed: false, report: null, sent: null, base: null });
+  inFlight.set(tab.id, { item, session, row, claimedAt, pressed: false, report: null, sent: null, base: null });
   let result = null;
   try {
     result = await chrome.tabs.sendMessage(tab.id, {
@@ -495,7 +506,9 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       let wrote = null;
       try {
         wrote = await api(flight.session,
-          '/applications?id=eq.' + encodeURIComponent(flight.item.application_id) + '&status=eq.saved&auto_status=eq.filling',
+          '/applications?id=eq.' + encodeURIComponent(flight.item.application_id) + '&status=eq.saved&auto_status=eq.filling'
+            // …and still the taking this browser made: another may have taken it over since.
+            + '&auto_at=eq.' + encodeURIComponent(flight.claimedAt),
           { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ auto_reason: PRESSED, auto_report: { ...(msg.report ?? {}), sent } }) });
       } catch {
         reply({ ok: false, why: 'تعذّر تسجيل الضغطة — لم يُرسل شيء' });

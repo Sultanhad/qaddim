@@ -60,13 +60,20 @@ console.log('تسجيل الضغطة، كما تكتبه الإضافة');
 {
   await seed(probe, { auto_status: 'queued' });
   const id = (await rowOf(probe)).id;
-  const press = () => asMe(`/rest/v1/applications?id=eq.${id}&status=eq.saved&auto_status=eq.filling`, {
+  const takenAt = new Date().toISOString();
+  const press = (at = takenAt) => asMe(`/rest/v1/applications?id=eq.${id}&status=eq.saved&auto_status=eq.filling&auto_at=eq.${encodeURIComponent(at)}`, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ auto_reason: 'ضُغط الإرسال — بانتظار تأكيد الصفحة', auto_report: { filled: [], sent: { pressed_at: new Date().toISOString(), by: 'test' } } })
   }).then(async (r) => ({ status: r.status, rows: await r.json() }));
   const early = await press();
   check('على طلب لم يعد «يُعبّأ»: لا يُكتب شيء، ويُعرف ذلك', early.status === 200 && Array.isArray(early.rows) && early.rows.length === 0 && !(await rowOf(probe)).auto_report, JSON.stringify(early).slice(0, 90));
-  await asMe(`/rest/v1/applications?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ auto_status: 'filling', auto_at: new Date().toISOString() }) });
+  // taken the way the extension takes it: only if still queued, and the row handed back
+  const take = () => asMe(`/rest/v1/applications?id=eq.${id}&status=eq.saved&auto_status=eq.queued`, { method: 'PATCH', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ auto_status: 'filling', auto_at: takenAt, auto_attempts: 1 }) }).then((r) => r.json());
+  const first = await take(), second = await take();
+  check('الطلب يُؤخذ مرة واحدة: الثاني لا يأخذ شيئاً', first.length === 1 && Array.isArray(second) && second.length === 0, `${first.length} ثم ${second.length}`);
+  const overtaken = await press(new Date(Date.now() + 5000).toISOString());
+  check('ومن سُبق إليه لا تُقبل ضغطته', overtaken.rows.length === 0 && !(await rowOf(probe)).auto_report, JSON.stringify(overtaken).slice(0, 80));
   const ok = await press();
   check('وعلى طلب يُعبّأ: يُكتب، ويعود المكتوب', ok.rows.length === 1 && !!ok.rows[0].auto_report?.sent?.pressed_at && ok.rows[0].auto_status === 'filling', JSON.stringify(ok).slice(0, 90));
   const note = await asMe('/rest/v1/application_events', { method: 'POST', headers: { Prefer: 'return=minimal' },
