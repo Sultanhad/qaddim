@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 // Only names this project owns are taken from the environment; PATH and the rest stay out.
-const OURS = /^(VITE_SUPABASE_|SUPABASE_|ANTHROPIC_|QADDIM_|RESEND_)/;
+const OURS = /^(VITE_SUPABASE_|SUPABASE_|ANTHROPIC_|GEMINI_|QADDIM_|RESEND_)/;
 
 const parse = (text) => Object.fromEntries(text.split('\n')
   .map((l) => l.trim()).filter((l) => l && !l.startsWith('#') && l.includes('='))

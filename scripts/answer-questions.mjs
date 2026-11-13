@@ -22,8 +22,10 @@
 //     answers that are reused on every form — so "why this company?" written for one employer
 //     is not sent to the next, and the person's own words always outrank an estimate.
 //
-// Needs ANTHROPIC_API_KEY in .env.local (console.anthropic.com → API keys). Without it this
-// does nothing and says so once.
+// Needs a model to ask: GEMINI_API_KEY (free — aistudio.google.com; see answer-gemini.mjs), or
+// ANTHROPIC_API_KEY (paid), which is used instead when both are set. On the server both come
+// from the repository's Actions secrets; here, from .env.local. Without either this does
+// nothing and says so once.
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import Anthropic from '@anthropic-ai/sdk';
@@ -31,6 +33,7 @@ import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { mayGuess, sameWords } from '../packages/engine/src/answering.js';
 import { awaitingProof, isPaused } from '../packages/engine/src/applications.js';
+import { geminiAnswer, GEMINI_MODELS } from './answer-gemini.mjs';
 
 export const MODEL_DEFAULT = 'claude-opus-5-5';
 // A form can reveal more questions once the first ones are answered. Three rounds is enough
@@ -88,7 +91,8 @@ const FIELDS = ['full_name', 'nationality', 'work_authorization', 'current_title
   'years_experience', 'salary_expectation', 'current_salary', 'notice_period', 'education_degree',
   'university', 'graduation_year', 'linkedin_url', 'roles', 'skill_areas', 'extra_skills', 'cities'];
 
-export function requestFor({ profile, cv, job, ask, model = MODEL_DEFAULT }) {
+/** The words of the request — the same whichever model is asked. */
+export function promptFor({ profile, cv, job, ask }) {
   const about = Object.fromEntries(FIELDS.map((k) => [k, profile[k]]).filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length)));
   const said = Object.entries(profile.answers ?? {}).filter(([k, v]) => !k.startsWith('_') && typeof v === 'string');
   const text = [
@@ -101,6 +105,11 @@ export function requestFor({ profile, cv, job, ask, model = MODEL_DEFAULT }) {
     ...ask.map((x) => `${x.n}. ${x.q}${x.options ? `\n   Options: ${x.options.map((o) => JSON.stringify(o)).join(' | ')}` : ''}`),
     '</questions>'
   ].filter((line) => line !== '').join('\n');
+  return text;
+}
+
+export function requestFor({ profile, cv, job, ask, model = MODEL_DEFAULT }) {
+  const text = promptFor({ profile, cv, job, ask });
   return {
     model,
     max_tokens: 16000,
@@ -168,14 +177,18 @@ async function cvOf(db, profile) {
  */
 // (No line logged here names a company or a person: which employer someone is applying to is
 // not for a log that may be public.)
-export async function answerPending({ db, env = {}, client, log = console.log, only } = {}) {
+export async function answerPending({ db, env = {}, client, gemini, log = console.log, only } = {}) {
   const key = env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
-  if (!client && !key && !process.env.ANTHROPIC_AUTH_TOKEN) {
-    log('  answers: no ANTHROPIC_API_KEY set — nothing is answered by estimate');
+  const gemKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  // Claude when there is a key for it (or a stand-in, in tests); otherwise Gemini's free tier.
+  const useClaude = !!(client || key || process.env.ANTHROPIC_AUTH_TOKEN);
+  if (!useClaude && !gemKey && !gemini) {
+    log('  answers: no GEMINI_API_KEY or ANTHROPIC_API_KEY set — nothing is answered by estimate');
     return { skipped: 'no-key' };
   }
-  const ai = client ?? new Anthropic(key ? { apiKey: key } : {});
-  const model = env.QADDIM_AI_MODEL || MODEL_DEFAULT;
+  const ai = useClaude ? (client ?? new Anthropic(key ? { apiKey: key } : {})) : null;
+  const gemModels = String(env.QADDIM_GEMINI_MODELS || '').split(',').map((m) => m.trim()).filter(Boolean);
+  let model = useClaude ? (env.QADDIM_AI_MODEL || MODEL_DEFAULT) : 'gemini';
 
   let q = db.from('profiles').select('*').eq('onboarded', true);
   if (only) q = q.eq('id', only);
@@ -208,7 +221,15 @@ export async function answerPending({ db, env = {}, client, log = console.log, o
       if (plan.ask.length) {
         if (!cvRead) { cv = await cvOf(db, profile).catch(() => null); cvRead = true; }
         tally.asked += plan.ask.length;
-        try {
+        if (!useClaude) {
+          const r = await geminiAnswer({ key: gemKey, system: SYSTEM, text: promptFor({ profile: { ...profile, answers }, cv, job: app.job, ask: plan.ask }), cv,
+            models: gemModels.length ? gemModels : GEMINI_MODELS, ...(gemini ?? {}) });
+          if (r.stopped === 'auth') { log('  answers: Google refused the key — check GEMINI_API_KEY'); return { ...tally, stopped: 'auth' }; }
+          if (r.stopped === 'rate') { log('  answers: today\'s free allowance is used up on every model — the rest waits for tomorrow'); return { ...tally, stopped: 'rate' }; }
+          if (!r.parsed) { log(`  answers: no usable reply for one application (${r.why})`); continue; }
+          drafted = accept(plan.ask, r.parsed);
+          model = r.model;
+        } else try {
           const response = await ai.beta.messages.parse(requestFor({ profile: { ...profile, answers }, cv, job: app.job, ask: plan.ask, model }));
           if (response.stop_reason === 'refusal') {
             log('  answers: declined by the model for one application — left for the person');

@@ -43,7 +43,9 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          # Optional: without it, nothing is answered by estimate and the pass says so.
+          # «أجب عني»: Gemini's free tier, or Claude when its key is set. Without either, nothing is
+          # answered by estimate and the pass says so.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           QADDIM_HOST: github
           # Started every fifteen minutes by the database (migration 013); GitHub's own schedule
