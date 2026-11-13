@@ -104,5 +104,28 @@ export const BOARDS = [
   { system: 'ashby', slug: 'openai', label: 'OpenAI' },                       //  3 — Abu Dhabi
   { system: 'ashby', slug: 'zapier', label: 'Zapier' },                       //  3 — EMEA remote
   { system: 'greenhouse', slug: 'celonis', label: 'Celonis' },                //  3 — UAE
-  { system: 'greenhouse', slug: 'alixpartners', label: 'AlixPartners' }       //  3 — Riyadh, Dubai
+  { system: 'greenhouse', slug: 'alixpartners', label: 'AlixPartners' },      //  3 — Riyadh, Dubai
+
+  // ── Oracle Recruiting Cloud, added 14 Nov 2026 ────────────────────────────
+  // Where most large Saudi employers actually post. Found from their own careers pages and
+  // the portals' public addresses, then read live through the adapter before being listed;
+  // the number is postings in Saudi Arabia on that read (the last three were still filling).
+  // Left out: one pod whose employer could not be identified, and WSP (4,197 jobs, no way to
+  // ask for this region alone).
+  { system: 'oracle', slug: 'iaeegs.fa.ocs.oraclecloud.com/CX_1', label: 'Napco' },                       // 71
+  { system: 'oracle', slug: 'ejpi.fa.em2.oraclecloud.com/CX_5001', label: 'Riyadh Schools' },             // 45
+  { system: 'oracle', slug: 'iaasbk.fa.ocs.oraclecloud.com/CX_1', label: 'Hayat National Hospital' },     // 32
+  { system: 'oracle', slug: 'efan.fa.em3.oraclecloud.com/CX_1', label: 'Nahdi' },                         // 18
+  { system: 'oracle', slug: 'fa-ewxl-saasfaprod1.fa.ocs.oraclecloud.com/CX_1001', label: 'Savola' },      // 14
+  { system: 'oracle', slug: 'iaazkf.fa.ocs.oraclecloud.com/CX_1', label: 'Saudi Pro League' },            // 10
+  { system: 'oracle', slug: 'efva.fa.em3.oraclecloud.com/CX_1', label: 'Al Gihaz Holding' },              //  9
+  { system: 'oracle', slug: 'fa-epph-saasfaprod1.fa.ocs.oraclecloud.com/CX_1', label: 'ROSHN' },          //  5
+  { system: 'oracle', slug: 'careers.mobily.com.sa/CX_4002', label: 'Mobily' },                           //  2
+  { system: 'oracle', slug: 'fa-eqlf-saasfaprod1.fa.ocs.oraclecloud.com/CX_1', label: 'Saudi Arabia Railways' }, // 1
+  // Regional and global, asked per country:
+  { system: 'oracle', slug: 'efet.fa.us2.oraclecloud.com/CX_1009', label: 'Hilton' },                     // 203 listed
+  { system: 'oracle', slug: 'ediu.fa.em2.oraclecloud.com/CX_1013', label: 'Apparel Group' },              // 152 listed
+  { system: 'oracle', slug: 'efhi.fa.em3.oraclecloud.com/CX_1', label: 'Landmark Group' },                // 82
+  { system: 'oracle', slug: 'hcib.fa.us2.oraclecloud.com/CX_1001', label: 'Hill International' },         // 43
+  { system: 'oracle', slug: 'egay.fa.us6.oraclecloud.com/CX_4001', label: 'NOV' }                         // 25
 ];

@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable, servesRegion } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, EMPLOYER_CAREER_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable, servesRegion } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -107,6 +107,66 @@ check('Resilience', 'A failing board is recorded and the others still load',
   check('Resilience', 'And the read is marked incomplete, with how much was missed',
     some.partial.length === 1 && some.partial[0].source === 'workday:acme.wd3/Careers' && /1 of 2/.test(some.partial[0].why), JSON.stringify(some.partial));
   check('Resilience', 'It is not an error: the jobs that did load are real', some.errors.length === 0);
+}
+
+// Oracle Recruiting Cloud: a Saudi board read whole, a global one asked per country, every
+// request a GET, and a board that cannot be narrowed skipped rather than read in full.
+{
+  const POD = 'efan.fa.em3.oraclecloud.com';
+  const req = (Id, loc) => ({ Id, Title: 'Role ' + Id, PrimaryLocation: loc, PostedDate: '2026-11-10', secondaryLocations: [] });
+  const oracleFetch = ({ total, list, perCountry = {}, failDetail } = {}) => {
+    const calls = [];
+    const fn = async (url, init) => {
+      calls.push({ url, method: init?.method || 'GET' });
+      if (url.includes('recruitingCEJobRequisitionDetails')) {
+        const id = decodeURIComponent(url.match(/Id=([^,]+)/)[1]).replace(/"/g, '');
+        if (failDetail === id) throw new Error('fetch failed');
+        return { ok: true, status: 200, json: async () => ({ items: [{ ExternalDescriptionStr: '<p>This role is an on-site role in Riyadh.</p>' }] }) };
+      }
+      const facet = url.match(/selectedLocationsFacet=(\d+)/)?.[1];
+      const offset = Number(url.match(/offset=(\d+)/)[1]);
+      const rows = facet ? (perCountry[facet] ?? []) : list;
+      const n = facet ? rows.length : total;
+      return { ok: true, status: 200, json: async () => ({ items: [{ TotalJobsCount: n, requisitionList: rows.slice(offset, offset + 25), locationsFacet: [] }] }) };
+    };
+    return { fn, calls };
+  };
+  const OR = [{ system: 'oracle', slug: `${POD}/CX_1`, label: 'Nahdi' }];
+
+  const small = oracleFetch({ total: 3, list: [req('1', 'Riyadh, Saudi Arabia'), req('2', 'Jeddah, Saudi Arabia'), req('3', 'London, United Kingdom')] });
+  const a = await fetchAll(OR, { fetchImpl: small.fn });
+  check('Oracle', 'A small board is read whole and kept to the region',
+    a.jobs.length === 2 && a.elsewhere === 1 && a.partial.length === 0, JSON.stringify({ n: a.jobs.length, e: a.elsewhere, p: a.partial }));
+  const j = a.jobs.find((x) => x.source_job_id === '1');
+  check('Oracle', 'Each posting carries its own text, place and public link',
+    j && j.country === 'sa' && /on-site role/.test(j.description) && j.arrangement === 'On-site' &&
+    j.url === `https://${POD}/hcmUI/CandidateExperience/en/sites/CX_1/job/1` && j.company === 'Nahdi', JSON.stringify(j));
+  check('Oracle', 'A posting outside the region costs no request for its text',
+    !small.calls.some((c) => /Details.*Id=%223%22/.test(c.url)));
+  check('Oracle', 'Every request is a GET', small.calls.every((c) => c.method === 'GET'), JSON.stringify(small.calls.map((c) => c.method)));
+
+  const big = oracleFetch({ total: 4408, list: [], perCountry: { '300000000229050': [req('9', 'Riyadh, Saudi Arabia')] } });
+  const b = await fetchAll(OR, { fetchImpl: big.fn });
+  check('Oracle', 'A global board is asked per country, not read in full',
+    b.jobs.length === 1 && b.jobs[0].source_job_id === '9' && !big.calls.some((c) => /offset=25\b/.test(c.url) && !/selectedLocationsFacet/.test(c.url)),
+    JSON.stringify(b.jobs.map((x) => x.source_job_id)));
+
+  const lost = oracleFetch({ total: 4197, list: [] });
+  const c = await fetchAll(OR, { fetchImpl: lost.fn });
+  check('Oracle', 'A global board that cannot be narrowed is skipped and says why',
+    c.jobs.length === 0 && c.partial.length === 1 && /no way found/.test(c.partial[0].why) && c.errors.length === 0, JSON.stringify(c.partial));
+
+  const flaky = oracleFetch({ total: 2, list: [req('1', 'Riyadh, Saudi Arabia'), req('2', 'Riyadh, Saudi Arabia')], failDetail: '2' });
+  const d = await fetchAll(OR, { fetchImpl: flaky.fn });
+  check('Oracle', 'A posting whose record will not load is left out, and the read marked incomplete',
+    d.jobs.length === 1 && d.partial.length === 1 && /1 of 2/.test(d.partial[0].why), JSON.stringify(d.partial));
+
+  check('Oracle', 'Only the application tier of an Oracle pod is reachable',
+    hostAllowed('efan.fa.em3.oraclecloud.com') && hostAllowed('fa-ewxl-saasfaprod1.fa.ocs.oraclecloud.com') &&
+    hostAllowed('careers.mobily.com.sa') &&
+    !hostAllowed('axvpvthrjz64.compat.objectstorage.me-jeddah-1.oraclecloud.com') &&
+    !hostAllowed('oraclecloud.com') && !hostAllowed('efan.fa.em3.oraclecloud.com.attacker.net') &&
+    !hostAllowed('a.b.fa.em3.oraclecloud.com'));
 }
 
 // SmartRecruiters: every country of the region, the text of each posting once, and nothing
@@ -279,6 +339,8 @@ check('Safety', 'A host with a port is refused', !hostAllowed('x.recruitee.com:8
 check('Safety', 'Another vendor is still refused', !hostAllowed('api.example.com'));
 check('Safety', 'Only hiring-system hosts are allowed',
   ALLOWED_HOSTS.every((h) => /greenhouse|lever|ashby|workable|smartrecruiters/.test(h)));
+check('Safety', 'An employer\'s own career host is named outright, and only a careers host',
+  EMPLOYER_CAREER_HOSTS.every((h) => /^careers\.[a-z0-9-]+(\.[a-z]{2,3}){1,2}$/.test(h)));
 // This used to assert "no POST appears in this file", which stopped being the right question
 // the day Workday was added — its job search is a POST. The property that actually matters is
 // that nothing here can write: the only non-GET in the file is the one search, and no adapter

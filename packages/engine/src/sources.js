@@ -15,6 +15,13 @@ export const ALLOWED_HOSTS = [
 ];
 
 /**
+ * A hiring system served from the employer's own domain — Oracle Recruiting Cloud behind
+ * careers.mobily.com.sa. A custom domain has no vendor suffix to pin, so each is named here by
+ * hand, after its job API was seen answering, and kept apart from the vendor list above.
+ */
+export const EMPLOYER_CAREER_HOSTS = ['careers.mobily.com.sa'];
+
+/**
  * Recruitee gives every customer its own host, so there is no fixed name to list. The
  * suffix is pinned instead, and the part before it may only be a slug — no dots, so
  * `evil.com.recruitee.com.attacker.net` cannot slip through, and no userinfo or port.
@@ -22,7 +29,11 @@ export const ALLOWED_HOSTS = [
 export const ALLOWED_HOST_SUFFIXES = [
   { suffix: '.recruitee.com', slug: /^[a-z0-9][a-z0-9-]{0,62}$/ },
   // Workday gives every customer a host under a numbered data centre: acme.wd3.myworkdayjobs.com
-  { suffix: '.myworkdayjobs.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.wd\d{1,2}$/ }
+  { suffix: '.myworkdayjobs.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.wd\d{1,2}$/ },
+  // Oracle Recruiting Cloud: one pod per customer — efan.fa.em3, iaazkf.fa.ocs,
+  // fa-ewxl-saasfaprod1.fa.ocs. Only the `.fa.` application tier: Oracle's object storage and
+  // every other service under the same domain stay out of reach.
+  { suffix: '.oraclecloud.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.fa\.[a-z]{2,3}\d{0,2}$/ }
 ];
 
 /**
@@ -74,7 +85,7 @@ export async function searchJson(url, { limit = 20, offset = 0, searchText = '' 
 }
 
 export function hostAllowed(host) {
-  if (ALLOWED_HOSTS.includes(host)) return true;
+  if (ALLOWED_HOSTS.includes(host) || EMPLOYER_CAREER_HOSTS.includes(host)) return true;
   return ALLOWED_HOST_SUFFIXES.some(({ suffix, slug }) =>
     host.endsWith(suffix) && slug.test(host.slice(0, -suffix.length)));
 }
@@ -148,6 +159,14 @@ export function placeOf(location) {
 }
 
 // ── one adapter per hiring system ───────────────────────────────────────────
+// Oracle's seeded geography ids for the region's countries. Most pods share them (Hilton on
+// us2, NOV on us6 and Landmark on em3 all answer to 300000000229050 for Saudi Arabia); a pod
+// that does not simply returns nothing for one, and its own location list is asked first.
+const ORACLE_COUNTRY_IDS = {
+  'Saudi Arabia': 300000000229050, 'United Arab Emirates': 300000000228480, Qatar: 300000000229032,
+  Bahrain: 300000000228546, Kuwait: 300000000228840, Oman: 300000000228987, Egypt: 300000000228666
+};
+
 const ADAPTERS = {
   async ashby(slug, opts) {
     const j = await getJson(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}?includeCompensation=true`, opts);
@@ -286,6 +305,105 @@ const ADAPTERS = {
       }));
     }
     if (unread) incomplete(out, `${unread} of ${found.length} job pages did not load`);
+    return out;
+  },
+
+  /**
+   * Oracle Recruiting Cloud — where most of the large Saudi employers keep their jobs (Nahdi,
+   * Napco, ROSHN, Savola, Mobily, Saudi Arabia Railways…). Slug: "pod-host/site", for example
+   * "efan.fa.em3.oraclecloud.com/CX_1". All of it is GET.
+   *
+   * A Saudi company's board is read whole. A global one is not: Hilton lists 4,408 jobs and
+   * 203 of them are in Saudi Arabia, so it is asked per country of the region instead — by the
+   * ids its own location list offers, else by Oracle's standard country ids (which most pods
+   * share). A board that knows neither is skipped with a note, not read in full.
+   *
+   * The list carries no description, so each posting is read once from its own record and
+   * not again (`opts.known`), as with SmartRecruiters.
+   */
+  async oracle(slug, opts) {
+    const [host, site] = String(slug).split('/');
+    if (!host || !/^CX(?:_\d{1,6})?$/.test(site || '')) throw new Error(`oracle slug must be "host/CX_n": ${slug}`);
+    const api = `https://${host}/hcmRestApi/resources/latest`;
+    const page = async (finder, offset, expand = '') => (await getJson(
+      `${api}/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.secondaryLocations${expand}` +
+      `&finder=findReqs;siteNumber=${site}${finder},limit=25,offset=${offset},sortBy=POSTING_DATES_DESC`, opts))?.items?.[0] ?? {};
+    const PAGE = 25, CAP = opts?.maxJobs ?? 400;
+    let cut = 0;
+    const readAll = async (finder, first) => {
+      const got = [...(first.requisitionList ?? [])];
+      const listed = first.TotalJobsCount ?? got.length;
+      if (listed > CAP) cut += listed - CAP;
+      const total = Math.min(listed, CAP);
+      for (let o = PAGE; o < total; o += PAGE) {
+        const more = (await page(finder, o)).requisitionList ?? [];
+        got.push(...more);
+        if (more.length < PAGE) break;
+      }
+      return got;
+    };
+
+    const first = await page(',facetsList=LOCATIONS', 0, ',locationsFacet');
+    const total = first.TotalJobsCount ?? 0;
+    let reqs = [];
+    if (total <= (opts?.wholeBoardUpTo ?? 300)) {
+      reqs = await readAll('', first);
+    } else {
+      const facets = first.locationsFacet ?? [];
+      const ids = [];
+      for (const [name, standard] of Object.entries(ORACLE_COUNTRY_IDS)) {
+        const own = facets.find((f) => f.Name === name);
+        ids.push(String(own?.Id ?? standard));
+      }
+      for (const id of ids) {
+        const finder = `,selectedLocationsFacet=${id}`;
+        const one = await page(finder, 0);
+        const n = one.TotalJobsCount ?? 0;
+        // 0: this pod does not know the id. The whole board: the filter was ignored.
+        if (!n || n >= total) continue;
+        reqs.push(...await readAll(finder, one));
+      }
+      if (!reqs.length) {
+        const out = [];
+        incomplete(out, `${total} jobs, and no way found to ask for this region alone`);
+        return out;
+      }
+    }
+
+    const seen = new Set(), out = [];
+    let unread = 0, asked = 0;
+    for (const r of reqs) {
+      if (!r?.Id || seen.has(r.Id)) continue;
+      seen.add(r.Id);
+      const places = [r.PrimaryLocation, ...(r.secondaryLocations ?? []).map((x) => x.Name)].filter(Boolean);
+      const job = raw({
+        source: `oracle:${slug}`, source_job_id: r.Id, title: r.Title,
+        company: opts?.label || host.split('.')[0],
+        location: [...new Set(places)].join('; '),
+        arrangement: /remote/i.test(r.WorkplaceTypeCode || r.WorkplaceType || '') ? 'Remote'
+          : /hybrid/i.test(r.WorkplaceTypeCode || r.WorkplaceType || '') ? 'Hybrid'
+            : /on.?site/i.test(r.WorkplaceTypeCode || r.WorkplaceType || '') ? 'On-site' : null,
+        description: stripHtml(r.ShortDescriptionStr || ''),
+        url: `https://${host}/hcmUI/CandidateExperience/en/sites/${site}/job/${encodeURIComponent(r.Id)}`,
+        published_at: r.PostedDate, salary: ''
+      });
+      // Somewhere else entirely: the caller drops it, so its record is not worth a request.
+      if (!servesRegion(job)) { out.push(job); continue; }
+      if (opts?.known?.has(job.id)) { job.keep_description = true; out.push(job); continue; }
+      if (asked >= (opts?.maxDetails ?? 150)) { unread++; continue; }
+      asked++;
+      try {
+        const d = (await getJson(`${api}/recruitingCEJobRequisitionDetails?expand=all&onlyData=true` +
+          `&finder=ById;Id=%22${encodeURIComponent(r.Id)}%22,siteNumber=${site}`, opts))?.items?.[0];
+        if (!d) { unread++; continue; }
+        job.description = [d.ExternalDescriptionStr, d.ExternalResponsibilitiesStr, d.ExternalQualificationsStr]
+          .map((x) => stripHtml(x || '')).filter(Boolean).join('\n\n').slice(0, 20000) || job.description;
+        job.arrangement = arrangementOf(job.arrangement, job.location, job.description);
+      } catch { unread++; continue; }
+      out.push(job);
+      if (opts?.pauseMs) await new Promise((res) => setTimeout(res, Math.min(opts.pauseMs, 80)));
+    }
+    if (unread || cut) incomplete(out, [unread && `${unread} of ${seen.size} postings not read yet`, cut && `${cut} beyond the ${CAP} read`].filter(Boolean).join('; '));
     return out;
   },
 

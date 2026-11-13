@@ -115,8 +115,13 @@ const off = new Set(sourceRows.filter((r) => r.enabled === false).map(keyOf));
 const boards = BOARDS.filter((b) => !off.has(keyOf(b)));
 if (off.size) console.log(`  ${off.size} board(s) switched off in job_sources`);
 
-// Postings read one page each (SmartRecruiters) are not read again once their text is stored.
-const described = new Set((await everyRow(() => db.from('jobs').select('id').like('source', 'smartrecruiters:%').neq('description', ''))).map((r) => r.id));
+// Postings read one page each (SmartRecruiters, Oracle) are not read again once their text is
+// stored. Leaving Oracle out of this would have Hilton read the same 150 records every pass
+// and never reach the other 400.
+const described = new Set([
+  ...(await everyRow(() => db.from('jobs').select('id').like('source', 'smartrecruiters:%').neq('description', ''))),
+  ...(await everyRow(() => db.from('jobs').select('id').like('source', 'oracle:%').neq('description', '')))
+].map((r) => r.id));
 
 console.log(`reading ${boards.length} boards…`);
 const passStarted = new Date().toISOString();
