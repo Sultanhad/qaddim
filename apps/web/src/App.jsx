@@ -1636,6 +1636,10 @@ function Applications({ user, profile, onProfile }) {
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all');
   const [sheetFor, setSheetFor] = useState(null);
+  // Sent, or not — that is all this page has to say by default. The full view (statuses to
+  // move, notes, fill sheet) is one tap away, and the choice is remembered in this browser.
+  const [view, setView] = useState(() => { try { return localStorage.getItem('qaddim:apps-view') || 'simple'; } catch { return 'simple'; } });
+  const showAs = (v) => { setView(v); try { localStorage.setItem('qaddim:apps-view', v); } catch { /* private window */ } };
 
   useEffect(() => { load(); }, [user.id]);
   async function load() {
@@ -1706,6 +1710,70 @@ function Applications({ user, profile, onProfile }) {
   const shown = filter === 'all' ? rest : rest.filter((r) => r.status === filter);
   const count = (s) => rows.filter((r) => r.status === s).length;
 
+  if (view === 'simple') {
+    /** One line about one application: was it sent, and if not, the one thing that moves it. */
+    const verdict = (row) => {
+      const st = state.get(row.id);
+      const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
+      if (st === 'SUBMITTED') return { tone: 'sent', text: `أُرسل ✓ ${when(row.applied_on || row.auto_at)}`, rank: 3 };
+      if (st === 'READY' || st === 'PREPARING' || st === 'SUBMITTING') {
+        return { tone: 'going', text: paused ? 'لم يُرسل — موقوف (أوقفتَ الإرسال)' : st === 'READY' ? 'لم يُرسل بعد — في الطريق' : 'يُرسل الآن…', rank: 2 };
+      }
+      if (awaitingProof(row)) return { tone: 'ask', text: 'أُرسل؟ لم تؤكّد الشركة', rank: 0, proof: true };
+      if (st === 'ACTION_REQUIRED' || st === 'FAILED') {
+        const split = whose(row, profile);
+        if (split.mine.length) return { tone: 'ask', text: `لم يُرسل — ينتظر جوابك عن ${split.mine.length} سؤال فوق`, rank: 0 };
+        if (split.soon) return { tone: 'going', text: 'لم يُرسل — قدّم يجيب أسئلته الآن، ثم يُرسل', rank: 1 };
+        return { tone: 'ask', text: 'لم يُرسل — تعذّر آلياً', rank: 1, retry: true, page: true };
+      }
+      if (st === 'CANCELLED' || st === 'DUPLICATE') return null;
+      return autoApplyable(row.job?.url)
+        ? { tone: 'idle', text: 'لم يُرسل', rank: 4, send: true }
+        : { tone: 'idle', text: 'لم يُرسل — يُقدَّم عليها من صفحة الشركة', rank: 4, page: true };
+    };
+    const list = rows.map((row) => ({ row, v: verdict(row) })).filter((x) => x.v).sort((a, b) => a.v.rank - b.v.rank);
+    const sent = list.filter((x) => x.v.tone === 'sent').length;
+    const going = list.filter((x) => x.v.tone === 'going').length;
+    const waiting = list.filter((x) => x.v.tone === 'ask').length;
+    return (
+      <>
+        <p className="apps-sum"><b>{sent}</b> أُرسل · <b>{going}</b> في الطريق · <b>{waiting}</b> ينتظرك</p>
+        {paused && (
+          <div className="deck-need" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span>الإرسال موقوف</span>
+            <button className="btn btn-go" style={{ margin: 0 }} onClick={() => setPaused(false)}>شغّله</button>
+          </div>
+        )}
+        <Questions rows={urgent} profile={profile} onProfile={onProfile} onDone={load} />
+        {!list.length && (
+          <div className="card">
+            <p style={{ margin: 0 }}>لا طلبات بعد.</p>
+            <a className="btn btn-go" href="#jobs" style={{ marginTop: 12 }}>شوف الوظائف</a>
+          </div>
+        )}
+        {list.map(({ row, v }) => (
+          <article className={`card app-line app-${v.tone}`} key={row.id}>
+            <p className="app-title">{row.job?.title}</p>
+            <p className="app-where">{row.job?.company}{AR_CITY[row.job?.city] ? ` · ${AR_CITY[row.job.city]}` : ''}</p>
+            <p className="app-verdict">{v.text}</p>
+            {v.proof && <Unverified row={row} profile={profile} onArrived={() => setStatus(row, 'applied')} onDone={load} />}
+            {(v.send || v.retry || v.page) && (
+              <div className="app-acts">
+                {v.send && profile.auto_apply && <button className="btn btn-go" onClick={() => requeue(row)}>أرسله</button>}
+                {v.retry && <button className="btn btn-go" onClick={() => requeue(row)}>جرّب مرة ثانية</button>}
+                {v.page && row.job?.url && <a className="btn" href={row.job.url} target="_blank" rel="noopener noreferrer">صفحة الشركة ↗</a>}
+              </div>
+            )}
+          </article>
+        ))}
+        <p className="deck-foot">
+          {!paused && <><button type="button" className="linkish" onClick={() => setPaused(true)}>أوقف الإرسال</button> · </>}
+          <button type="button" className="linkish" onClick={() => showAs('full')}>العرض المفصّل</button>
+        </p>
+      </>
+    );
+  }
+
   const card = (row, lead) => {
     const st = state.get(row.id), unproven = awaitingProof(row);
     // Saved, not in the robot's hands, and on a system it can send on: it can be handed over.
@@ -1763,6 +1831,9 @@ function Applications({ user, profile, onProfile }) {
 
   return (
     <>
+      <p className="deck-foot" style={{ marginTop: 0 }}>
+        <button type="button" className="linkish" onClick={() => showAs('simple')}>أُرسل أو لا فقط ←</button>
+      </p>
       <RunBar stats={stats} paused={paused} onPause={setPaused} />
       {!!urgent.length && (
         <>

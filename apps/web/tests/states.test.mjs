@@ -28,7 +28,7 @@ await admin('/rest/v1/applications', { method: 'POST', body: JSON.stringify({ us
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 420, height: 900 } });
 await page.goto(base, { waitUntil: 'domcontentloaded' });
-await page.evaluate(([k, v]) => localStorage.setItem(k, v),
+await page.evaluate(([k, v]) => (localStorage.setItem(k, v), localStorage.setItem('qaddim:apps-view', 'full'), localStorage.setItem('qaddim:view', 'list')),
   [`sb-${ref}-auth-token`, JSON.stringify({ ...sess, expires_at: Math.floor(Date.now() / 1000) + sess.expires_in })]);
 
 // ١) تغيير حالة طلب يفشل
@@ -61,7 +61,7 @@ check('والحالة حُفظت فعلاً', row[0]?.status === 'interview', ro
 // الصفحة تُفتح أولاً ثم تُقطع الشبكة — القطع قبل التحميل يعطي صفحة خطأ المتصفح لا تطبيقنا
 await page.goto(base + '/#jobs', { waitUntil: 'networkidle' });
 await page.reload({ waitUntil: 'networkidle' });
-await page.waitForSelector('article.card, .ladder', { timeout: 15000 });
+await page.waitForSelector('article.card, .ladder, .deck', { timeout: 15000 });
 await page.context().setOffline(true);
 await page.evaluate(() => dispatchEvent(new Event('offline')));
 await page.waitForTimeout(800);

@@ -531,3 +531,18 @@ section:first-of-type > .group-h { margin-top: 18px; }
   .deck { max-width: 560px; margin-inline: auto; min-height: 0; }
   .deck-actions { bottom: 16px; }
 }
+
+/* ── applications, sent or not ──────────────────────────────────────────── */
+.apps-sum { margin: 0 0 14px; font-size: 15px; color: var(--dim); }
+.apps-sum b { color: var(--text); font-weight: 800; }
+.app-line { padding: 16px 18px; }
+.app-title { margin: 0; font-size: 17px; font-weight: 800; color: #fff; line-height: 1.3; }
+.app-where { margin: 4px 0 0; color: var(--faint); font-size: 14px; }
+.app-verdict { margin: 10px 0 0; font-size: 15px; font-weight: 700; }
+.app-sent .app-verdict { color: var(--good); }
+.app-going .app-verdict { color: var(--blue-soft); }
+.app-ask { border-color: rgba(255, 176, 32, .45); }
+.app-ask .app-verdict { color: var(--warn); }
+.app-idle .app-verdict { color: var(--faint); }
+.app-acts { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.app-acts .btn { margin: 0; flex: 1; min-height: 44px; text-align: center; }

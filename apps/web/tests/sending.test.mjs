@@ -86,7 +86,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
-await page.evaluate(([k, v]) => localStorage.setItem(k, v),
+await page.evaluate(([k, v]) => (localStorage.setItem(k, v), localStorage.setItem('qaddim:apps-view', 'full'), localStorage.setItem('qaddim:view', 'list')),
   [`sb-${ref}-auth-token`, JSON.stringify({ ...sess, expires_at: Math.floor(Date.now() / 1000) + sess.expires_in })]);
 await page.goto(base + '/#applications', { waitUntil: 'networkidle' });
 await page.reload({ waitUntil: 'networkidle' });
