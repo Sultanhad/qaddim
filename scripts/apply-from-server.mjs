@@ -25,6 +25,49 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { loadEnv, projectRef } from './env.mjs';
 import { isPaused } from '../packages/engine/src/applications.js';
+import { autoApplyable } from '../packages/engine/src/sources.js';
+
+// ── what an employer's site said back ──
+// When the server presses send and the page never says "thank you", the question is whether
+// the application reached the employer at all. The page cannot be shown to anyone (it holds
+// the person's details, and this log is public), so what is kept is its shape: which kind of
+// request the page sent, and the status it got back — ids taken out of the address, nothing
+// of the body. A 403 to the apply endpoint says "turned away"; a 200 says "taken".
+// Only generic words survive; any other part of the address (an employer's name, a job id) is ':x'.
+const WORDS = new Set(['api', 'v1', 'v2', 'v3', 'jobs', 'job', 'j', 'apply', 'application', 'applications', 'candidates', 'candidate', 'submit', 'form', 'forms', 'upload', 'uploads', 'files', 'resume', 'questions', 'answers', 'graphql', 'postings', 'non-user-graphql', 'embed']);
+const shapeOf = (url) => { try { const u = new URL(url); return u.host + u.pathname.split('/').map((x) => (!x || WORDS.has(x.toLowerCase()) ? x : ':x')).join('/'); } catch { return '?'; } };
+function watchSends(ctx) {
+  const seen = [];
+  ctx.on('response', (res) => {
+    const req = res.request();
+    if (!['POST', 'PUT'].includes(req.method()) || !autoApplyable(req.url())) return;
+    seen.push(`${req.method()} ${shapeOf(req.url())} → ${res.status()}`);
+  });
+  ctx.on('requestfailed', (req) => {
+    if (['POST', 'PUT'].includes(req.method()) && autoApplyable(req.url())) seen.push(`${req.method()} ${shapeOf(req.url())} → failed (${req.failure()?.errorText ?? '?'})`);
+  });
+  return seen;
+}
+/** Each employer tab still open at the end — the extension leaves one open after an unconfirmed press. */
+async function lookAt(ctx) {
+  const out = [];
+  for (const pg of ctx.pages()) {
+    if (!autoApplyable(pg.url())) continue;
+    out.push(await pg.evaluate(() => {
+      const val = (sel) => { const el = document.querySelector(sel); return el ? (el.value ? 'passed' : 'empty') : 'none'; };
+      const t = document.body ? document.body.innerText : '';
+      const btn = Array.from(document.querySelectorAll('button[type=submit], button')).find((b) => /submit|apply|send|إرسال|قدّم/i.test(b.textContent || ''));
+      return [
+        `turnstile ${val('input[name="cf-turnstile-response"]')}`, `recaptcha ${val('textarea[name="g-recaptcha-response"]')}`,
+        `hcaptcha ${val('textarea[name="h-captcha-response"]')}`,
+        `errors on page ${(t.match(/is required|please (fix|correct|complete)|something went wrong|there (was|were) (an? )?(error|problem)|try again/gi) || []).length}`,
+        `bot wording ${/verify (that )?you are (a )?human|are you a robot|unusual (traffic|activity)|blocked|suspicious|captcha/i.test(t) ? 'yes' : 'no'}`,
+        `send button ${btn ? (btn.disabled ? 'there, disabled' : 'still there') : 'gone'}`
+      ].join(' · ');
+    }).catch(() => 'could not read the page'));
+  }
+  return out;
+}
 
 const env = await loadEnv();
 const API = env.VITE_SUPABASE_URL, PUB = env.VITE_SUPABASE_PUBLISHABLE_KEY, SRV = env.SUPABASE_SERVICE_KEY;
@@ -84,6 +127,7 @@ for (const [i, person] of people.entries()) {
       headless: true, channel: 'chromium',
       args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`]
     });
+    const sends = watchSends(ctx);
     const sw = ctx.serviceWorkers().find((w) => w.url().endsWith('src/background.js')) ?? await ctx.waitForEvent('serviceworker', { timeout: 20000 });
     if (NEVER) await sw.evaluate(() => chrome.storage.local.set({ settings: { neverSubmit: true } }));
 
@@ -116,6 +160,8 @@ for (const [i, person] of people.entries()) {
       else if (a.auto_status === 'failed') tally.failed++;
       else if (a.auto_status === 'needs_you') tally.needs_you++;
     }
+    for (const line of sends) console.log(`  sent by the page: ${line}`);
+    for (const line of await lookAt(ctx)) console.log(`  left open after a press: ${line}`);
     const last = (await state()).log?.[0];
     console.log(`${who}: session handed over · ${done?.length ?? 0} application(s) handled${last?.status === 'error' ? ' · the extension said: ' + String(last.reason).slice(0, 80) : ''}`);
   } catch (e) {
