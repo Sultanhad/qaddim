@@ -69,7 +69,7 @@
    The dish is inset inside the panel so the names have somewhere to sit, and each
    name is anchored by its outward edge — so a long one grows toward the middle and
    can never reach the card's edge, which is how "SmartRecruiters" used to escape. */
-.radar { position: relative; width: min(100%, 460px); aspect-ratio: 1; margin: 0 auto; }
+.radar { position: relative; width: min(100%, 460px); aspect-ratio: 1; margin: 0 auto; --turn: 7s; }
 
 /* The dish fills most of the panel; the names ride just outside its middle ring and overlap
    the outer one, which is what makes them read as part of the sweep. */
@@ -77,16 +77,26 @@
 .radar-dish { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .radar-dish .rings { fill: none; stroke: #1a2233; stroke-width: 1; }
 .radar-dish .rings path { stroke: #141b29; }
-.radar-dish .blip .dot { fill: #3d4a78; transition: fill .45s ease; }
-.radar-dish .blip .halo { fill: var(--blue); opacity: 0; transition: opacity .45s ease; }
-.radar-dish .blip.on .dot { fill: #fff; }
-.radar-dish .blip.on .halo { opacity: .22; }
+/* Every blip and name runs one full turn, offset by --at (the moment the beam reaches its
+   angle): white-hot on contact, then cooling for about two seconds until the next pass. */
+.radar-dish .blip .dot { fill: #3d4a78; animation: blip-dot var(--turn) linear var(--at) infinite; }
+.radar-dish .blip .halo {
+  fill: var(--blue); opacity: 0; transform-box: fill-box; transform-origin: center;
+  animation: blip-ping var(--turn) ease-out var(--at) infinite;
+}
+@keyframes blip-dot { 0%, 5% { fill: #fff; } 32%, 100% { fill: #3d4a78; } }
+@keyframes blip-ping {
+  0% { opacity: .55; transform: scale(.5); }
+  28% { opacity: 0; transform: scale(1.9); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
 
 /* Clipped to the dish: the sweep used to spill past the outermost ring. */
 .radar .sweep {
   position: absolute; inset: 4%; border-radius: 50%; overflow: hidden;
-  background: conic-gradient(from 0deg, rgba(47,107,255,.34), rgba(47,107,255,.07) 34deg, transparent 88deg);
-  animation: spin 7s linear infinite;
+  /* Hard bright edge at 0°, tail fading behind it: the beam leads, the glow trails. */
+  background: conic-gradient(from 0deg, transparent 272deg, rgba(47,107,255,.07) 326deg, rgba(47,107,255,.34) 360deg);
+  animation: spin var(--turn) linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -102,11 +112,21 @@
   /* Physical, like .radar-core: the dish is LTR geometry and must not flip in Arabic. */
   translate: -50% -50%;
   padding: 7px 13px; border-radius: 999px;
-  background: #11161f; border: 1px solid var(--line);
-  color: var(--dim); font-size: 13px; font-weight: 700; white-space: nowrap;
-  transition: background .35s ease, border-color .35s ease, color .35s ease;
+  --ats-bg: #11161f; --ats-bd: var(--line); --ats-fg: var(--dim);
+  background: var(--ats-bg); border: 1px solid var(--ats-bd);
+  color: var(--ats-fg); font-size: 13px; font-weight: 700; white-space: nowrap;
+  animation: ats-lit var(--turn) ease-out var(--at) infinite;
 }
-.ats.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+@keyframes ats-lit {
+  0%, 6% {
+    background: var(--blue); border-color: var(--blue); color: #fff;
+    box-shadow: 0 0 0 4px rgba(47,107,255,.18), 0 0 26px rgba(47,107,255,.55);
+  }
+  34%, 100% {
+    background: var(--ats-bg); border-color: var(--ats-bd); color: var(--ats-fg);
+    box-shadow: 0 0 0 0 rgba(47,107,255,0), 0 0 0 rgba(47,107,255,0);
+  }
+}
 
 /* Narrow screens: the panel shrinks but the words do not. The type comes down only to the
    floor the rest of the page holds — below 12.5px it stops being something you read. */
@@ -192,7 +212,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .radar .sweep, .marquee .track, .pin { animation: none; }
-  .radar-legend li, .radar-dish .blip .dot, .radar-dish .blip .halo { transition: none; }
+  .radar-dish .blip .dot, .radar-dish .blip .halo, .ats { animation: none; }
   .bar > i { animation: none; width: var(--w); }
   .city-chip .name { animation: none; }
 }
@@ -269,9 +289,8 @@
 :root[data-theme="light"] .lp-h1, :root[data-theme="light"] .lp-sub, :root[data-theme="light"] .lp-meta { color: #fff; }
 :root[data-theme="light"] .lp-h1 .soft { color: #dbe4ff; }
 :root[data-theme="light"] .board, :root[data-theme="light"] .panel, :root[data-theme="light"] .mock { background: var(--card); }
-:root[data-theme="light"] .board-row .t, :root[data-theme="light"] .ats { color: var(--text); }
-:root[data-theme="light"] .ats { background: var(--raise); }
-:root[data-theme="light"] .ats.lit { background: var(--blue); color: #fff; }
+:root[data-theme="light"] .board-row .t { color: var(--text); }
+:root[data-theme="light"] .ats { --ats-bg: var(--raise); --ats-fg: var(--text); }
 :root[data-theme="light"] .bar { background: var(--raise); }
 :root[data-theme="light"] .btn-white { background: var(--blue); border-color: var(--blue); color: #fff; }
 :root[data-theme="light"] .sky-city { fill: #0a1230; }

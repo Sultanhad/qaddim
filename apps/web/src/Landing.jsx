@@ -245,13 +245,9 @@ export default function Landing({ loading, authError }) {
  * rather than by eye.
  */
 function Radar() {
-  const [lit, setLit] = useState(0);
-  useEffect(() => {
-    if (reduced()) return;
-    const t = setInterval(() => setLit((n) => (n + 1) % ATS.length), 1600);
-    return () => clearInterval(t);
-  }, []);
-
+  // No timer: each name lights on the same CSS clock as the sweep, delayed by the time the
+  // beam takes to reach its angle — so it lights the moment it is touched, never before, and
+  // a background tab cannot knock the two out of step.
   // Blips on the dish's middle ring; names on a slightly wider circle, just outside them.
   const marks = ATS.map((n, i) => {
     const a = (i / ATS.length) * 2 * Math.PI - Math.PI / 2;
@@ -261,6 +257,9 @@ function Radar() {
       lx: 50 + 30 * Math.cos(a), ly: 50 + 30 * Math.sin(a)      // percent of the whole panel
     };
   });
+
+  // Blip i sits at i/N of a turn clockwise from the top, which is where the sweep starts.
+  const at = (i) => `calc(var(--turn) * ${i} / ${ATS.length})`;
 
   return (
     <div className="radar">
@@ -272,7 +271,7 @@ function Radar() {
             <path d="M8 100h184M100 8v184" />
           </g>
           {marks.map(({ n, bx, by }, i) => (
-            <g key={n} className={'blip' + (i === lit ? ' on' : '')}>
+            <g key={n} className="blip" style={{ '--at': at(i) }}>
               <circle cx={bx} cy={by} r="11" className="halo" />
               <circle cx={bx} cy={by} r="4.5" className="dot" />
             </g>
@@ -282,7 +281,7 @@ function Radar() {
       </div>
 
       {marks.map(({ n, lx, ly }, i) => (
-        <span key={n} className={'ats' + (i === lit ? ' on' : '')} style={{ left: `${lx}%`, top: `${ly}%` }}>
+        <span key={n} className="ats" style={{ left: `${lx}%`, top: `${ly}%`, '--at': at(i) }}>
           {n}
         </span>
       ))}
