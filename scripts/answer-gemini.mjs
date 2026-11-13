@@ -11,7 +11,8 @@
 // says so where the switch is.
 
 // Strongest first: these answers go to employers under the applicant's name.
-export const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+// (Read from the key's own model list on 2026-11-13; the 2.0 models are gone from it.)
+export const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
 
 // The shape of the reply, in the subset of OpenAPI that Gemini's structured output accepts.
 const SCHEMA = {
@@ -44,7 +45,9 @@ export async function geminiAnswer({ key, system, text, cv, models = GEMINI_MODE
     generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0.2, maxOutputTokens: 8192 }
   });
   let why = null;
+  const tried = [];           // every model's answer, for the one log line if none of them works
   for (const model of models) {
+    if (why) tried.push(why);
     let res;
     try {
       res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -73,5 +76,5 @@ export async function geminiAnswer({ key, system, text, cv, models = GEMINI_MODE
   }
   // Every model out of today's allowance (or not answering) is not a failure of this
   // application: the questions wait for the next pass, or for the person.
-  return { parsed: null, model: null, stopped: /429/.test(why ?? '') ? 'rate' : null, why };
+  return { parsed: null, model: null, stopped: /429/.test(why ?? '') ? 'rate' : null, why: [...tried, why].filter(Boolean).join(' · ') };
 }
