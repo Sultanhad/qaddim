@@ -46,5 +46,7 @@ jobs:
           # Optional: without it, nothing is answered by estimate and the pass says so.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           QADDIM_HOST: github
-          QADDIM_EVERY_MIN: '60'
+          # Started every fifteen minutes by the database (migration 013); GitHub's own schedule
+          # above is only the fallback.
+          QADDIM_EVERY_MIN: '15'
         run: node scripts/ingest-once.mjs

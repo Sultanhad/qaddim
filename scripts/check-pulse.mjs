@@ -49,11 +49,21 @@ try {
 // Three answers. "Alive, but a quarter of the boards did not answer it" is its own: a hiring
 // system that starts refusing the server's address looks exactly like that, and the worker
 // would otherwise go on reporting itself healthy while a whole system's jobs went stale.
+// And is GitHub still accepting the database's requests to start things (migration 013)?
+// A token that expired or was revoked answers 401 or 403; the worker then quietly falls back to
+// GitHub's own sparse schedule. Said here before it shows as lateness.
+let refused = null;
+try {
+  const d = await get('/rest/v1/rpc/dispatch_health', { method: 'POST', body: '{}' });
+  if (d.ok) refused = (await d.json()).find((x) => x.status != null && x.status !== 204) ?? null;
+} catch { /* not set up yet: nothing to say */ }
+
 const late = !pulse || pulse.late;
 const thin = !late && pulse.boards > 0 && pulse.down * 4 >= pulse.boards;
-const state = late ? 'down' : thin ? 'degraded' : 'ok';
-const summary = !pulse ? 'the worker has never left a pulse'
-  : `last pass ${pulse.minutes} min ago${pulse.host ? ' on ' + pulse.host : ''} · ${pulse.jobs ?? '?'} postings read · ${pulse.down} of ${pulse.boards ?? '?'} boards did not answer`;
+const state = late ? 'down' : thin || refused ? 'degraded' : 'ok';
+const summary = (!pulse ? 'the worker has never left a pulse'
+  : `last pass ${pulse.minutes} min ago${pulse.host ? ' on ' + pulse.host : ''} · ${pulse.jobs ?? '?'} postings read · ${pulse.down} of ${pulse.boards ?? '?'} boards did not answer`)
+  + (refused ? ` · GitHub refused to start ${refused.workflow} (HTTP ${refused.status}) — the dispatch token needs renewing` : '');
 console.log({ down: '✗ ', degraded: '~ ', ok: '✓ ' }[state] + summary);
 await out({ state, summary, minutes: pulse?.minutes ?? '' });
 process.exit(state === 'ok' ? 0 : 1);

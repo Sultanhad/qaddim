@@ -35,6 +35,19 @@ alter table storage.objects enable row level security;
 -- A hosted project grants its three API roles everything in `public` and lets row-level
 -- security be the gate. Without the same here, a test run as `anon` is refused at the table
 -- and says nothing about the policies it was written to check.
+-- pg_cron, pg_net and Vault, just enough to run against: a schedule is written down, a request
+-- is recorded instead of sent, and a secret is a row a test can insert.
+create schema cron;
+create table cron.job (jobname text primary key, schedule text, command text);
+create function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as
+  $$ insert into cron.job values (job_name, schedule, command) on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command returning 1::bigint $$;
+create schema net;
+create table net.calls (id bigserial primary key, url text, body jsonb, headers jsonb);
+create table net._http_response (id bigint primary key, status_code int, error_msg text, timed_out boolean default false, created timestamptz default now());
+create function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds int default 5000)
+  returns bigint language sql as $$ insert into net.calls (url, body, headers) values (url, body, headers) returning id $$;
+create schema vault;
+create table vault.decrypted_secrets (name text primary key, decrypted_secret text);
 grant usage on schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
