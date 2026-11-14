@@ -45,14 +45,18 @@ export default function Landing({ loading, authError }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('qaddim:theme') || 'dark');
   // Everything the bar no longer shows lives behind the burger beside «الدخول».
   const [menu, setMenu] = useState(false);
+  // «الدخول» opens the sign-in box over the page; it no longer sits in the middle of it.
+  const [signing, setSigning] = useState(false);
+  // A sign-in link that failed comes back here with a reason; the box opens to say it.
+  useEffect(() => { if (authError) setSigning(true); }, [authError]);
   useEffect(() => {
-    if (!menu) return;
-    const key = (e) => { if (e.key === 'Escape') setMenu(false); };
+    if (!menu && !signing) return;
+    const key = (e) => { if (e.key === 'Escape') { setMenu(false); setSigning(false); } };
     addEventListener('keydown', key);
     const before = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { removeEventListener('keydown', key); document.body.style.overflow = before; };
-  }, [menu]);
+  }, [menu, signing]);
   const t = S[lang];
   const city = useRotating(CITIES[lang]);
 
@@ -90,7 +94,7 @@ export default function Landing({ loading, authError }) {
           </a>
           {/* The bar holds the name and one way in — nothing else. */}
           <div className="nav-end">
-            <button type="button" className="btn btn-white" style={{ margin: 0 }} onClick={() => go('start')}>{t.signIn}</button>
+            <button type="button" className="btn btn-white" style={{ margin: 0 }} onClick={() => setSigning(true)}>{t.signIn}</button>
             <button type="button" className="burger" aria-label={t.menu} aria-expanded={menu} onClick={() => setMenu(true)}>
               <span /><span /><span />
             </button>
@@ -101,14 +105,14 @@ export default function Landing({ loading, authError }) {
       {menu && (
         <>
           <div className="scrim" onClick={() => setMenu(false)} />
-          <aside className="drawer" role="dialog" aria-modal="true" aria-label={t.menu}>
+          <aside className="drawer from-end" role="dialog" aria-modal="true" aria-label={t.menu}>
             <div className="drawer-head">
               <Mark size={30} radius={9} />
               <span className="drawer-who"><b>{t.brand}</b></span>
               <button type="button" className="drawer-x" aria-label="✕" onClick={() => setMenu(false)}>✕</button>
             </div>
             <nav className="drawer-nav">
-              <button type="button" onClick={() => { setMenu(false); go('start'); }}>{t.signIn}</button>
+              <button type="button" onClick={() => { setMenu(false); setSigning(true); }}>{t.signIn}</button>
               <hr />
               <button type="button" onClick={() => { setMenu(false); go('how'); }}>{t.howItWorks}</button>
               <button type="button" onClick={() => { setMenu(false); go('faq'); }}>{t.faq}</button>
@@ -123,6 +127,17 @@ export default function Landing({ loading, authError }) {
         </>
       )}
 
+      {signing && !loading && (
+        <>
+          <div className="scrim" onClick={() => setSigning(false)} />
+          <div className="lp-signin" role="dialog" aria-modal="true" aria-label={t.signIn}>
+            <button type="button" className="drawer-x" aria-label="✕" onClick={() => setSigning(false)}>✕</button>
+            <p className="lp-signin-h">{t.signIn}</p>
+            <SignIn t={t} loading={loading} notice={authError} />
+          </div>
+        </>
+      )}
+
       {/* ── hero ───────────────────────────────────────────────── */}
       <header className="lp-hero" id="top">
         <Mark className="lp-mark" />
@@ -132,7 +147,6 @@ export default function Landing({ loading, authError }) {
           <br /><span className="soft">{t.heroB}</span>
         </h1>
         <p className="lp-sub">{t.sub}</p>
-        <div className="lp-cta" id="start"><SignIn t={t} loading={loading} notice={authError} /></div>
         <p className="lp-meta">{t.meta.map((m) => <span key={m}>{m}</span>)}</p>
       </header>
 

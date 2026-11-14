@@ -344,3 +344,16 @@
 .lp-nav .nav-end { margin-inline-start: auto; }
 .lp-nav .burger { flex: none; }
 .lp-nav .burger span { background: var(--text); }
+
+/* The menu comes out from the side its button is on (the left, in Arabic). */
+.drawer.from-end { inset-inline-start: auto; inset-inline-end: 0; border-inline-end: 0; border-inline-start: 1px solid var(--line); --from: -100%; }
+[dir="ltr"] .drawer.from-end { --from: 100%; }
+
+/* Sign-in, over the page. */
+.lp-signin {
+  position: fixed; z-index: 61; inset-inline: 16px; top: 18vh; max-width: 440px; margin-inline: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px 20px 20px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, .6); animation: fade .18s ease;
+}
+.lp-signin .drawer-x { position: absolute; top: 10px; inset-inline-end: 10px; }
+.lp-signin-h { margin: 0 0 14px; font-size: 20px; font-weight: 800; color: var(--text); }
