@@ -33,7 +33,7 @@ export const S = {
     statuses: { saved: 'محفوظة', applied: 'قدّمت', interview: 'مقابلة', offer: 'عرض', closed: 'مغلقة', all: 'الكل' },
     appsTitle: 'الطلبات', notes: 'ملاحظات', followBy: 'تابع قبل ١٩ نوفمبر',
     autoH1: 'التقديم التلقائي', autoH2: 'يقدّم عنك',
-    autoP: 'حتى عشرين طلباً في اليوم، وواحد لكل شركة في الأسبوع. وإن لم يعرف إجابة، أو واجه كابتشا، يتوقف ويسألك.',
+    autoP: 'حتى عشرين طلباً في اليوم. وإن لم يعرف إجابة، أو واجه كابتشا، يتوقف ويسألك.',
     autoPoints: [
       'يختار أفضل مطابقاتك ويعبّي الاستمارة من ملفك.',
       'يرسل سيرتك كما هي — ولا يضيف إليها حقيقة لم تقلها.',
@@ -68,7 +68,7 @@ export const S = {
     statuses: { saved: 'Saved', applied: 'Applied', interview: 'Interview', offer: 'Offer', closed: 'Closed', all: 'All' },
     appsTitle: 'Applications', notes: 'Notes', followBy: 'Follow up by 19 Nov',
     autoH1: 'Autopilot', autoH2: 'applies for you',
-    autoP: "Up to 20 a day and one per company a week. If it doesn't know an answer or hits a CAPTCHA, it stops and asks you.",
+    autoP: "Up to 20 a day. If it doesn't know an answer or hits a CAPTCHA, it stops and asks you.",
     autoPoints: [
       'It picks your best match and fills the form from your profile.',
       'It sends your CV as it is, and never adds a fact you did not state.',

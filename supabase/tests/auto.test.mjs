@@ -51,14 +51,14 @@ let st = await stats();
 check('العدّاد يرى الثلاثة المعتمدة', st.approved >= 3, `approved=${st.approved}`);
 check('وصار يرسل وحده', st.submitting === true, `submitting=${st.submitting}`);
 
-// واحدة لكل شركة في الأسبوع
+// لا حدّ لعدد الطلبات للشركة نفسها (الترحيل ٠١٤): الثاني يخرج ولو أُرسل الأول اليوم
 await admin(`/rest/v1/applications?user_id=eq.${me.id}`, { method: 'DELETE' });
 await queueJob(twoSame[0]); await queueJob(twoSame[1]);
 const first = await admin(`/rest/v1/applications?user_id=eq.${me.id}&job_id=eq.${twoSame[0]}&select=id`).then((r) => r.json());
 await admin(`/rest/v1/applications?id=eq.${first[0].id}`, { method: 'PATCH',
   body: JSON.stringify({ auto_status: 'submitted', auto_at: new Date().toISOString() }) });
 q = await queue();
-check('لا يقدّم مرتين لنفس الشركة في أسبوع', q.length === 0, `${q.length} بقي في الطابور`);
+check('طلب ثانٍ للشركة نفسها يخرج ولا ينتظر أسبوعاً', q.length === 1 && q[0].job_id === twoSame[1], `${q.length} في الطابور`);
 
 // سقف اليوم
 await admin(`/rest/v1/applications?user_id=eq.${me.id}`, { method: 'DELETE' });

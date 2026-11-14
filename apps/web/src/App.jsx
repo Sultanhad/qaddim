@@ -800,8 +800,7 @@ function Settings({ user, profile, onDone }) {
             </label>
             <p className="hint">
               أول ثلاثة طلبات تُعبَّأ وتُترك لك مهما كان هذا المفتاح: ترى بعينك ما يخرج باسمك،
-              ثم يمشي وحده. وفي كل الأحوال لا يتجاوز {form.daily_cap} طلباً في اليوم،
-              وواحداً لكل شركة في الأسبوع.
+              ثم يمشي وحده. وفي كل الأحوال لا يتجاوز {form.daily_cap} طلباً في اليوم.
             </p>
             <label htmlFor="cap" style={{ marginTop: 10 }}>أكثر عدد في اليوم — {form.daily_cap}</label>
             <input id="cap" type="range" min="1" max="40" step="1" value={form.daily_cap}
@@ -813,7 +812,7 @@ function Settings({ user, profile, onDone }) {
             </label>
             <p className="hint">
               افتراضاً تُعبَّأ أول ثلاثة وتُترك لك لتراها بعينك قبل أن تخرج باسمك. فعّل هذا
-              وتُرسل من الأول — ويبقى السقف اليومي وواحد لكل شركة أسبوعياً كما هما.
+              وتُرسل من الأول — ويبقى السقف اليومي كما هو.
             </p>
 
             <hr className="rule" />
@@ -1575,27 +1574,6 @@ function Unverified({ row, profile, onArrived, onDone }) {
   );
 }
 
-/**
- * One application per company per week is a rule the database keeps (my_apply_queue). A job
- * pressed «يهمني» at a company already applied to this week waits in the queue for days, and
- * the page used to call that "on its way". This says which companies are held, and until when.
- * It counts what the database counts: sent, or pressed and not confirmed, by `auto_at`.
- */
-function heldMap(apps, now = Date.now()) {
-  const m = new Map();
-  for (const a of apps ?? []) {
-    const s = a.auto_report?.sent;
-    const counts = a.auto_status === 'submitted' || (s?.pressed_at && !s.rearmed && s.outcome !== 'rejected' && s.outcome !== 'confirmed');
-    if (!counts || !a.auto_at || !a.job?.company) continue;
-    const free = new Date(a.auto_at).getTime() + 7 * 864e5;
-    if (free <= now) continue;
-    const k = a.job.company.trim().toLowerCase();
-    if (!m.has(k) || m.get(k).free < free) m.set(k, { free, id: a.id });
-  }
-  return m;
-}
-const dayAr = (ms) => new Date(ms).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
-
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 
@@ -1734,17 +1712,12 @@ function Applications({ user, profile, onProfile }) {
   const count = (s) => rows.filter((r) => r.status === s).length;
 
   if (view === 'simple') {
-    const held = heldMap(rows);
     /** One line about one application: was it sent, and if not, the one thing that moves it. */
     const verdict = (row) => {
       const st = state.get(row.id);
       const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
       if (st === 'SUBMITTED') return { tone: 'sent', text: `أُرسل ✓ ${when(row.applied_on || row.auto_at)}`, rank: 3 };
       if (st === 'READY' || st === 'PREPARING' || st === 'SUBMITTING') {
-        const h = held.get(String(row.job?.company ?? '').trim().toLowerCase());
-        if (st === 'READY' && h && h.id !== row.id && !paused) {
-          return { tone: 'going', text: `لم يُرسل بعد — يُرسل ${dayAr(h.free)} (طلب واحد لكل شركة في الأسبوع)`, rank: 2 };
-        }
         return { tone: 'going', text: paused ? 'لم يُرسل — موقوف (أوقفتَ الإرسال)' : st === 'READY' ? 'لم يُرسل بعد — في الطريق' : 'يُرسل الآن…', rank: 2 };
       }
       if (awaitingProof(row)) return { tone: 'ask', text: 'أُرسل؟ لم تؤكّد الشركة', rank: 0, proof: true };

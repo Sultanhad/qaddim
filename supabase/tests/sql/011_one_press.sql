@@ -33,7 +33,7 @@ update public.applications set auto_status = 'filling', auto_at = now(),
   auto_report = '{"filled":[{"q":"First Name","v":"Sara"}],"sent":{"pressed_at":"2026-11-12T01:00:00Z","by":"1.6.0"}}'
   where job_id = 'j1';
 select pg_temp.expect('a press with no outcome is unverified', public.sent_unverified((pg_temp.app('j1')).auto_report)::text, 'true');
-select pg_temp.expect('and counts as a send to that company: its other role waits', pg_temp.queue(), 'j3');
+select pg_temp.expect('it is not handed out again; the company''s other role still is (014 lifted the weekly rule)', pg_temp.queue(), 'j2,j3');
 
 -- the page never confirmed
 update public.applications set auto_status = 'needs_you',
@@ -49,7 +49,7 @@ insert into public.applications (user_id, job_id, status, auto_status)
   values ('00000000-0000-0000-0000-0000000000a1', 'j1', 'saved', 'queued')
   on conflict (user_id, job_id) do update set status = excluded.status, auto_status = excluded.auto_status;
 select pg_temp.expect('nor does pressing "interested" on it again', (pg_temp.app('j1')).auto_status::text, 'needs_you');
-select pg_temp.expect('so the queue never offers it', pg_temp.queue(), 'j3');
+select pg_temp.expect('so the queue never offers it (its company''s other role it does)', pg_temp.queue(), 'j2,j3');
 
 -- 2. the record of the press cannot be written over
 update public.applications set auto_report = '{"missing":[{"q":"Why us?"}]}' where job_id = 'j1';
