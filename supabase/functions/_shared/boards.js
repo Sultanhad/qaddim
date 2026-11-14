@@ -127,5 +127,13 @@ export const BOARDS = [
   { system: 'oracle', slug: 'ediu.fa.em2.oraclecloud.com/CX_1013', label: 'Apparel Group' },              // 152 listed
   { system: 'oracle', slug: 'efhi.fa.em3.oraclecloud.com/CX_1', label: 'Landmark Group' },                // 82
   { system: 'oracle', slug: 'hcib.fa.us2.oraclecloud.com/CX_1001', label: 'Hill International' },         // 43
-  { system: 'oracle', slug: 'egay.fa.us6.oraclecloud.com/CX_4001', label: 'NOV' }                         // 25
+  { system: 'oracle', slug: 'egay.fa.us6.oraclecloud.com/CX_4001', label: 'NOV' },                        // 25
+
+  // ── iCIMS ─────────────────────────────────────────────────────────────────
+  // Riyadh Air keeps four portals; 67 of their 69 postings were based in Riyadh on 14 Nov 2026
+  // (cabin crew, pilots and engineering among them).
+  { system: 'icims', slug: 'careers-riyadhair', label: 'Riyadh Air' },
+  { system: 'icims', slug: 'cabincrew-riyadhair', label: 'Riyadh Air' },
+  { system: 'icims', slug: 'pilots-riyadhair', label: 'Riyadh Air' },
+  { system: 'icims', slug: 'engineering-riyadhair', label: 'Riyadh Air' }
 ];

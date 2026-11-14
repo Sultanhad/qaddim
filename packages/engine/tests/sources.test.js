@@ -169,6 +169,38 @@ check('Resilience', 'A failing board is recorded and the others still load',
     !hostAllowed('a.b.fa.em3.oraclecloud.com'));
 }
 
+// iCIMS: the sitemap names the jobs, each page's JobPosting describes one, and the place comes
+// from the page's own "Job Locations" line — or, for an airline, the airport.
+{
+  const HOST = 'careers-acme.icims.com';
+  const ld = (o) => `<script type="application/ld+json">${JSON.stringify({ '@type': 'JobPosting', ...o })}</script>`;
+  const PAGES = {
+    '11': `<div><span>Job Locations</span></div><div><span>SA-Riyadh</span></div>` + ld({ title: 'Duty Manager', datePosted: '2026-11-11T04:00:00.000Z', description: '&lt;p&gt;Run the shift.&lt;/p&gt;', hiringOrganization: { name: 'Acme Air' }, jobLocation: [{ address: { addressCountry: 'UNAVAILABLE' } }] }),
+    '12': ld({ title: 'Cabin Crew', datePosted: '2026-11-01', description: '<p>Fly.</p>', jobLocation: [{ address: { addressCountry: 'UNAVAILABLE', streetAddress: 'King Khalid International Airport' } }] }),
+    '13': '<html>no structured data</html>'
+  };
+  const sitemap = `<urlset>${['11', '12', '13'].map((id) => `<loc>https://${HOST}/jobs/${id}/role/job</loc>`).join('')}<loc>https://${HOST}/jobs/search</loc><loc>https://evil.example/jobs/99/x/job</loc></urlset>`;
+  const calls = [];
+  const icimsFetch = async (url, init) => {
+    calls.push({ url, method: init?.method || 'GET' });
+    const body = url.endsWith('/sitemap.xml') ? sitemap : PAGES[url.match(/\/jobs\/(\d+)\//)?.[1]];
+    return { ok: true, status: 200, text: async () => body };
+  };
+  const r = await fetchAll([{ system: 'icims', slug: 'careers-acme', label: 'Acme' }], { fetchImpl: icimsFetch });
+  const a = r.jobs.find((j) => j.source_job_id === '11'), b = r.jobs.find((j) => j.source_job_id === '12');
+  check('iCIMS', 'A job is read from its page: title, text, date, employer, link',
+    a && a.title === 'Duty Manager' && a.description === 'Run the shift.' && a.published_at === '2026-11-11' &&
+    a.company === 'Acme Air' && a.url === `https://${HOST}/jobs/11/role/job`, JSON.stringify(a));
+  check('iCIMS', 'The place comes from "Job Locations", not the empty address', a && a.city === 'riyadh' && a.country === 'sa', a?.location);
+  check('iCIMS', 'An airport is a city', b && b.city === 'riyadh' && b.country === 'sa', b?.location);
+  check('iCIMS', 'A page without a JobPosting is left out and the read marked incomplete',
+    r.jobs.length === 2 && r.partial.length === 1 && /1 of 3/.test(r.partial[0].why), JSON.stringify(r.partial));
+  check('iCIMS', 'Only this portal\'s own job pages are followed, and only by GET',
+    !calls.some((c) => c.url.includes('evil.example') || c.url.includes('/jobs/search')) && calls.every((c) => c.method === 'GET'));
+  check('iCIMS', 'Only a portal host is reachable',
+    hostAllowed('cabincrew-riyadhair.icims.com') && !hostAllowed('a.b.icims.com') && !hostAllowed('icims.com.attacker.net'));
+}
+
 // SmartRecruiters: every country of the region, the text of each posting once, and nothing
 // stored half-read.
 {

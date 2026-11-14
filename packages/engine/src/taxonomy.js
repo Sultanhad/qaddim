@@ -99,7 +99,11 @@ export const PROGRAM_TERMS = ['graduate program', 'graduate programme', 'builder
 
 /** Cities the platform understands, with the spellings that appear in real postings. */
 export const CITY_ALIASES = {
-  riyadh: ['riyadh', 'الرياض'], jeddah: ['jeddah', 'jiddah', 'جدة'], dammam: ['dammam', 'الدمام'],
+  // Airports too: an airline's postings name the airport and nothing else ("King Khalid
+  // International Airport"), and an unplaced posting falls out of the region.
+  riyadh: ['riyadh', 'الرياض', 'king khalid international airport'],
+  jeddah: ['jeddah', 'jiddah', 'جدة', 'king abdulaziz international airport'],
+  dammam: ['dammam', 'الدمام', 'king fahd international airport'],
   khobar: ['khobar', 'al khobar', 'الخبر'], dhahran: ['dhahran', 'الظهران'], mecca: ['mecca', 'makkah', 'مكة'],
   medina: ['medina', 'madinah', 'المدينة'], neom: ['neom', 'نيوم'], tabuk: ['tabuk', 'تبوك'],
   abha: ['abha', 'أبها'], qassim: ['qassim', 'buraidah', 'القصيم', 'بريدة'],

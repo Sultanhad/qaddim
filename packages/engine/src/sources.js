@@ -33,7 +33,9 @@ export const ALLOWED_HOST_SUFFIXES = [
   // Oracle Recruiting Cloud: one pod per customer — efan.fa.em3, iaazkf.fa.ocs,
   // fa-ewxl-saasfaprod1.fa.ocs. Only the `.fa.` application tier: Oracle's object storage and
   // every other service under the same domain stay out of reach.
-  { suffix: '.oraclecloud.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.fa\.[a-z]{2,3}\d{0,2}$/ }
+  { suffix: '.oraclecloud.com', slug: /^[a-z0-9][a-z0-9-]{0,62}\.fa\.[a-z]{2,3}\d{0,2}$/ },
+  // iCIMS: one host per portal — careers-riyadhair.icims.com, cabincrew-riyadhair.icims.com.
+  { suffix: '.icims.com', slug: /^[a-z0-9][a-z0-9-]{0,62}$/ }
 ];
 
 /**
@@ -105,6 +107,34 @@ export async function getJson(url, { fetchImpl = fetch, timeoutMs = 20000 } = {}
   } finally { if (timer) clearTimeout(timer); }
 }
 
+/**
+ * The same guard as getJson, for the boards that publish no JSON feed and are read from their
+ * sitemap and their own job pages (iCIMS). GET only, size-capped, never followed off the host.
+ */
+export async function getText(url, { fetchImpl = fetch, timeoutMs = 20000, maxChars = 2_000_000 } = {}) {
+  const host = (String(url).match(/^https:\/\/([^/?#]+)/i) || [])[1]?.toLowerCase();
+  if (!host || !hostAllowed(host)) throw new BlockedHost(`Blocked by allowlist: ${host}`);
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(url, { method: 'GET', redirect: 'error', signal: ctrl?.signal, headers: { accept: 'text/html, application/xml' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status} from ${host}`);
+    return String(await res.text()).slice(0, maxChars);
+  } finally { if (timer) clearTimeout(timer); }
+}
+
+/** The JobPosting a careers page publishes for search engines, or null. */
+export function jobPostingIn(html) {
+  for (const m of String(html).matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    let d;
+    try { d = JSON.parse(m[1]); } catch { continue; }
+    for (const x of [d, ...(Array.isArray(d) ? d : []), ...(d?.['@graph'] ?? [])]) {
+      if (x && x['@type'] === 'JobPosting') return x;
+    }
+  }
+  return null;
+}
+
 /** Normalises whatever a board gives us into one shape. */
 function raw(o) {
   const url = String(o.url || '').trim();
@@ -166,6 +196,26 @@ const ORACLE_COUNTRY_IDS = {
   'Saudi Arabia': 300000000229050, 'United Arab Emirates': 300000000228480, Qatar: 300000000229032,
   Bahrain: 300000000228546, Kuwait: 300000000228840, Oman: 300000000228987, Egypt: 300000000228666
 };
+
+/**
+ * Where an iCIMS job is. The page's "Job Locations" line is "SA-Riyadh" (country code, then the
+ * place), several of them separated by bars; the structured address is used only when it says
+ * something other than "UNAVAILABLE".
+ */
+function icimsPlace(page, jp) {
+  const line = String(page).match(/Job Locations?\s*<\/[^>]+>[\s\S]{0,300}?>\s*([A-Z]{2}-[^<]{1,120}?)\s*</);
+  if (line) {
+    return line[1].split(/\s*[|;]\s*/).map((one) => {
+      const [code, ...rest] = one.split('-');
+      const country = COUNTRY_ALIASES[code.toLowerCase()]?.[0] || code;
+      const place = rest.filter((x) => !/^\d+$/.test(x)).join(' ').trim();
+      return [place, country].filter(Boolean).join(', ');
+    }).join('; ');
+  }
+  const a = [].concat(jp?.jobLocation ?? [])[0]?.address ?? {};
+  const known = (v) => (v && v !== 'UNAVAILABLE' ? v : '');
+  return [known(a.addressLocality), known(a.addressRegion), known(a.addressCountry)].filter(Boolean).join(', ') || known(a.streetAddress);
+}
 
 const ADAPTERS = {
   async ashby(slug, opts) {
@@ -404,6 +454,40 @@ const ADAPTERS = {
       if (opts?.pauseMs) await new Promise((res) => setTimeout(res, Math.min(opts.pauseMs, 80)));
     }
     if (unread || cut) incomplete(out, [unread && `${unread} of ${seen.size} postings not read yet`, cut && `${cut} beyond the ${CAP} read`].filter(Boolean).join('; '));
+    return out;
+  },
+
+  /**
+   * iCIMS — Riyadh Air's four portals (corporate, cabin crew, pilots, engineering). No JSON
+   * feed: the sitemap lists the jobs, and each job page carries the JobPosting it publishes for
+   * search engines. Its address fields read "UNAVAILABLE", so the place comes from the page's
+   * own "Job Locations" line ("SA-Riyadh"). Every page is read every pass — the sitemap has no
+   * titles, so a job not read would be written back nameless. Riyadh Air's are 69 in all.
+   */
+  async icims(slug, opts) {
+    if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(String(slug))) throw new Error(`icims slug must be the portal name: ${slug}`);
+    const host = `${slug}.icims.com`;
+    const map = await getText(`https://${host}/sitemap.xml`, opts);
+    const urls = [...new Set([...map.matchAll(/<loc>\s*(https:\/\/([^/<\s]+)\/jobs\/(\d+)\/[^<\s]*\/job)\s*<\/loc>/g)]
+      .filter((m) => m[2].toLowerCase() === host).map((m) => m[1]))];
+    const out = [];
+    let unread = 0;
+    for (const url of urls.slice(0, opts?.maxDetails ?? 150)) {
+      const id = url.match(/\/jobs\/(\d+)\//)[1];
+      let page, jp;
+      try { page = await getText(url + '?in_iframe=1', opts); jp = jobPostingIn(page); } catch { unread++; continue; }
+      if (!jp?.title) { unread++; continue; }
+      out.push(raw({
+        source: `icims:${slug}`, source_job_id: id, title: jp.title,
+        company: jp.hiringOrganization?.name || opts?.label || slug,
+        location: icimsPlace(page, jp), arrangement: /telecommute/i.test(jp.jobLocationType || '') ? 'Remote' : null,
+        description: stripHtml(decodeEntities(jp.description || '')), url,
+        published_at: jp.datePosted, salary: ''
+      }));
+      if (opts?.pauseMs) await new Promise((res) => setTimeout(res, Math.min(opts.pauseMs, 80)));
+    }
+    unread += Math.max(0, urls.length - (opts?.maxDetails ?? 150));
+    if (unread) incomplete(out, `${unread} of ${urls.length} job pages not read`);
     return out;
   },
 
