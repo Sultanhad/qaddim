@@ -22,7 +22,11 @@ const ICONS = {
   settings: <><path d="M3.5 7.5h5" /><path d="M12.5 7.5h8" /><path d="M3.5 16.5h8" /><path d="M15.5 16.5h5" /><circle cx="10.5" cy="7.5" r="2" /><circle cx="13.5" cy="16.5" r="2" /></>,
   help: <><circle cx="12" cy="12" r="8.4" /><path d="M9.7 9.6a2.4 2.4 0 1 1 2.7 2.5v1.4" /><path d="M12.3 16.6h.01" /></>,
   shield: <><path d="M12 3.6 5.4 6.2v5c0 3.9 2.6 7.4 6.6 9.2 4-1.8 6.6-5.3 6.6-9.2v-5L12 3.6Z" /></>,
-  out: <><path d="M14.4 7.4V5.8a1.8 1.8 0 0 0-1.8-1.8H6.3a1.8 1.8 0 0 0-1.8 1.8v12.4A1.8 1.8 0 0 0 6.3 20h6.3a1.8 1.8 0 0 0 1.8-1.8v-1.6" /><path d="M10 12h9.5" /><path d="m16.8 9 2.7 3-2.7 3" /></>
+  out: <><path d="M14.4 7.4V5.8a1.8 1.8 0 0 0-1.8-1.8H6.3a1.8 1.8 0 0 0-1.8 1.8v12.4A1.8 1.8 0 0 0 6.3 20h6.3a1.8 1.8 0 0 0 1.8-1.8v-1.6" /><path d="M10 12h9.5" /><path d="m16.8 9 2.7 3-2.7 3" /></>,
+  file: <><path d="M13.6 3.6H7.2a1.8 1.8 0 0 0-1.8 1.8v13.2a1.8 1.8 0 0 0 1.8 1.8h9.6a1.8 1.8 0 0 0 1.8-1.8V8.6l-5-5Z" /><path d="M13.4 3.8v4.9h5" /><path d="M9 13h6" /><path d="M9 16.4h4" /></>,
+  search: <><circle cx="10.8" cy="10.8" r="6.2" /><path d="m15.4 15.4 4.6 4.6" /></>,
+  // Points toward the end of the line: left in Arabic. Flipped for a left-to-right page.
+  chev: <><path d="m14.5 6.5-5.5 5.5 5.5 5.5" /></>
 };
 
 export function Icon({ name, size = 22 }) {

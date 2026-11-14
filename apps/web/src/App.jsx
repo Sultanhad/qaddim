@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L, browserKind, BROWSER_AR } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
-import { normaliseProfile, scoreJob, filterReason } from '@engine/score.js';
+import { normaliseProfile, scoreJob, filterReason, seniorityLevel, yearsRequired, normaliseArrangement } from '@engine/score.js';
 import { autoApplyable } from '@engine/sources.js';
 import { mayGuess, sameWords } from '@engine/answering.js';
 import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR } from '@engine/applications.js';
@@ -96,16 +96,114 @@ function useJobPool(profile) {
   return pool;
 }
 
-function scoreAll(pool, profile) {
+function scoreAll(pool, profile, { anyField = false } = {}) {
   if (!pool) return null;
   const p = normaliseProfile(profile);
   const out = [];
   for (const job of pool) {
-    if (filterReason(job, p)) continue;
+    // «كل المجالات» lifts only the fields rule; a word or a company they excluded stays out.
+    const why = filterReason(job, p);
+    if (why && !(anyField && why.code === 'unrelated')) continue;
     const s = scoreJob(job, p);
     out.push({ job, score: s.total, reasons: s.reasons, gaps: s.gaps, flags: s.flags });
   }
   return out.sort((a, b) => b.score - a.score);
+}
+
+// ────────────────────────────────────────────────────────────── filters ──
+// What a person narrows the jobs by, at the top of the page. City and field change what is
+// scored (a city outside their profile has to be loaded and scored like one of theirs); the
+// rest only narrow what was scored. All but the search words are remembered in this browser.
+const FILTERS0 = { q: '', city: 'mine', exp: 'any', mode: 'any', age: 'any', field: 'mine', auto: false };
+function loadFilters() {
+  try { return { ...FILTERS0, ...JSON.parse(localStorage.getItem('qaddim:filters') || '{}'), q: '' }; }
+  catch { return FILTERS0; }
+}
+/** "وظيفة واحدة", "وظيفتان", "٥ وظائف", "٤٠ وظيفة" — the noun agrees with the number. */
+function jobsAr(n) {
+  if (n === 1) return 'وظيفة واحدة';
+  if (n === 2) return 'وظيفتان';
+  const tail = n % 100;
+  return `${n} ${tail >= 3 && tail <= 10 ? 'وظائف' : 'وظيفة'}`;
+}
+const filtersOn = (f) => Object.keys(FILTERS0).some((k) => (k === 'q' ? f.q.trim() !== '' : f[k] !== FILTERS0[k]));
+
+/**
+ * How much experience a posting asks for, in three bands. The years it states win; most state
+ * none, and then the title says it — Intern, Graduate, Junior, Senior, Head. A title with no
+ * such word and no years is taken as the middle band, which is what most of them are.
+ */
+function expOf(job) {
+  const level = seniorityLevel(job.title);
+  if (level === 'program') return 'fresh';
+  const y = yearsRequired(job.description);
+  if (y !== null) return y <= 1 ? 'fresh' : y >= 5 ? 'senior' : 'mid';
+  return level === 'junior' ? 'fresh' : level === 'mid' ? 'mid' : 'senior';
+}
+const EXP_OPTS = [['any', 'أي خبرة'], ['fresh', 'بدون خبرة / خرّيج'], ['mid', 'خبرة ١–٤ سنوات'], ['senior', 'خبرة ٥ سنوات فأكثر']];
+const MODE_OPTS = [['any', 'كل الأنماط'], ['On-site', 'من المقر'], ['Hybrid', 'هجين'], ['Remote', 'عن بُعد']];
+const AGE_OPTS = [['any', 'أي وقت'], ['7', 'آخر أسبوع'], ['30', 'آخر شهر']];
+const FIELD_OPTS = [['mine', 'مجالاتي'], ['all', 'كل المجالات']];
+
+function passes({ job }, f) {
+  // A city picked by name means that city. "Open to you from anywhere" would have put Supabase's
+  // "Remote, Global" first under «جدة»; remote work has its own pill.
+  if (f.city !== 'mine' && job.city !== f.city) return false;
+  const q = f.q.trim().toLowerCase();
+  if (q && !`${job.title} ${job.company}`.toLowerCase().includes(q)) return false;
+  if (f.exp !== 'any' && expOf(job) !== f.exp) return false;
+  // A posting that does not say how it is worked is not shown as any one of the three.
+  if (f.mode !== 'any' && normaliseArrangement(job.arrangement) !== f.mode) return false;
+  if (f.age !== 'any') {
+    const days = job.published_at ? (Date.now() - new Date(job.published_at).getTime()) / 864e5 : Infinity;
+    if (days > Number(f.age)) return false;
+  }
+  if (f.auto && !autoApplyable(job.url)) return false;
+  return true;
+}
+
+/** One filter as a pill. A native select, so a phone opens its own picker. */
+function Pick({ label, value, def, options, onPick }) {
+  return (
+    <label className={'pick' + (value !== def ? ' on' : '')}>
+      <select value={value} aria-label={label} onChange={(e) => onPick(e.target.value)}>
+        {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </select>
+      <svg className="pick-caret" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </label>
+  );
+}
+
+function JobFilters({ f, set, count, profile }) {
+  const mine = (profile.cities ?? []).map((c) => AR_CITY[c] || c);
+  const cityOpts = [['mine', mine.length ? `مدني: ${mine.slice(0, 2).join('، ')}${mine.length > 2 ? '…' : ''}` : 'مدني'],
+    ...Object.entries(AR_CITY)];
+  return (
+    <div className="filters">
+      <label className="filters-search">
+        <Icon name="search" size={18} />
+        <input type="search" value={f.q} placeholder="ابحث بالمسمى أو الشركة" aria-label="بحث"
+          onChange={(e) => set({ q: e.target.value })} />
+      </label>
+      <div className="chipbar filters-row">
+        <Pick label="المدينة" value={f.city} def="mine" options={cityOpts} onPick={(v) => set({ city: v })} />
+        <Pick label="الخبرة" value={f.exp} def="any" options={EXP_OPTS} onPick={(v) => set({ exp: v })} />
+        <Pick label="نمط العمل" value={f.mode} def="any" options={MODE_OPTS} onPick={(v) => set({ mode: v })} />
+        <Pick label="تاريخ النشر" value={f.age} def="any" options={AGE_OPTS} onPick={(v) => set({ age: v })} />
+        <Pick label="المجال" value={f.field} def="mine" options={FIELD_OPTS} onPick={(v) => set({ field: v })} />
+        <button type="button" className={'pick pick-toggle' + (f.auto ? ' on' : '')} aria-pressed={f.auto}
+          onClick={() => set({ auto: !f.auto })}>يقدَّم عنك تلقائياً</button>
+      </div>
+      {count !== null && (
+        <p className="filters-count">
+          {count === 0 ? 'لا وظائف بهذه الفلاتر' : jobsAr(count)}
+          {filtersOn(f) && <> · <button type="button" className="linkish" onClick={() => set({ ...FILTERS0 })}>مسح الفلاتر</button></>}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // ──────────────────────────────────────────────────────────────── shell ──
@@ -131,12 +229,6 @@ export default function App() {
   }, []);
 
   const [profileError, setProfileError] = useState('');
-  const [menu, setMenu] = useState(false);
-  useEffect(() => {
-    const shut = () => setMenu(false);
-    addEventListener('hashchange', shut);
-    return () => removeEventListener('hashchange', shut);
-  }, []);
 
   function loadProfile() {
     if (!session?.user) { setProfile(null); return; }
@@ -181,11 +273,9 @@ export default function App() {
     }
     return (
       <>
-        <AppBar title={docTitle} route={route} doc onMenu={() => setMenu(true)} />
+        <AppBar title={docTitle} route={route} doc />
         <div className="wrap app-wrap">{route === 'privacy' ? <Privacy /> : <Help />}</div>
         <TabBar route={route} />
-        <Drawer open={menu} onClose={() => setMenu(false)} route={route}
-          user={session.user} profile={profile} />
       </>
     );
   }
@@ -211,41 +301,42 @@ export default function App() {
   if (!profile.onboarded) return <FirstRun user={session.user} profile={profile} onDone={setProfile} />;
 
   const tab = TABS.find((x) => x.id === route);
-  const title = tab ? tab.title : L.today;
+  const title = tab ? tab.title : UNDER_ACCOUNT[route] ?? L.today;
   return (
     <>
-      <AppBar title={title} route={route} onMenu={() => setMenu(true)} />
+      <AppBar title={title} route={route} />
       <div className="wrap app-wrap">
         {route === 'applications' ? <Applications user={session.user} profile={profile} onProfile={setProfile} />
-          : route === 'profile' ? <ApplyProfile user={session.user} profile={profile} onDone={setProfile} />
-            : route === 'settings' ? <Settings user={session.user} profile={profile} onDone={setProfile} />
-              : <Jobs user={session.user} profile={profile} onProfile={setProfile} />}
+          : route === 'account' ? <Account user={session.user} profile={profile} onDone={setProfile} />
+            : route === 'profile' ? <ApplyProfile user={session.user} profile={profile} onDone={setProfile} />
+              : route === 'settings' ? <Settings user={session.user} profile={profile} onDone={setProfile} />
+                : <Jobs user={session.user} profile={profile} onProfile={setProfile} />}
       </div>
       <TabBar route={route} />
-      <Drawer open={menu} onClose={() => setMenu(false)} route={route}
-        user={session.user} profile={profile} />
     </>
   );
 }
 
 // ───────────────────────────────────────────────────────────── the shell ──
 /**
- * Four places, reachable from anywhere.
+ * Three places, reachable from anywhere: the jobs, your applications, and your account.
  *
- * They used to be a row of links printed *after* the content, so on a phone the way to your
- * own profile — or out of the account — sat four thousand pixels below the fold, under forty
- * job cards. Nothing you need at any moment should be something you have to scroll to find:
- * the bar at the bottom holds the four screens, and the button at the top holds everything
- * about the account, including the way out.
+ * Everything about the account — the CV, the answers forms ask for, how far the robot may go,
+ * the two reference pages and the way out — lives behind the third tab. It used to be split
+ * between two more tabs and a menu button in the top bar, so "where do I sign out" and "where
+ * is my CV" each had a different answer.
  */
 const TABS = [
   { id: 'jobs', label: 'وظائف', title: L.today, icon: 'jobs' },
   { id: 'applications', label: 'طلباتي', title: L.applications, icon: 'apps' },
-  { id: 'profile', label: 'ملفي', title: 'ملف التقديم', icon: 'profile' },
-  { id: 'settings', label: 'الضبط', title: 'الضبط', icon: 'settings' }
+  { id: 'account', label: 'الحساب', title: 'الحساب', icon: 'profile' }
 ];
+// Pages opened from the account, with the name their bar shows. Their tab is «الحساب».
+const UNDER_ACCOUNT = { profile: 'ملف التقديم', settings: 'البحث والتقديم', help: 'كيف يشتغل', privacy: 'الخصوصية' };
+const tabOf = (route) => (UNDER_ACCOUNT[route] ? 'account' : route);
 
-function AppBar({ title, route, doc, onMenu }) {
+function AppBar({ title, route, doc }) {
+  const sub = !!UNDER_ACCOUNT[route];
   return (
     <header className={'appbar' + (doc ? ' appbar-doc' : '')}>
       <div className="appbar-inner">
@@ -253,20 +344,17 @@ function AppBar({ title, route, doc, onMenu }) {
         {/* On a phone the bar says which screen you are on; on a wide one the highlighted
             tab says it already, so the same space carries the name instead. A page that is
             not one of the tabs keeps its title at every width — nothing else would name it. */}
-        <h1 className="appbar-title">{title}</h1>
+        <h1 className={'appbar-title' + (sub ? ' keep' : '')}>{title}</h1>
         <b className="appbar-word">{L.brand}</b>
         <nav className="appbar-tabs" aria-label="الأقسام">
           {TABS.map((t) => (
-            <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined}>
+            <a key={t.id} href={'#' + t.id} aria-current={tabOf(route) === t.id ? 'page' : undefined}>
               <Icon name={t.icon} size={18} />{t.label}
             </a>
           ))}
         </nav>
-        {/* At the end of the bar, which in Arabic is the left — where the account control
-            was, and where a thumb on a phone already expects to find it. */}
-        <button type="button" className="burger" aria-label="القائمة" onClick={onMenu}>
-          <span /><span /><span />
-        </button>
+        {/* A page opened from the account has a way back to it, at the end of the bar. */}
+        {sub && <a className="appbar-back" href="#account">الحساب<Icon name="chev" size={16} /></a>}
       </div>
     </header>
   );
@@ -285,70 +373,132 @@ function DocBar({ title }) {
   );
 }
 
-/**
- * Everything the four tabs do not hold: who you are signed in as, the two reference pages,
- * and the way out. One panel, opened by one button, reachable from every screen — including
- * the wide one, where the tabs along the top cover only the four.
- */
-function Drawer({ open, onClose, route, user, profile }) {
-  useEffect(() => {
-    if (!open) return;
-    const key = (e) => { if (e.key === 'Escape') onClose(); };
-    addEventListener('keydown', key);
-    // Scrolling the page behind an open panel is how a drawer feels broken.
-    const before = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { removeEventListener('keydown', key); document.body.style.overflow = before; };
-  }, [open, onClose]);
-
-  if (!open) return null;
-  const name = profile?.full_name?.trim() || '';
-  const letter = (name || user.email || '؟').trim()[0];
-  return (
-    <>
-      <div className="scrim" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label="القائمة">
-        <div className="drawer-head">
-          <span className="avatar" aria-hidden="true">{letter}</span>
-          <span className="drawer-who">
-            {name && <b>{name}</b>}
-            <span dir="ltr">{user.email}</span>
-          </span>
-          <button type="button" className="drawer-x" aria-label="إغلاق" onClick={onClose}>✕</button>
-        </div>
-        <nav className="drawer-nav">
-          {TABS.map((t) => (
-            <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined} onClick={onClose}>
-              <Icon name={t.icon} size={19} />{t.title}
-            </a>
-          ))}
-          <hr />
-          <a href="#help" aria-current={route === 'help' ? 'page' : undefined} onClick={onClose}>
-            <Icon name="help" size={19} />كيف يشتغل
-          </a>
-          <a href="#privacy" aria-current={route === 'privacy' ? 'page' : undefined} onClick={onClose}>
-            <Icon name="shield" size={19} />الخصوصية
-          </a>
-          <hr />
-          <button type="button" className="danger"
-            onClick={() => { onClose(); supabase.auth.signOut(); }}>
-            <Icon name="out" size={19} />{L.signOut}
-          </button>
-        </nav>
-      </aside>
-    </>
-  );
-}
-
 function TabBar({ route }) {
   return (
     <nav className="tabbar" aria-label="التنقل">
       {TABS.map((t) => (
-        <a key={t.id} href={'#' + t.id} aria-current={route === t.id ? 'page' : undefined}>
+        <a key={t.id} href={'#' + t.id} aria-current={tabOf(route) === t.id ? 'page' : undefined}>
           <Icon name={t.icon} /><span>{t.label}</span>
         </a>
       ))}
     </nav>
+  );
+}
+
+// ───────────────────────────────────────────────────────────── account ──
+/** Who you are signed in as, your CV, everything you set, and the way out — on one screen. */
+function Account({ user, profile, onDone }) {
+  const name = profile?.full_name?.trim() || '';
+  const letter = (name || user.email || '؟').trim()[0];
+  const r = readiness(profile, { extension: false });
+  const rows = [
+    ['profile', 'profile', 'ملف التقديم', r.missingApply.length
+      ? `ينقص: ${r.missingApply.slice(0, 2).map((f) => f.label).join('، ')}${r.missingApply.length > 2 ? ` +${r.missingApply.length - 2}` : ''}`
+      : 'اسمك وجوالك وما تسأله الاستمارات ✓'],
+    ['settings', 'settings', 'البحث والتقديم التلقائي', 'مدنك ومجالاتك، وكم طلباً يرسل عنك في اليوم'],
+    ['help', 'help', 'كيف يشتغل', 'الإضافة، والتقديم من الخادم'],
+    ['privacy', 'shield', 'الخصوصية', 'ما نحفظ عنك ولماذا']
+  ];
+  return (
+    <div className="account">
+      <div className="card account-who">
+        <span className="avatar" aria-hidden="true">{letter}</span>
+        <span className="drawer-who">
+          {name && <b>{name}</b>}
+          <span dir="ltr">{user.email}</span>
+        </span>
+      </div>
+
+      <CvCard user={user} profile={profile} onDone={onDone} />
+
+      <nav className="card account-list" aria-label="الحساب">
+        {rows.map(([href, icon, label, hint]) => (
+          <a key={href} href={'#' + href}>
+            <Icon name={icon} size={20} />
+            <span className="account-row"><b>{label}</b><small>{hint}</small></span>
+            <Icon name="chev" size={18} />
+          </a>
+        ))}
+      </nav>
+
+      <button type="button" className="btn account-out" onClick={() => supabase.auth.signOut()}>
+        <Icon name="out" size={19} />تسجيل الخروج
+      </button>
+    </div>
+  );
+}
+
+/** When the CV went up — not ageOf, whose "may be filled" belongs to adverts, not to a CV. */
+function uploadedAr(at) {
+  if (!at) return '';
+  const days = Math.floor((Date.now() - new Date(at).getTime()) / 864e5);
+  if (!Number.isFinite(days) || days < 0) return '';
+  if (days < 1) return 'رُفعت اليوم';
+  if (days < 30) return `رُفعت قبل ${days} يوم`;
+  return `رُفعت قبل ${Math.floor(days / 30)} شهر`;
+}
+
+const CV_MAX = 5 * 1024 * 1024;   // the bucket's own limit (migration 006): said here before the upload, not after
+
+/**
+ * The CV, on its own: choose a file and it is saved — no form, no «احفظ» to forget. The new file
+ * is stored and the profile pointed at it before the old one is removed, so a failure half-way
+ * leaves the old CV in place rather than none.
+ */
+function CvCard({ user, profile, onDone }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const has = !!profile?.cv_path;
+
+  async function upload(file) {
+    if (!file) return;
+    if (!/\.(pdf|docx?)$/i.test(file.name)) { toast.fail('السيرة تكون ملف PDF أو Word'); return; }
+    if (file.size > CV_MAX) { toast.fail('الملف أكبر من ٥ ميغابايت'); return; }
+    setBusy(true);
+    const path = cvPathFor(user.id, file.name);
+    try {
+      const { error: upErr } = await supabase.storage.from('cvs').upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const now = new Date().toISOString();
+      const { data, error } = await supabase.from('profiles')
+        .update({ cv_path: path, cv_uploaded_at: now, updated_at: now }).eq('id', user.id).select().single();
+      if (error) { await supabase.storage.from('cvs').remove([path]); throw error; }
+      if (profile?.cv_path) await supabase.storage.from('cvs').remove([profile.cv_path]);
+      onDone(data);
+      toast.ok('حُفظت سيرتك ✓ — تُرفق بكل طلب من الآن');
+    } catch (e) { toast.fail(errorAr(e)); }
+    finally { setBusy(false); }
+  }
+
+  async function view() {
+    // Opened before the request, while the tap still counts as one: a window opened after an
+    // await is a pop-up, and Safari blocks it without a word.
+    const w = window.open('', '_blank');
+    const { data, error } = await supabase.storage.from('cvs').createSignedUrl(profile.cv_path, 120);
+    if (error) { w?.close(); toast.fail(errorAr(error)); return; }
+    if (w) w.location.href = data.signedUrl; else location.href = data.signedUrl;
+  }
+
+  return (
+    <div className="card cv-card">
+      <span className="cv-ic"><Icon name="file" size={22} /></span>
+      <span className="cv-body">
+        <b>سيرتك الذاتية</b>
+        <small>
+          {busy ? 'جارٍ الرفع…'
+            : has ? <>محفوظة ✓ <span dir="ltr">{cvName(profile.cv_path)}</span>{uploadedAr(profile.cv_uploaded_at) && <> · {uploadedAr(profile.cv_uploaded_at)}</>}</>
+              : 'لم ترفعها بعد — لا يُرسل طلب بدونها'}
+        </small>
+      </span>
+      <span className="cv-actions">
+        {has && !busy && <button type="button" className="btn" onClick={view}>اعرضها</button>}
+        <label className={'btn' + (has ? '' : ' btn-go') + (busy ? ' is-busy' : '')}>
+          {has ? 'استبدلها' : 'ارفعها'}
+          <input type="file" accept=".pdf,.doc,.docx" hidden disabled={busy}
+            onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+      </span>
+    </div>
   );
 }
 
@@ -637,10 +787,10 @@ function ApplyProfile({ user, profile, onDone, onSaved, compact }) {
   );
 }
 
-/** The stored path is `<user>/<stamp>-<name>`; only the last part was ever the file. */
+/** The stored path is `<user>/<stamp>_<name>` (cvPathFor); only the last part was ever the file. */
 function cvName(path) {
   const base = String(path).split('/').pop() ?? '';
-  return base.replace(/^\d+-/, '');
+  return base.replace(/^\d+[-_]/, '');
 }
 
 // The editor's three blocks, in the order APPLY_FIELDS declares them.
@@ -985,7 +1135,18 @@ async function sendToExtension(profile) {
 function Jobs({ user, profile, onProfile }) {
   const toast = useToast();
   const online = useOnline();
-  const pool = useJobPool(profile);
+  const [filters, setFilters] = useState(loadFilters);
+  const setF = (patch) => setFilters((f) => {
+    const n = { ...f, ...patch };
+    try { localStorage.setItem('qaddim:filters', JSON.stringify({ ...n, q: '' })); } catch { /* private window */ }
+    return n;
+  });
+  const filtering = filtersOn(filters);
+  // The profile the jobs are scored against: theirs, or theirs with the one city they picked.
+  const lens = useMemo(() => (filters.city === 'mine' ? profile
+    : { ...profile, cities: [filters.city], countries: [CITY_COUNTRY[filters.city]].filter(Boolean) }),
+  [profile, filters.city]);
+  const pool = useJobPool(lens);
   const [actedOn, setActedOn] = useState(null);   // job ids already saved or dismissed
   const [busyId, setBusyId] = useState(null);
   const [sheetFor, setSheetFor] = useState(null);
@@ -1020,17 +1181,23 @@ function Jobs({ user, profile, onProfile }) {
     return () => data.subscription.unsubscribe();
   }, [ext, profile.auto_apply, profile.id]);
 
-  const scored = useMemo(() => scoreAll(pool, profile), [pool, profile]);
+  const scored = useMemo(() => scoreAll(pool, lens, { anyField: filters.field === 'all' }), [pool, lens, filters.field]);
   // An empty screen is never the right answer to "show me jobs". If the threshold clears the
   // page, we show the closest we have and say so, rather than implying nothing exists.
-  const { rows, fallback } = useMemo(() => {
-    if (!scored || !actedOn) return { rows: null, fallback: false };
+  // Filters are an explicit question, so they answer it exactly: everything that passes, best
+  // first, with no score threshold — and an honest "none" when nothing does.
+  const { rows, fallback, count } = useMemo(() => {
+    if (!scored || !actedOn) return { rows: null, fallback: false, count: null };
     const live = scored.filter((x) => !actedOn.has(x.job.id));
+    if (filtering) {
+      const hit = live.filter((x) => passes(x, filters));
+      return { rows: hit.slice(0, 60), fallback: false, count: hit.length };
+    }
     const above = live.filter((x) => x.score >= (profile.min_score ?? START_SCORE));
     return above.length
-      ? { rows: above.slice(0, 40), fallback: false }
-      : { rows: live.slice(0, 10), fallback: true };
-  }, [scored, actedOn, profile.min_score]);
+      ? { rows: above.slice(0, 40), fallback: false, count: above.length }
+      : { rows: live.slice(0, 10), fallback: true, count: null };
+  }, [scored, actedOn, profile.min_score, filtering, filters]);
 
   async function act(job, status, fresh) {
     const me = fresh ?? profile;
@@ -1076,7 +1243,8 @@ function Jobs({ user, profile, onProfile }) {
     setUndo(null);
   }
 
-  if (rows === null) return <><Skeleton /><Skeleton /></>;
+  const bar = <JobFilters f={filters} set={setF} profile={profile} count={rows === null ? null : count} />;
+  if (rows === null) return <>{bar}<Skeleton /><Skeleton /></>;
 
   const nextStep = !r.done[1] ? 'أكمل ملفك لتقدّم'
     : !r.done[2] ? 'أجب ما يسأله أصحاب العمل'
@@ -1093,6 +1261,7 @@ function Jobs({ user, profile, onProfile }) {
   if (view === 'deck') {
     return (
       <div className="deck">
+        {bar}
         {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
         {/* Only what stands in the way is said here; everything else lives in the list view. */}
         {!ready && <a className="deck-need" href={r.done[1] && r.done[2] ? '#settings' : '#profile'}>{nextStep} ←</a>}
@@ -1110,11 +1279,19 @@ function Jobs({ user, profile, onProfile }) {
         {sheetFor && <div id="apply-sheet" style={{ scrollMarginTop: 72 }}><ApplySheet profile={profile} job={sheetFor} onClose={() => setSheetFor(null)} /></div>}
 
         {!top ? (
-          <div className="card deck-card deck-empty">
-            <p className="deck-title">خلصت الوظائف لليوم</p>
-            <p className="faint" style={{ margin: '8px 0 0' }}>نقرأ اللوحات كل ١٥ دقيقة، وما يطابقك يظهر هنا.</p>
-            <a className="btn" href="#settings" style={{ marginTop: 16 }}>وسّع بحثك</a>
-          </div>
+          filtering ? (
+            <div className="card deck-card deck-empty">
+              <p className="deck-title">لا وظائف بهذه الفلاتر</p>
+              <p className="faint" style={{ margin: '8px 0 0' }}>خفّف واحداً منها، أو امسحها كلها.</p>
+              <button type="button" className="btn" style={{ marginTop: 16 }} onClick={() => setF({ ...FILTERS0 })}>مسح الفلاتر</button>
+            </div>
+          ) : (
+            <div className="card deck-card deck-empty">
+              <p className="deck-title">خلصت الوظائف لليوم</p>
+              <p className="faint" style={{ margin: '8px 0 0' }}>نقرأ اللوحات كل ١٥ دقيقة، وما يطابقك يظهر هنا.</p>
+              <a className="btn" href="#settings" style={{ marginTop: 16 }}>وسّع بحثك</a>
+            </div>
+          )
         ) : (
           <article className="card deck-card" key={top.job.id}>
             <div className="deck-meta">
@@ -1165,6 +1342,7 @@ function Jobs({ user, profile, onProfile }) {
 
   return (
     <>
+      {bar}
       {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
       <p className="deck-foot" style={{ marginTop: 0 }}>
         <button type="button" className="linkish" onClick={() => showAs('deck')}>وظيفة وحدة بزرّين ←</button>
@@ -1223,7 +1401,7 @@ function Jobs({ user, profile, onProfile }) {
         </div>
       )}
 
-      {!rows.length && scored && (
+      {!rows.length && scored && !filtering && (
         <div className="card">
           <p style={{ margin: 0 }}>لم تطابق أي وظيفة مجالاتك ومدنك.</p>
           <p className="faint">جرّب مدينة أخرى، أو أضف مجالاً قريباً من مجالك.</p>

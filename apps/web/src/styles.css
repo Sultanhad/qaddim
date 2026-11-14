@@ -312,7 +312,7 @@ input[type="file"] { max-width: 100%; }
 
 .tabbar {
   position: fixed; inset-inline: 0; bottom: 0; z-index: 44;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(3, 1fr);
   background: rgba(5, 7, 15, .94);
   -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
   border-top: 1px solid var(--line);
@@ -546,3 +546,88 @@ section:first-of-type > .group-h { margin-top: 18px; }
 .app-idle .app-verdict { color: var(--faint); }
 .app-acts { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .app-acts .btn { margin: 0; flex: 1; min-height: 44px; text-align: center; }
+
+
+/* ── filters, at the top of the jobs ─────────────────────────────────────
+   A search field, then one row of pills that scrolls sideways on a phone. Each pill is the
+   browser's own select (so a phone opens its own picker) wearing the chip's shape; one that
+   is not at its default turns blue, so what is narrowing the list is visible at a glance. */
+.filters { margin: 0 0 14px; }
+.filters-search {
+  display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; margin: 0 0 10px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--raise); color: var(--faint);
+}
+.filters-search:focus-within { border-color: var(--blue-soft); }
+/* The general text-box rule (input:not(…)×4) outranks a plain class, and drew a second box
+   inside this one; it is matched at its own weight here so the field is the pill itself. */
+.filters-search input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]) {
+  flex: 1; min-width: 0; height: 100%; min-height: 0; border: 0; border-radius: 0; background: none;
+  color: var(--text); font: inherit; font-size: 16px; padding: 0; margin: 0;
+}
+.filters-search input:focus { outline: none; }
+.filters-row { margin-bottom: 8px; }
+.pick {
+  position: relative; flex: none; display: inline-flex; align-items: center;
+  height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--raise);
+  color: var(--dim); font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.pick select {
+  appearance: none; -webkit-appearance: none; width: auto; height: 100%; min-height: 0; line-height: 1;
+  border: 0; background: none; color: inherit; font: inherit; margin: 0; cursor: pointer; border-radius: 999px;
+  /* Every side set: the touch-screen rule gives a select 10px top and bottom, which in a 38px
+     pill cut the words in half. */
+  padding: 0 14px; padding-inline-end: 30px;
+}
+.pick select:focus-visible { outline: 2px solid var(--blue-soft); outline-offset: 2px; }
+.pick-caret { position: absolute; inset-inline-end: 12px; pointer-events: none; opacity: .8; }
+.pick.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+.pick option { color: #000; }
+.pick-toggle { padding-inline: 14px; font: inherit; font-size: 13.5px; font-weight: 700; margin: 0; }
+.filters-count { margin: 0; font-size: 13px; color: var(--faint); }
+.filters-count .linkish { font-size: 13px; }
+
+/* ── the account ─────────────────────────────────────────────────────── */
+.account { display: grid; gap: 12px; }
+.account .card { margin: 0; }
+.account-who { display: flex; align-items: center; gap: 12px; }
+.account-who .avatar { width: 46px; height: 46px; font-size: 18px; cursor: default; }
+.cv-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cv-ic {
+  flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+  background: rgba(47, 107, 255, .14); color: var(--blue);
+}
+.cv-body { flex: 1; min-width: 160px; display: grid; gap: 3px; }
+.cv-body b { color: #fff; font-size: 15.5px; }
+.cv-body small { color: var(--faint); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-actions { display: flex; gap: 8px; margin-inline-start: auto; }
+.cv-actions .btn { margin: 0; cursor: pointer; }
+.cv-actions .is-busy { opacity: .6; pointer-events: none; }
+.account-list { padding: 4px 0; }
+.account-list a {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 60px;
+  color: var(--text); text-decoration: none;
+}
+.account-list a + a { border-top: 1px solid var(--line); }
+.account-list a:hover { background: var(--raise); }
+.account-list a > .ic:first-child { color: var(--dim); flex: none; }
+.account-list a > .ic:last-child { color: var(--faint); flex: none; margin-inline-start: auto; }
+[dir="ltr"] .account-list a > .ic:last-child, [dir="ltr"] .appbar-back .ic { transform: scaleX(-1); }
+.account-row { display: grid; gap: 2px; min-width: 0; }
+.account-row b { font-size: 15px; color: #fff; }
+.account-row small { font-size: 12.5px; color: var(--faint); }
+.account-out {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 50px; margin: 4px 0 0;
+  color: var(--bad); border-color: rgba(255, 90, 90, .35);
+}
+
+/* A page opened from the account: its name stays in the bar at every width, and the way
+   back sits at the end. */
+.appbar-back {
+  display: inline-flex; align-items: center; gap: 4px; margin-inline-start: auto; flex: none;
+  padding: 8px 12px; border-radius: 999px; color: var(--dim); font-size: 14px; font-weight: 700; text-decoration: none;
+}
+.appbar-back:hover { background: var(--raise); color: #fff; }
+@media (min-width: 900px) {
+  .appbar-title.keep { display: block; }
+  .appbar-back { margin-inline-start: 10px; }
+}
