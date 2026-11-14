@@ -342,8 +342,17 @@
 /* Name on one side, «الدخول» on the other. */
 .lp-nav-inner { justify-content: space-between; }
 .lp-nav .nav-end { margin-inline-start: auto; }
-.lp-nav .burger { flex: none; }
-.lp-nav .burger span { background: var(--text); }
+/* The menu button: a round twin of «الدخول» — same height, a quiet ring instead of a fill.
+   (The nav's generic button rule gave it padding that pushed the three lines off-centre.) */
+.lp-nav .nav-end { gap: 10px; }
+.lp-nav button.burger {
+  flex: none; margin: 0; padding: 0; width: 46px; height: 46px; border-radius: 999px;
+  display: grid; place-content: center; gap: 5px;
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14);
+}
+.lp-nav button.burger:hover { background: rgba(255, 255, 255, .12); }
+.lp-nav .burger span { width: 18px; height: 2px; border-radius: 2px; background: var(--text); }
+:root[data-theme="light"] .lp-nav button.burger { background: rgba(0, 0, 0, .04); border-color: rgba(0, 0, 0, .12); }
 
 /* The menu comes out from the side its button is on (the left, in Arabic). */
 .drawer.from-end { inset-inline-start: auto; inset-inline-end: 0; border-inline-end: 0; border-inline-start: 1px solid var(--line); --from: -100%; }
