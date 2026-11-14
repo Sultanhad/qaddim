@@ -13,7 +13,7 @@ export const COUNTRY = {
 
 export const S = {
   ar: {
-    dir: 'rtl', brand: 'قدّم', howItWorks: 'كيف تعمل', faq: 'أسئلة شائعة', cta: 'ابدأ', signIn: 'الدخول',
+    dir: 'rtl', brand: 'قدّم', howItWorks: 'كيف تعمل', faq: 'أسئلة شائعة', cta: 'ابدأ', signIn: 'الدخول', menu: 'القائمة', light: 'المظهر الفاتح', dark: 'المظهر الداكن',
     heroA: 'وظائف جديدة في', heroB: 'ونقدّم عنك',
     sub: 'كل ١٥ دقيقة نقرأ صفحات التوظيف في الشركات ونرتّب الجديد حسب ملفك. فعّل التقديم التلقائي فيقدّم عنك — وأول ثلاثة تعتمدها بنفسك.',
     meta: ['تُقرأ كل ١٥ دقيقة', 'بالعربي والإنجليزي', 'مجانية'],
@@ -46,7 +46,7 @@ export const S = {
     signingIn: 'جارٍ الدخول…', linkExpired: 'انتهت صلاحية الرابط. اطلب رسالة جديدة.'
   },
   en: {
-    dir: 'ltr', brand: 'Qaddim', howItWorks: 'How it works', faq: 'FAQ', cta: 'Get started', signIn: 'Sign in',
+    dir: 'ltr', brand: 'Qaddim', howItWorks: 'How it works', faq: 'FAQ', cta: 'Get started', signIn: 'Sign in', menu: 'Menu', light: 'Light', dark: 'Dark',
     heroA: 'New jobs in', heroB: 'and we apply for you',
     sub: 'Every 15 minutes Qaddim reads company hiring pages and ranks the new jobs against your profile. Turn on Autopilot and it applies for you. You approve the first three.',
     meta: ['Checked every 15 minutes', 'Arabic and English', 'Free'],

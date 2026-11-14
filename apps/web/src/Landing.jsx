@@ -43,6 +43,16 @@ const ago = (iso, lang) => {
 export default function Landing({ loading, authError }) {
   const [lang, setLang] = useState(() => localStorage.getItem('qaddim:lang') || 'ar');
   const [theme, setTheme] = useState(() => localStorage.getItem('qaddim:theme') || 'dark');
+  // Everything the bar no longer shows lives behind the burger beside «الدخول».
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    if (!menu) return;
+    const key = (e) => { if (e.key === 'Escape') setMenu(false); };
+    addEventListener('keydown', key);
+    const before = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { removeEventListener('keydown', key); document.body.style.overflow = before; };
+  }, [menu]);
   const t = S[lang];
   const city = useRotating(CITIES[lang]);
 
@@ -81,9 +91,37 @@ export default function Landing({ loading, authError }) {
           {/* The bar holds the name and one way in — nothing else. */}
           <div className="nav-end">
             <button type="button" className="btn btn-white" style={{ margin: 0 }} onClick={() => go('start')}>{t.signIn}</button>
+            <button type="button" className="burger" aria-label={t.menu} aria-expanded={menu} onClick={() => setMenu(true)}>
+              <span /><span /><span />
+            </button>
           </div>
         </div>
       </nav>
+
+      {menu && (
+        <>
+          <div className="scrim" onClick={() => setMenu(false)} />
+          <aside className="drawer" role="dialog" aria-modal="true" aria-label={t.menu}>
+            <div className="drawer-head">
+              <Mark size={30} radius={9} />
+              <span className="drawer-who"><b>{t.brand}</b></span>
+              <button type="button" className="drawer-x" aria-label="✕" onClick={() => setMenu(false)}>✕</button>
+            </div>
+            <nav className="drawer-nav">
+              <button type="button" onClick={() => { setMenu(false); go('start'); }}>{t.signIn}</button>
+              <hr />
+              <button type="button" onClick={() => { setMenu(false); go('how'); }}>{t.howItWorks}</button>
+              <button type="button" onClick={() => { setMenu(false); go('faq'); }}>{t.faq}</button>
+              <a href="#privacy" onClick={() => setMenu(false)}>{t.privacy}</a>
+              <hr />
+              <button type="button" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'English' : 'العربية'}</button>
+              <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                {theme === 'dark' ? `☀ ${t.light}` : `☾ ${t.dark}`}
+              </button>
+            </nav>
+          </aside>
+        </>
+      )}
 
       {/* ── hero ───────────────────────────────────────────────── */}
       <header className="lp-hero" id="top">

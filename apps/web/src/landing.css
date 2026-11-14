@@ -342,3 +342,5 @@
 /* Name on one side, «الدخول» on the other. */
 .lp-nav-inner { justify-content: space-between; }
 .lp-nav .nav-end { margin-inline-start: auto; }
+.lp-nav .burger { flex: none; }
+.lp-nav .burger span { background: var(--text); }
