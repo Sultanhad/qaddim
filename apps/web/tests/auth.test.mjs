@@ -39,11 +39,25 @@ check('الرابط المنتهي يظهر بالعربي ويقول السبب
   /انتهت صلاحية الرابط/.test(expired || ''), (expired || 'لا رسالة').trim());
 await page.screenshot({ path: '/tmp/auth-1-expired.png', fullPage: false });
 
+// مربع الدخول لم يعد في وسط الصفحة: «الدخول» في الشريط يفتحه فوقها، كما يفعل الزائر.
+const openBox = async () => {
+  if (!(await page.locator('.lp-signin').count())) await page.locator('.lp-nav button.btn-white').first().click();
+  await page.waitForSelector('.lp-signin input', { timeout: 5000 });
+};
+check('«الدخول» يفتح مربعاً بعنوان وشرح وزرّ لا يبدو معطّلاً',
+  await (async () => {
+    await page.goto(base, { waitUntil: 'networkidle' }); await openBox();
+    const h = await page.locator('.lp-signin-h').textContent().catch(() => '');
+    const disabled = await page.locator('.signin-boxed button').isDisabled();
+    return /قدّم/.test(h || '') && !disabled && (await page.locator('.lp-signin-sub').count()) === 1;
+  })());
+
 // الإرسال الحقيقي محدود بساعة، والمقصود هنا الواجهة لا البريد
 await page.route('**/auth/v1/otp*', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
 await page.goto(base, { waitUntil: 'networkidle' });
-await page.locator('.signin input').first().fill('flow-ui@example.com');
-await page.locator('.signin button').first().click();
+await openBox();
+await page.locator('.lp-signin input').first().fill('flow-ui@example.com');
+await page.locator('.lp-signin form button').first().click();
 await page.waitForSelector('.sent', { timeout: 10000 }).catch(() => {});
 await page.waitForTimeout(600);
 check('شاشة «افتح بريدك» ظهرت', await page.locator('.sent').count() > 0);
@@ -61,12 +75,13 @@ check('الرمز الخاطئ يُرفض بالعربي', /غير صحيح|ان
 
 await page.locator('.sent-actions button').nth(1).click();
 await page.waitForTimeout(400);
-check('«غيّر البريد» يعيد النموذج', await page.locator('.signin input').count() > 0);
+check('«غيّر البريد» يعيد النموذج', await page.locator('.signin-boxed input').count() > 0);
 
 // ٣) هل يتذكّر البريد؟
 await page.goto(base, { waitUntil: 'networkidle' });
 await page.waitForTimeout(500);
-check('يتذكّر آخر بريد', (await page.locator('.signin input').first().inputValue()) === 'flow-ui@example.com');
+await openBox();
+check('يتذكّر آخر بريد', (await page.locator('.lp-signin input').first().inputValue()) === 'flow-ui@example.com');
 
 console.log(errs.length ? '\n✗ أخطاء: ' + errs.slice(0, 3).join(' | ') : '\n✓ لا أخطاء في المتصفح');
 await browser.close();

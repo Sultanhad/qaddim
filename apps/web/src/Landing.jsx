@@ -132,8 +132,7 @@ export default function Landing({ loading, authError }) {
           <div className="scrim" onClick={() => setSigning(false)} />
           <div className="lp-signin" role="dialog" aria-modal="true" aria-label={t.signIn}>
             <button type="button" className="drawer-x" aria-label="✕" onClick={() => setSigning(false)}>✕</button>
-            <p className="lp-signin-h">{t.signIn}</p>
-            <SignIn t={t} loading={loading} notice={authError} />
+            <SignIn t={t} loading={loading} notice={authError} boxed />
           </div>
         </>
       )}
@@ -544,7 +543,7 @@ const LAST_EMAIL = 'qaddim:last-email';
  * code they can type keeps them here. Both are offered; whichever they use, they end up
  * signed in on this screen.
  */
-function SignIn({ t, loading, compact, notice }) {
+function SignIn({ t, loading, compact, notice, boxed }) {
   const [email, setEmail] = useState(() => {
     try { return localStorage.getItem(LAST_EMAIL) || ''; } catch { return ''; }
   });
@@ -597,10 +596,12 @@ function SignIn({ t, loading, compact, notice }) {
         <p className="sent-p">{t.sentHint}</p>
 
         <form onSubmit={verify} className="code-row">
-          <input inputMode="numeric" pattern="[0-9]*" maxLength={8} dir="ltr" value={code}
-            placeholder={t.codePh} aria-label={t.codePh}
+          {/* Never greyed out for a short code: the field's own minLength answers that, and a
+              dim button beside a half-typed code read as "this is broken". */}
+          <input inputMode="numeric" pattern="[0-9]*" minLength={6} maxLength={8} required dir="ltr" value={code}
+            placeholder={t.codePh} aria-label={t.codePh} autoComplete="one-time-code" autoFocus={boxed}
             onChange={(ev) => setCode(ev.target.value.replace(/\D/g, ''))} />
-          <button className="btn btn-white" disabled={busy || code.trim().length < 6}>{busy ? '…' : t.codeGo}</button>
+          <button className="btn btn-white" disabled={busy}>{busy ? '…' : t.codeGo}</button>
         </form>
 
         {shown && <p className="err">{shown}</p>}
@@ -614,6 +615,24 @@ function SignIn({ t, loading, compact, notice }) {
           </button>
         </p>
       </div>
+    );
+  }
+
+  // In the box «الدخول» opens: what happens next is said before it is asked for, the field is
+  // labelled, and the button is never greyed out for an empty field — a disabled button there
+  // read as a broken one. The browser's own `required` check answers an empty submit instead.
+  if (boxed) {
+    return (
+      <form onSubmit={send} className="signin-boxed">
+        <p className="lp-signin-h">{t.signInTitle}</p>
+        <p className="lp-signin-sub">{t.signInSub}</p>
+        <label htmlFor="signin-email">{t.emailLabel}</label>
+        <input id="signin-email" type="email" required dir="ltr" value={email} placeholder={t.emailPh}
+          autoComplete="email" autoFocus onChange={(e) => setEmail(e.target.value)} />
+        <button className="btn btn-white" disabled={busy || loading}>{busy ? t.sending : t.sendCode}</button>
+        {shown && <p className="err">{shown}</p>}
+        <p className="lp-signin-foot">{t.signInFoot}</p>
+      </form>
     );
   }
 

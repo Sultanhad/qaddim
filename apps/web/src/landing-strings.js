@@ -43,6 +43,8 @@ export const S = {
     privacy: 'الخصوصية', emailPh: 'you@example.com', sentTo: 'أرسلنا رسالة الدخول إلى',
     sentHint: 'افتح الرابط في الرسالة، أو اكتب الرمز هنا لتبقى في هذا المتصفح. وإن لم تجدها، انظر في «المهملات».',
     codePh: 'الرمز', codeGo: 'ادخل', resend: 'أعد الإرسال', changeEmail: 'غيّر البريد',
+    signInTitle: 'ادخل إلى قدّم', signInSub: 'اكتب بريدك ونرسل لك رمز دخول. أول مرة؟ نفس الخطوة تنشئ حسابك.',
+    emailLabel: 'بريدك الإلكتروني', sendCode: 'أرسل الرمز', sending: 'جارٍ الإرسال…', signInFoot: 'بلا كلمة مرور.',
     signingIn: 'جارٍ الدخول…', linkExpired: 'انتهت صلاحية الرابط. اطلب رسالة جديدة.'
   },
   en: {
@@ -76,6 +78,8 @@ export const S = {
     privacy: 'Privacy', emailPh: 'you@example.com', sentTo: 'We sent a sign-in email to',
     sentHint: 'Open the link in the email, or type the code here to stay in this browser. If it is not there, check your spam folder.',
     codePh: 'Code', codeGo: 'Sign in', resend: 'Resend', changeEmail: 'Change email',
+    signInTitle: 'Sign in to Qaddim', signInSub: "Enter your email and we'll send you a sign-in code. New here? The same step creates your account.",
+    emailLabel: 'Your email', sendCode: 'Send code', sending: 'Sending…', signInFoot: 'No password needed.',
     signingIn: 'Signing you in…', linkExpired: 'That link has expired. Ask for a new one.'
   }
 };
