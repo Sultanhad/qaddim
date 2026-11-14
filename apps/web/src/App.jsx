@@ -1896,66 +1896,34 @@ function Applications({ user, profile, onProfile }) {
   const count = (s) => rows.filter((r) => r.status === s).length;
 
   if (view === 'simple') {
-    /** One line about one application: was it sent, and if not, the one thing that moves it. */
-    const verdict = (row) => {
-      const st = state.get(row.id);
-      const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
-      if (st === 'SUBMITTED') return { tone: 'sent', text: `أُرسل ✓ ${when(row.applied_on || row.auto_at)}`, rank: 3 };
-      if (st === 'READY' || st === 'PREPARING' || st === 'SUBMITTING') {
-        if (st === 'READY' && !paused && profile.answers?._settings?.server === true && serverSkips(row.job?.url)) {
-          return { tone: 'going', text: 'لم يُرسل بعد — ينتظر Chrome حاسبك (هذا الموقع لا يقبل الإرسال من الخادم)', rank: 2 };
-        }
-        return { tone: 'going', text: paused ? 'لم يُرسل — موقوف (أوقفتَ الإرسال)' : st === 'READY' ? 'لم يُرسل بعد — في الطريق' : 'يُرسل الآن…', rank: 2 };
-      }
-      if (awaitingProof(row)) return { tone: 'ask', text: 'أُرسل؟ لم تؤكّد الشركة', rank: 0, proof: true };
-      if (st === 'ACTION_REQUIRED' || st === 'FAILED') {
-        const split = whose(row, profile);
-        if (split.mine.length) return { tone: 'ask', text: `لم يُرسل — ينتظر جوابك عن ${split.mine.length} سؤال فوق`, rank: 0 };
-        if (split.soon) return { tone: 'going', text: 'لم يُرسل — قدّم يجيب أسئلته الآن، ثم يُرسل', rank: 1 };
-        return { tone: 'ask', text: 'لم يُرسل — تعذّر آلياً', rank: 1, retry: true, page: true };
-      }
-      if (st === 'CANCELLED' || st === 'DUPLICATE') return null;
-      return autoApplyable(row.job?.url)
-        ? { tone: 'idle', text: 'لم يُرسل', rank: 4, send: true }
-        : { tone: 'idle', text: 'لن يُرسل آلياً — موقع الشركة يطلب حساباً، قدّم منه بنفسك', rank: 4, page: true };
-    };
-    const list = rows.map((row) => ({ row, v: verdict(row) })).filter((x) => x.v).sort((a, b) => a.v.rank - b.v.rank);
-    const sent = list.filter((x) => x.v.tone === 'sent').length;
-    const going = list.filter((x) => x.v.tone === 'going').length;
-    const waiting = list.filter((x) => x.v.tone === 'ask').length;
+    // Only what was sent — and "sent" means the employer's own page said so, saved with the
+    // application as evidence. A press that was never confirmed is not on this list, and
+    // neither is one marked "applied" without that evidence: the owner found such rows were
+    // being shown as sent when they were not.
+    const proven = rows
+      .filter((r) => sentOf(r)?.outcome === 'confirmed')
+      .sort((a, b) => String(sentOf(b).verified_at ?? b.auto_at).localeCompare(String(sentOf(a).verified_at ?? a.auto_at)));
+    const notYet = rows.filter((r) => sentOf(r)?.outcome !== 'confirmed' && !['closed', 'withdrawn'].includes(r.status)).length;
+    const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
     return (
       <>
-        <p className="apps-sum"><b>{sent}</b> أُرسل · <b>{going}</b> في الطريق · <b>{waiting}</b> ينتظرك</p>
-        {paused && (
-          <div className="deck-need" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span>الإرسال موقوف</span>
-            <button className="btn btn-go" style={{ margin: 0 }} onClick={() => setPaused(false)}>شغّله</button>
-          </div>
-        )}
-        <Questions rows={urgent} profile={profile} onProfile={onProfile} onDone={load} />
-        {!list.length && (
+        <p className="apps-sum">أُرسل فعلاً: <b>{proven.length}</b></p>
+        {!proven.length && (
           <div className="card">
-            <p style={{ margin: 0 }}>لا طلبات بعد.</p>
-            <a className="btn btn-go" href="#jobs" style={{ marginTop: 12 }}>شوف الوظائف</a>
+            <p style={{ margin: 0 }}>لم يُرسل أي طلب بعد.</p>
+            <p className="faint" style={{ margin: '6px 0 0' }}>يظهر هنا الطلب حين تؤكّد صفحة الشركة نفسها أنها استلمته — لا قبل.</p>
           </div>
         )}
-        {list.map(({ row, v }) => (
-          <article className={`card app-line app-${v.tone}`} key={row.id}>
+        {proven.map((row) => (
+          <article className="card app-line app-sent" key={row.id}>
             <p className="app-title">{row.job?.title}</p>
             <p className="app-where">{row.job?.company}{AR_CITY[row.job?.city] ? ` · ${AR_CITY[row.job.city]}` : ''}</p>
-            <p className="app-verdict">{v.text}</p>
-            {v.proof && <Unverified row={row} profile={profile} onArrived={() => setStatus(row, 'applied')} onDone={load} />}
-            {(v.send || v.retry || v.page) && (
-              <div className="app-acts">
-                {v.send && profile.auto_apply && <button className="btn btn-go" onClick={() => requeue(row)}>أرسله</button>}
-                {v.retry && <button className="btn btn-go" onClick={() => requeue(row)}>جرّب مرة ثانية</button>}
-                {v.page && row.job?.url && <a className="btn" href={row.job.url} target="_blank" rel="noopener noreferrer">صفحة الشركة ↗</a>}
-              </div>
-            )}
+            <p className="app-verdict">أُرسل ✓ {when(sentOf(row).verified_at || row.auto_at)}</p>
+            {sentOf(row).evidence?.said && <p className="faint" dir="auto" style={{ margin: '6px 0 0', fontSize: 13 }}>الشركة قالت: «{sentOf(row).evidence.said.slice(0, 90)}»</p>}
           </article>
         ))}
         <p className="deck-foot">
-          {!paused && <><button type="button" className="linkish" onClick={() => setPaused(true)}>أوقف الإرسال</button> · </>}
+          {notYet > 0 && <>لم يُرسل بعد: {notYet} · </>}
           <button type="button" className="linkish" onClick={() => showAs('full')}>العرض المفصّل</button>
         </p>
       </>
