@@ -1223,7 +1223,9 @@ function Jobs({ user, profile, onProfile }) {
     } else if (sendable) {
       if (ext) sendToExtension(me);
       setQueued((n) => n + 1);
-      toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن' : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
+      toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن'
+        : serverSkips(job.url) ? 'في الطابور — يرسله Chrome حاسبك متى فتحته (هذا الموقع لا يقبل الإرسال من الخادم)'
+          : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
     } else {
       // Not one that can be sent for them: say why, and bring the fill sheet into view. On a
       // phone it opened at the top of a page scrolled half-way down, and the press looked like
@@ -1752,6 +1754,10 @@ function Unverified({ row, profile, onArrived, onDone }) {
   );
 }
 
+// Sites the server's browser does not send on (scripts/apply-from-server.mjs, SERVER_SKIPS):
+// Workable disables its send button after the press and sends nothing from a server.
+const serverSkips = (url) => { try { return new URL(url).hostname === 'apply.workable.com'; } catch { return false; } };
+
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 
@@ -1896,6 +1902,9 @@ function Applications({ user, profile, onProfile }) {
       const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
       if (st === 'SUBMITTED') return { tone: 'sent', text: `أُرسل ✓ ${when(row.applied_on || row.auto_at)}`, rank: 3 };
       if (st === 'READY' || st === 'PREPARING' || st === 'SUBMITTING') {
+        if (st === 'READY' && !paused && profile.answers?._settings?.server === true && serverSkips(row.job?.url)) {
+          return { tone: 'going', text: 'لم يُرسل بعد — ينتظر Chrome حاسبك (هذا الموقع لا يقبل الإرسال من الخادم)', rank: 2 };
+        }
         return { tone: 'going', text: paused ? 'لم يُرسل — موقوف (أوقفتَ الإرسال)' : st === 'READY' ? 'لم يُرسل بعد — في الطريق' : 'يُرسل الآن…', rank: 2 };
       }
       if (awaitingProof(row)) return { tone: 'ask', text: 'أُرسل؟ لم تؤكّد الشركة', rank: 0, proof: true };

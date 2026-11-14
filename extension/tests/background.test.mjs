@@ -380,6 +380,18 @@ console.log('\nمتصفحان على الطابور نفسه');
   await popup.waitForTimeout(1500);
 }
 
+console.log('\nأنظمة يتركها هذا المتصفح');
+{
+  row('k-1'); db.queue = [item('k-1')];
+  employer.forms = 0; employer.posts.length = 0;
+  await cycle({ profile: PROFILE, settings: { skipHosts: ['qaddim-sandbox.greenhouse.io'] } });
+  check('نظام في قائمة الترك: لا تُفتح استمارته', employer.forms === 0 && employer.posts.length === 0, `forms ${employer.forms}`);
+  check('ويبقى الطلب في الطابور كما هو لمتصفح آخر', db.rows['k-1'].auto_status === 'queued' && db.rows['k-1'].auto_attempts === 0);
+  await cycle({ profile: PROFILE });
+  check('ومتصفح بلا هذه القائمة يرسله', employer.posts.length === 1 && db.rows['k-1'].auto_status === 'submitted', db.rows['k-1'].auto_status);
+  await popup.waitForTimeout(3000);
+}
+
 console.log('\nالجلسة ودورة ماتت');
 {
   row('t-1'); db.queue = [item('t-1')];

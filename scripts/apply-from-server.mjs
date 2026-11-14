@@ -79,6 +79,11 @@ const PER_PERSON_MS = Math.max(2, Number(env.QADDIM_APPLY_MINUTES) || 15) * 60_0
 //   QADDIM_ONLY_USER     act for this one account, even with nothing queued
 //   QADDIM_NEVER_SUBMIT  the extension's own lock: it fills and never presses
 const ONLY = env.QADDIM_ONLY_USER || null;
+// Systems the server does not send on, measured: on Workable the page disables its send button
+// after the press and sends no application — it waits on a bot check a server does not pass,
+// and this does not try to get past it. Those applications stay queued for the person's own
+// Chrome, which sends them (the first confirmed application, Mozn, went that way).
+export const SERVER_SKIPS = ['apply.workable.com'];
 const NEVER = env.QADDIM_NEVER_SUBMIT === '1';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -97,7 +102,8 @@ const asked = await call('/rest/v1/profiles?select=id,auto_apply,answers&onboard
 const people = [];
 for (const p of asked ?? []) {
   if (!p.auto_apply || isPaused(p)) continue;
-  const waiting = await call(`/rest/v1/applications?select=id&user_id=eq.${p.id}&status=eq.saved&auto_status=eq.queued&limit=1`);
+  const waiting = (await call(`/rest/v1/applications?select=id,job:jobs(url)&user_id=eq.${p.id}&status=eq.saved&auto_status=eq.queued`) ?? [])
+    .filter((a) => { try { return !SERVER_SKIPS.includes(new URL(a.job?.url).hostname); } catch { return true; } });
   if (waiting?.length || ONLY) people.push(p);
 }
 console.log(`${asked?.length ?? 0} asked for the server · ${people.length} with something waiting${NEVER ? ' · fill only, nothing is pressed' : ''}`);
@@ -129,7 +135,7 @@ for (const [i, person] of people.entries()) {
     });
     const sends = watchSends(ctx);
     const sw = ctx.serviceWorkers().find((w) => w.url().endsWith('src/background.js')) ?? await ctx.waitForEvent('serviceworker', { timeout: 20000 });
-    if (NEVER) await sw.evaluate(() => chrome.storage.local.set({ settings: { neverSubmit: true } }));
+    await sw.evaluate(([never, skip]) => chrome.storage.local.set({ settings: { ...(never ? { neverSubmit: true } : {}), skipHosts: skip } }), [NEVER, SERVER_SKIPS]);
 
     // Signed in the way the site itself remembers a sign-in, then opened where it hands the
     // session to the extension. From there the extension is on its own.

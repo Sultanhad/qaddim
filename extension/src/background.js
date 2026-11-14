@@ -187,6 +187,13 @@ const SAID = {
 };
 
 async function applyOne(item, profile, settings, session) {
+  // Hiring systems this copy of the extension leaves alone. Only the server's browser sets it:
+  // Workable holds its send button waiting on a bot check that a server never passes, so the
+  // press sends nothing — those applications wait, untouched, for a browser of the person's own.
+  let host = '';
+  try { host = new URL(APPLY_URL(item.url)).hostname; } catch { /* not an address */ }
+  if ((settings.skipHosts ?? []).some((h) => host === h || host.endsWith('.' + h))) return 'skipped';
+
   if (!fillable(APPLY_URL(item.url))) {
     const reason = 'نظام يطلب حساباً عند الشركة — التقديم عليه من صفحته';
     await markApplication(session, item.application_id, { auto_status: null, auto_reason: reason, auto_at: new Date().toISOString() });
