@@ -631,3 +631,15 @@ section:first-of-type > .group-h { margin-top: 18px; }
   .appbar-title.keep { display: block; }
   .appbar-back { margin-inline-start: 10px; }
 }
+
+/* ── a filled application, waiting for approval ───────────────────────────── */
+.review { border-color: rgba(47, 107, 255, .5); }
+.review-body { margin-top: 12px; }
+.review-body summary { cursor: pointer; font-weight: 700; color: var(--blue-soft); font-size: 14px; }
+.review-body dl { margin: 10px 0 0; display: grid; gap: 2px; }
+.review-body dt { margin-top: 8px; font-size: 13px; color: var(--faint); }
+.review-body dd { margin: 0; font-size: 15px; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-flag { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 176, 32, .08); border: 1px solid rgba(255, 176, 32, .3); font-size: 14px; }
+.review-flag b { color: var(--warn); }
+.review-flag ul { margin: 6px 0 0; padding-inline-start: 18px; }
+.review-shot img { display: block; width: 100%; margin-top: 12px; border-radius: 10px; border: 1px solid var(--line); }

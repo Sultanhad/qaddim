@@ -4,15 +4,13 @@ async function render() {
   const s = await chrome.storage.local.get(['profile', 'session', 'log', 'settings', 'running']);
   // Sending is decided on the site and nowhere else. This used to hold a switch of its own,
   // off by default, that quietly overruled the site's — so it only reports now.
-  const sends = !!s.profile?.auto_submit && s.settings?.neverSubmit !== true;
   $('who').textContent = s.profile
     ? `${s.profile.full_name || 'ملفك'} · ${Object.keys(s.profile.answers ?? {}).length} إجابة محفوظة`
     : 'افتح المنصة مرة لمزامنة حسابك';
   $('queue').textContent = s.running ? 'يعمل الآن…' : (s.session ? 'متصل بالمنصة' : 'غير متصل');
-  $('sends').textContent = sends ? 'يرسل بنفسه' : 'يعبّي ويترك الإرسال لك';
-  $('autoNote').textContent = sends
-    ? 'كما اخترت في ضبط قدّم. أي سؤال إلزامي بلا جواب يوقفه عند تلك الوظيفة.'
-    : 'لتغييره: الضبط في قدّم ← «وأرسل بنفسك». الإرسال يُقرَّر هناك لا هنا.';
+  // Since migration 017 nothing is sent without its owner's approval of that application.
+  $('sends').textContent = 'يعبّي، ويرسل ما توافق عليه';
+  $('autoNote').textContent = 'كل طلب يُعرض عليك في «طلباتي» بما عُبّئ فيه، ولا يُرسل إلا بعد «وافق وأرسل».';
   $('run').disabled = !s.session || !!s.running;
   $('stop').disabled = !s.running;
 

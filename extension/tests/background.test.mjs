@@ -26,7 +26,7 @@ const tmp = await mkdtemp(join(tmpdir(), 'qbg-'));
 // ── the stand-in database ──
 const db = {
   maySubmit: true, queue: [], seen: [], rows: {}, events: [], answers: { _for: {} },
-  refusePress: false, expired: null, refreshes: 0
+  refusePress: false, expired: null, refreshes: 0, approvals: 'all', consumed: []
 };
 const row = (id, extra = {}) => (db.rows[id] = { id, user_id: 'u-1', status: 'saved', auto_status: 'queued', auto_attempts: 0, auto_report: null, auto_reason: null, auto_at: null, ...extra });
 const PDF = Buffer.from('%PDF-1.4\n% a stand-in CV\n%%EOF\n');
@@ -47,6 +47,16 @@ const server = http.createServer((req, res) => {
 
     if (url.startsWith('/storage/v1/object/cvs/')) { res.writeHead(200, { ...cors, 'Content-Type': 'application/pdf' }); res.end(PDF); return; }
     if (url.startsWith('/rest/v1/rpc/my_may_submit')) return json(db.maySubmit);
+    if (url.startsWith('/rest/v1/rpc/consume_approval')) {
+      // migration 017, in miniature: 'all' approves anything (the older tests), otherwise one
+      // approval per application, used up by the first press, and only for the same answers
+      db.consumed.push(sent);
+      if (db.approvals === 'all') return json('ok');
+      const want = db.approvals[sent.app_id];
+      if (want === undefined) return json('none');
+      delete db.approvals[sent.app_id];
+      return json(want === sent.p_snapshot ? 'ok' : 'changed');
+    }
     if (url.startsWith('/rest/v1/rpc/my_apply_queue')) return json(db.queue);
     if (url.startsWith('/rest/v1/profiles')) return json([{ answers: db.answers, auto_submit: true }]);
     if (url.startsWith('/rest/v1/jobs')) return json([{ country: 'sa' }]);
@@ -179,30 +189,13 @@ async function cycle({ settings = {}, profile = { full_name: 'T', auto_submit: t
 }
 const closeTabs = async () => { for (const p of openTabs()) await p.close(); };
 
-console.log('الإرسال يُقرَّر في مكان واحد');
+console.log('لا يُرسل شيء إلا بموافقة');
 {
-  db.maySubmit = true; db.queue = [];
+  db.queue = [];
   await cycle();
-  const r = released();
-  check('الإضافة تسأل القاعدة: هل يحقّ الإرسال؟', asked('/rpc/my_may_submit'));
-  check('والاستمارات المعبّأة المنتظرة تعود للطابور', !!r && r.body.auto_status === 'queued' && r.body.auto_reason === null, r?.url.slice(0, 90));
-  check('إلا ما علّمه صاحبه «قدّمت» بنفسه', r?.url.includes('status=eq.saved'));
-  check('قبل قراءة الطابور، فتخرج في الدورة نفسها',
-    db.seen.findIndex((x) => x === r) < db.seen.findIndex((x) => x.url.includes('/rpc/my_apply_queue')));
-  check('والنافذة تقول ما هو صحيح', (await popup.textContent('#sends')) === 'يرسل بنفسه');
-  check('ولا مفتاح فيها يُطفئ ما شُغّل في الموقع', await popup.locator('input[type=checkbox]').count() === 0);
-}
-{
-  db.maySubmit = false;
-  await cycle({ profile: { full_name: 'T', auto_submit: false, answers: {} } });
-  check('من لم يشغّل الإرسال: تبقى استماراته تنتظره', !released() && asked('/rpc/my_apply_queue'));
-  check('والنافذة تقول له أين يُغيَّر', (await popup.textContent('#sends')) === 'يعبّي ويترك الإرسال لك' && (await popup.textContent('#autoNote')).includes('الضبط في قدّم'));
-}
-{
-  db.maySubmit = true;
-  await cycle({ settings: { neverSubmit: true } });
-  check('قفل الاختبار: لا يُسأل ولا يُعاد شيء', !asked('/rpc/my_may_submit') && !released());
-  check('والنافذة لا تدّعي الإرسال', (await popup.textContent('#sends')) === 'يعبّي ويترك الإرسال لك');
+  check('الاستمارات المعبّأة لا تعود للطابور وحدها', !db.seen.some((r) => r.method === 'PATCH' && r.url.includes('auto_status=eq.needs_you')));
+  check('والنافذة تقول ما هو صحيح', (await popup.textContent('#sends')).includes('توافق عليه'));
+  check('ولا مفتاح فيها', await popup.locator('input[type=checkbox]').count() === 0);
 }
 
 console.log('\nما لا تفتحه');
@@ -378,6 +371,40 @@ console.log('\nمتصفحان على الطابور نفسه');
   check('سُبق والاستمارة تُعبّأ: لا يضغط', employer.forms === 1 && employer.posts.length === 0 && !db.rows['w-2'].auto_report?.sent, `forms ${employer.forms} · posts ${employer.posts.length}`);
   check('ويترك الطلب لمن أخذه', db.rows['w-2'].auto_status === 'filling' && db.rows['w-2'].auto_at === '2026-11-12T00:00:01.000Z');
   await popup.waitForTimeout(1500);
+}
+
+console.log('\nالمراجعة والموافقة');
+{
+  db.approvals = {};
+  row('r-1'); db.queue = [{ ...item('r-1'), submit: false }];
+  employer.mode = 'confirm'; employer.forms = 0; employer.posts.length = 0;
+  await cycle({ profile: PROFILE });
+  const r = db.rows['r-1'];
+  check('بلا موافقة: تُعبّأ ولا تُرسل', employer.forms === 1 && employer.posts.length === 0, `posts ${employer.posts.length}`);
+  check('وتنتظر صاحبها بما عُبّئ', r.auto_status === 'needs_you' && r.auto_reason === 'عُبّئ — ينتظر موافقتك' && (r.auto_report?.filled?.length ?? 0) >= 5, r.auto_reason);
+  await closeTabs();
+
+  // the owner approves exactly what was filled
+  const snap = await sw.evaluate((rep) => globalThis.qaddimSnapshot(rep), r.auto_report);
+  db.approvals = { 'r-1': snap };
+  r.auto_status = 'queued'; r.auto_reason = null; db.queue = [{ ...item('r-1'), submit: true }];
+  await cycle({ profile: PROFILE });
+  check('بموافقته على الإجابات نفسها: تُرسل مرة', employer.posts.length === 1 && r.auto_status === 'submitted', `${r.auto_status} · posts ${employer.posts.length}`);
+  check('والموافقة استُهلكت', db.approvals['r-1'] === undefined && db.consumed.at(-1)?.p_by?.startsWith('extension '));
+  await popup.waitForTimeout(3000);
+
+  // the same queue item again, the approval already used: nothing
+  row('r-2'); db.queue = [{ ...item('r-2'), submit: true }];
+  await cycle({ profile: PROFILE });
+  check('بلا موافقة قائمة: لا ضغط', employer.posts.length === 1 && db.rows['r-2'].auto_reason === 'لا موافقة قائمة على هذا الطلب', db.rows['r-2'].auto_reason);
+  await closeTabs();
+
+  // approved, but the form now comes out with other answers
+  row('r-3'); db.approvals = { 'r-3': '[["First Name","Somebody else"]]' }; db.queue = [{ ...item('r-3'), submit: true }];
+  await cycle({ profile: PROFILE });
+  check('إجابات غير التي وافق عليها: لا ضغط، وتعود له', employer.posts.length === 1 && db.rows['r-3'].auto_reason === 'تغيّرت الإجابات منذ موافقتك — راجعها من جديد' && db.rows['r-3'].auto_report?.filled?.length > 0, db.rows['r-3'].auto_reason);
+  await closeTabs();
+  db.approvals = 'all';
 }
 
 console.log('\nأنظمة يتركها هذا المتصفح');

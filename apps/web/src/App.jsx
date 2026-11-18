@@ -5,7 +5,7 @@ import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/
 import { normaliseProfile, scoreJob, filterReason, seniorityLevel, yearsRequired, normaliseArrangement } from '@engine/score.js';
 import { autoApplyable } from '@engine/sources.js';
 import { mayGuess, sameWords } from '@engine/answering.js';
-import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR } from '@engine/applications.js';
+import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR, snapshotOf, readyForReview } from '@engine/applications.js';
 import { APPLY_FIELDS, readiness, RUNGS } from './profile-fields.js';
 import { forExtension } from './extension-profile.js';
 import { reasonAr, flagAr, gapAr, arrangementAr } from './explain.js';
@@ -561,12 +561,8 @@ function Help() {
 
         <h2>قبل أن تطلقها</h2>
         <p className="muted">
-          الإرسال يُقرَّر من مكان واحد: <a href="#settings">الضبط</a> ← «وأرسل بنفسك». ما دام مطفأً تعبّي الإضافة
-          الاستمارة وتتركها مفتوحة لك، فترى بعينك ما سيُرسل باسمك. وحين تشغّله، أول ثلاثة طلبات تبقى لك لتراها —
-          إلا إن اخترت «أرسل من أول طلب».
-        </p>
-        <p className="muted">
-          وما كان معبّأً وينتظرك حين شغّلته يخرج وحده في الدورة التالية؛ لا تحتاج أن ترجع لكل طلب.
+          لا يُرسل أي طلب قبل موافقتك عليه: تُعبّأ الاستمارة، ثم تظهر في «طلباتي» بكل ما كُتب فيها،
+          ولا تخرج إلا حين تضغط «وافق وأرسل» على ذلك الطلب نفسه.
         </p>
         <p className="faint">
           تنبيه: شروط استخدام معظم أنظمة التوظيف تمنع الإرسال الآلي. القرار قرارك، والحساب حسابك.
@@ -944,26 +940,16 @@ function Settings({ user, profile, onDone }) {
 
         {form.auto_apply && r.canApply && (
           <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-            <label>
-              <input type="checkbox" checked={form.auto_submit}
-                onChange={(e) => set('auto_submit', e.target.checked)} /> <b>وأرسل بنفسك — لا تنتظر ضغطتي</b>
-            </label>
-            <p className="hint">
-              أول ثلاثة طلبات تُعبَّأ وتُترك لك مهما كان هذا المفتاح: ترى بعينك ما يخرج باسمك،
-              ثم يمشي وحده. وفي كل الأحوال لا يتجاوز {form.daily_cap} طلباً في اليوم.
+            {/* «أرسل بنفسك» and «أرسل من أول طلب» are gone: since migration 017 every application
+                is filled, shown to its owner, and sent only on their «وافق وأرسل». */}
+            <p className="hint" style={{ marginTop: 0 }}>
+              <b>لا يُرسل أي طلب قبل موافقتك عليه.</b> يُعبّأ، ثم يظهر في «طلباتي» بكل ما كُتب فيه، ولا
+              يخرج إلا حين تضغط «وافق وأرسل». ولا يتجاوز {form.daily_cap} طلباً في اليوم.
             </p>
             <label htmlFor="cap" style={{ marginTop: 10 }}>أكثر عدد في اليوم — {form.daily_cap}</label>
             <input id="cap" type="range" min="1" max="40" step="1" value={form.daily_cap}
               onChange={(e) => set('daily_cap', Number(e.target.value))} />
 
-            <label style={{ marginTop: 12 }}>
-              <input type="checkbox" checked={form.skip_first_three}
-                onChange={(e) => set('skip_first_three', e.target.checked)} /> أرسل من أول طلب
-            </label>
-            <p className="hint">
-              افتراضاً تُعبَّأ أول ثلاثة وتُترك لك لتراها بعينك قبل أن تخرج باسمك. فعّل هذا
-              وتُرسل من الأول — ويبقى السقف اليومي كما هو.
-            </p>
 
             <hr className="rule" />
 
@@ -1223,9 +1209,9 @@ function Jobs({ user, profile, onProfile }) {
     } else if (sendable) {
       if (ext) sendToExtension(me);
       setQueued((n) => n + 1);
-      toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن'
+      toast.ok(ext ? 'في الطابور — متصفحك يعبّئه الآن، ثم يظهر في «طلباتي» لتوافق عليه'
         : serverSkips(job.url) ? 'في الطابور — يرسله Chrome حاسبك متى فتحته (هذا الموقع لا يقبل الإرسال من الخادم)'
-          : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
+          : 'في الطابور — يُعبّأ خلال دقائق، ثم يظهر في «طلباتي» لتوافق عليه');
     } else {
       // Not one that can be sent for them: say why, and bring the fill sheet into view. On a
       // phone it opened at the top of a page scrolled half-way down, and the press looked like
@@ -1758,6 +1744,85 @@ function Unverified({ row, profile, onArrived, onDone }) {
 // Workable disables its send button after the press and sends nothing from a server.
 const serverSkips = (url) => { try { return new URL(url).hostname === 'apply.workable.com'; } catch { return false; } };
 
+/**
+ * A filled application, waiting for its owner's word. Everything that will go out under their
+ * name is on this card — the answers as typed, the CV, what was ticked on their behalf, what is
+ * left for the employer's page, a picture of the form — and only «وافق وأرسل» lets a browser
+ * press send. What is approved is these answers exactly: if the form comes out differently
+ * when it is filled to be sent, it comes back here instead of going out.
+ */
+function ReviewCard({ row, profile, onDone, onCancel }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [shot, setShot] = useState(null);
+  const r = row.auto_report ?? {};
+  const cv = (r.filled ?? []).find((f) => /\.(pdf|docx?)$/i.test(String(f.v)) || /resume|cv\b|سيرة/i.test(String(f.q)));
+  const answers = (r.filled ?? []).filter((f) => f !== cv);
+  const byHand = (r.missing ?? []).filter((m) => m?.q && m.manual);
+  useEffect(() => {
+    let live = true;
+    if (r.review_shot) supabase.storage.from('cvs').createSignedUrl(r.review_shot, 600).then(({ data }) => live && setShot(data?.signedUrl ?? null));
+    return () => { live = false; };
+  }, [r.review_shot]);
+
+  async function approve() {
+    setBusy(true);
+    const { error } = await supabase.rpc('approve_application', { app_id: row.id, p_snapshot: snapshotOf(r) });
+    setBusy(false);
+    if (error) { toast.fail(errorAr(error), approve); return; }
+    toast.ok(serverSkips(row.job?.url) ? 'وافقت — يرسله Chrome حاسبك متى فتحته' : 'وافقت — يُرسل خلال دقائق');
+    onDone();
+  }
+  async function refill() {
+    setBusy(true);
+    const { error } = await supabase.rpc('retry_application', { app_id: row.id });
+    setBusy(false);
+    if (error) toast.fail(errorAr(error), refill); else { toast.ok('يُعبّأ من جديد'); onDone(); }
+  }
+
+  return (
+    <article className="card review">
+      <p className="app-title">{row.job?.title}</p>
+      <p className="app-where">{row.job?.company}{AR_CITY[row.job?.city] ? ` · ${AR_CITY[row.job.city]}` : ''}</p>
+      {row.auto_reason && row.auto_reason !== 'عُبّئ — ينتظر موافقتك' && <p className="app-verdict" style={{ color: 'var(--warn)' }}>{row.auto_reason}</p>}
+      {row.job?.url && <p style={{ margin: '8px 0 0', fontSize: 14 }}><a href={row.job.url} target="_blank" rel="noopener noreferrer" dir="ltr">{new URL(row.job.url).host} ↗</a></p>}
+      <details className="review-body" open>
+        <summary>ما سيُرسل باسمك · {answers.length} إجابة</summary>
+        <dl>
+          {cv && <><dt>السيرة الذاتية</dt><dd dir="auto">{cv.v}</dd></>}
+          {answers.map((f, i) => (
+            <React.Fragment key={i}>
+              <dt dir="auto">{f.q}</dt>
+              <dd dir="auto">{String(f.v)}{f.by === 'estimate' && <span className="faint"> · بالتقدير</span>}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+        {!!r.agreed?.length && (
+          <div className="review-flag">
+            <b>إقرارات وُضعت عليها علامة باسمك:</b>
+            <ul>{r.agreed.map((q, i) => <li key={i} dir="auto">{q}</li>)}</ul>
+          </div>
+        )}
+        {!!byHand.length && (
+          <div className="review-flag">
+            <b>لم يُعبّأ — قد تطلبه الشركة:</b>
+            <ul>{byHand.map((m, i) => <li key={i} dir="auto">{m.q}</li>)}</ul>
+          </div>
+        )}
+        {shot && <a className="review-shot" href={shot} target="_blank" rel="noopener noreferrer"><img src={shot} alt="صورة الاستمارة كما عُبّئت" loading="lazy" /></a>}
+      </details>
+      <div className="app-acts">
+        <button className="btn btn-go" disabled={busy} onClick={approve}>{busy ? '…' : 'وافق وأرسل'}</button>
+        <button className="btn" disabled={busy} onClick={refill}>أعد التعبئة</button>
+      </div>
+      <p className="deck-foot" style={{ marginTop: 10 }}>
+        <a href="#profile">عدّل ملفك</a>{' ثم «أعد التعبئة» · '}
+        <button type="button" className="linkish" disabled={busy} onClick={onCancel}>ألغِ هذا الطلب</button>
+      </p>
+    </article>
+  );
+}
+
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
 
@@ -1900,6 +1965,7 @@ function Applications({ user, profile, onProfile }) {
     // application as evidence. A press that was never confirmed is not on this list, and
     // neither is one marked "applied" without that evidence: the owner found such rows were
     // being shown as sent when they were not.
+    const toReview = rows.filter(readyForReview);
     const proven = rows
       .filter((r) => sentOf(r)?.outcome === 'confirmed')
       .sort((a, b) => String(sentOf(b).verified_at ?? b.auto_at).localeCompare(String(sentOf(a).verified_at ?? a.auto_at)));
@@ -1907,6 +1973,13 @@ function Applications({ user, profile, onProfile }) {
     const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
     return (
       <>
+        {!!toReview.length && (
+          <>
+            <p className="section">جاهزة لموافقتك · {toReview.length}</p>
+            {toReview.map((row) => <ReviewCard key={row.id} row={row} profile={profile} onDone={load} onCancel={() => setStatus(row, 'closed')} />)}
+            <hr className="rule" />
+          </>
+        )}
         <p className="apps-sum">أُرسل فعلاً: <b>{proven.length}</b></p>
         {!proven.length && (
           <div className="card">

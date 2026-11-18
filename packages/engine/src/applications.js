@@ -82,3 +82,21 @@ export const STATE_AR = {
   READY: 'في الطابور', SUBMITTING: 'يُرسل الآن', SUBMITTED: 'أُرسل', ACTION_REQUIRED: 'يحتاجك',
   FAILED: 'تعذّر', DUPLICATE: 'مكرّر', CANCELLED: 'أُلغي'
 };
+
+/**
+ * The filled answers in one fixed form — what an approval approves. Identical to snapshotOf()
+ * in extension/src/background.js, which compares it with the form it is about to send.
+ */
+export const snapshotOf = (report) => JSON.stringify((report?.filled ?? [])
+  .map((f) => [String(f.q ?? '').replace(/\s+/g, ' ').trim(), String(f.v ?? '').trim()])
+  .sort((a, b) => (a[0] === b[0] ? (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) : a[0] < b[0] ? -1 : 1)));
+
+/** Why a filled form is waiting: each of these means "read it, and approve or not". */
+export const REVIEW_REASONS = ['عُبّئ — ينتظر موافقتك', 'تغيّرت الإجابات منذ موافقتك — راجعها من جديد', 'لا موافقة قائمة على هذا الطلب', 'الاستمارة مفتوحة وتنتظرك'];
+
+/** Filled, nothing left unanswered, not pressed: ready for its owner to read and approve. */
+export function readyForReview(app) {
+  const r = app?.auto_report ?? {};
+  return app?.status === 'saved' && app?.auto_status === 'needs_you' && REVIEW_REASONS.includes(app?.auto_reason)
+    && (r.filled?.length ?? 0) > 0 && !(r.missing ?? []).some((m) => m?.q && !m.manual) && !awaitingProof(app);
+}

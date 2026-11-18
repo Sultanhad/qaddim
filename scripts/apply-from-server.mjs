@@ -24,7 +24,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { loadEnv, projectRef } from './env.mjs';
-import { isPaused } from '../packages/engine/src/applications.js';
+import { isPaused, REVIEW_REASONS } from '../packages/engine/src/applications.js';
 import { autoApplyable } from '../packages/engine/src/sources.js';
 
 // ── what an employer's site said back ──
@@ -48,6 +48,36 @@ function watchSends(ctx) {
   });
   return seen;
 }
+/**
+ * The filled form, as its owner will review it. A browser on a server cannot be kept open for
+ * the hours before someone reads it on their phone, so what they approve is the answers (saved
+ * on the application) and this picture of the page as it was filled. It goes to their own
+ * folder in the private CV bucket, which only they — and the service key — can read.
+ */
+const trim = (u) => String(u || '').split(/[?#]/)[0].replace(/\/+$/, '').replace(/\/(apply|application)$/, '');
+async function photograph(ctx, person, began) {
+  const waiting = (await call(`/rest/v1/applications?select=id,auto_reason,auto_report,job:jobs(url)&user_id=eq.${person.id}&auto_status=eq.needs_you&auto_at=gte.${encodeURIComponent(began)}`) ?? [])
+    .filter((a) => REVIEW_REASONS.includes(a.auto_reason));
+  let taken = 0;
+  for (const pg of ctx.pages()) {
+    if (!autoApplyable(pg.url())) continue;
+    const here = trim(pg.url());
+    const app = waiting.find((a) => a.job?.url && (here.startsWith(trim(a.job.url)) || trim(a.job.url).startsWith(here)));
+    if (!app) continue;
+    try {
+      const shot = await pg.screenshot({ fullPage: true, type: 'jpeg', quality: 60 });
+      const path = `${person.id}/review/${app.id}.jpg`;
+      const up = await fetch(`${API}/storage/v1/object/cvs/${path}`, { method: 'POST', body: shot,
+        headers: { apikey: SRV, Authorization: 'Bearer ' + SRV, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' } });
+      if (!up.ok) continue;
+      await call(`/rest/v1/applications?id=eq.${app.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ auto_report: { ...(app.auto_report ?? {}), review_shot: path, review_at: new Date().toISOString() } }) });
+      taken++;
+    } catch { /* a page that will not be photographed is still reviewable from its answers */ }
+  }
+  return taken;
+}
+
 /** Each employer tab still open at the end — the extension leaves one open after an unconfirmed press. */
 async function lookAt(ctx) {
   const out = [];
@@ -167,6 +197,8 @@ for (const [i, person] of people.entries()) {
       else if (a.auto_status === 'needs_you') tally.needs_you++;
     }
     for (const line of sends) console.log(`  sent by the page: ${line}`);
+    const shots = await photograph(ctx, person, began);
+    if (shots) console.log(`  ${shots} filled form(s) photographed for review`);
     for (const line of await lookAt(ctx)) console.log(`  left open after a press: ${line}`);
     const last = (await state()).log?.[0];
     console.log(`${who}: session handed over · ${done?.length ?? 0} application(s) handled${last?.status === 'error' ? ' · the extension said: ' + String(last.reason).slice(0, 80) : ''}`);

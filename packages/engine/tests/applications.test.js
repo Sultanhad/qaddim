@@ -53,6 +53,25 @@ check('Queue', 'Nor one that is sent, in the queue, being filled, or closed',
 check('Queue', 'And nothing may while everything is paused', !mayQueue(app('saved', null, null), { paused: true }));
 check('Pause', 'Paused is a setting the person holds', isPaused({ answers: { _settings: { paused: true } } }) && !isPaused({ answers: {} }) && !isPaused(null));
 
+// The approval compares two snapshots made by two copies of one function: the site's (here) and
+// the extension's. If they ever differ by a character, nothing approved could ever be sent.
+{
+  const { readFileSync } = await import('node:fs');
+  const body = (src) => /const snapshotOf = \(report\) => ([\s\S]*?\)\)\);)/.exec(src)?.[1]?.replace(/\s+/g, ' ');
+  const ext = body(readFileSync(new URL('../../../extension/src/background.js', import.meta.url), 'utf8'));
+  const eng = body(readFileSync(new URL('../src/applications.js', import.meta.url), 'utf8'));
+  check('Review', 'The site and the extension take the same snapshot', !!ext && ext === eng, ext ? 'differs' : 'not found');
+  const { snapshotOf, readyForReview } = await import('../src/applications.js');
+  const a = snapshotOf({ filled: [{ q: 'Email  *', v: 'x@y' }, { q: 'Name', v: 'S' }] });
+  const b = snapshotOf({ filled: [{ q: 'Name', v: 'S ' }, { q: 'Email *', v: 'x@y' }] });
+  check('Review', 'Order and spacing do not change a snapshot', a === b, a + ' vs ' + b);
+  check('Review', 'A different answer does', a !== snapshotOf({ filled: [{ q: 'Name', v: 'T' }, { q: 'Email *', v: 'x@y' }] }));
+  const ready = { status: 'saved', auto_status: 'needs_you', auto_reason: 'عُبّئ — ينتظر موافقتك', auto_report: { filled: [{ q: 'Name', v: 'S' }], missing: [] } };
+  check('Review', 'Filled, nothing missing, not pressed: ready for review', readyForReview(ready));
+  check('Review', 'A question still open: not yet', !readyForReview({ ...ready, auto_report: { ...ready.auto_report, missing: [{ q: 'Why us?' }] } }));
+  check('Review', 'Pressed and unconfirmed: not something to approve again', !readyForReview({ ...ready, auto_report: { ...ready.auto_report, sent: { pressed_at: 'x', outcome: 'unverified' } } }));
+}
+
 let fail = 0;
 for (const r of results) {
   if (!r.pass) fail++;

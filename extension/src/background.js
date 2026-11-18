@@ -7,15 +7,26 @@
 // queued → filling → submitted, or needs_you with the reason.
 
 const DEFAULTS = { delayMs: 9000, maxPerRun: 10 };
-// What an application says while its form sits filled and unsent.
-const WAITING = 'الاستمارة مفتوحة وتنتظرك';
+// What an application says while its form sits filled and unsent — waiting, since migration 017,
+// for its owner to read what was filled and approve it.
+const WAITING = 'عُبّئ — ينتظر موافقتك';
+const CHANGED = 'تغيّرت الإجابات منذ موافقتك — راجعها من جديد';
+const NO_APPROVAL = 'لا موافقة قائمة على هذا الطلب';
+
+/**
+ * The filled answers in one fixed form, so that "what was approved" and "what is about to be
+ * sent" can be compared exactly. Must stay identical to snapshotOf() in
+ * packages/engine/src/applications.js — the site computes the approved one with that.
+ */
+const snapshotOf = (report) => JSON.stringify((report?.filled ?? [])
+  .map((f) => [String(f.q ?? '').replace(/\s+/g, ' ').trim(), String(f.v ?? '').trim()])
+  .sort((a, b) => (a[0] === b[0] ? (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) : a[0] < b[0] ? -1 : 1)));
+globalThis.qaddimSnapshot = snapshotOf;      // for the tests
 // …between the press and the page's answer, and when the answer never came.
 const PRESSED = 'ضُغط الإرسال — بانتظار تأكيد الصفحة';
 const UNVERIFIED = 'ضُغط الإرسال ولم يظهر تأكيد — تحقق من بريدك قبل أي إعادة';
 const PAUSED = 'أوقفتَ الأتمتة';
 const CANCELLED = 'أُخرج من الطابور قبل الإرسال';
-// Must stay word for word what fill.js says when its press is not acknowledged.
-const NOT_ALLOWED = 'لم يُؤذن بالإرسال — أعد تحميل الإضافة';
 const STALE_FILL_MS = 10 * 60 * 1000;
 const DONE_URL = /\/(confirmation|thank[-_]?you|thanks|success|submitted|applied)(\/|$)/i;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -266,7 +277,7 @@ async function applyOne(item, profile, settings, session) {
   const tab = await chrome.tabs.create({ url: APPLY_URL(item.url), active: false });
   await tabReady(tab.id);
 
-  inFlight.set(tab.id, { item, session, row, claimedAt, pressed: false, report: null, sent: null, base: null });
+  inFlight.set(tab.id, { item, session, row, claimedAt, settings, pressed: false, report: null, sent: null, base: null });
   let result = null;
   try {
     result = await chrome.tabs.sendMessage(tab.id, {
@@ -353,32 +364,12 @@ async function applyOne(item, profile, settings, session) {
   } else {
     await chrome.tabs.update(tab.id, { active: true }).catch(() => { });
     chrome.notifications.create({
-      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — راجع وأرسل',
-      message: (result?.reason || 'الاستمارة معبّأة وتنتظر ضغطتك') +
+      type: 'basic', iconUrl: 'icons/128.png', title: item.company + ' — راجعه ووافق في قدّم',
+      message: (result?.reason || 'عُبّئ — ينتظر موافقتك في «طلباتي»') +
         (result?.report?.missing?.length ? '\n' + result.report.missing.map((m) => m.q).slice(0, 2).join(' · ') : '')
     });
   }
   return status;
-}
-
-/**
- * Forms that were filled and left unsent because sending was off at the time. Once the person
- * has turned sending on, those are applications they asked to go out — not something to sit
- * until "retry" is pressed on each one. The database is asked, because it is what decides.
- */
-async function releaseWaiting(session) {
-  const may = await api(session, '/rpc/my_may_submit', { method: 'POST', body: '{}' });
-  if (may !== true) return;
-  // Only what is still merely saved: one the person has since marked as applied — because
-  // they pressed send in the open tab themselves — must not go out a second time.
-  // (The second reason is what a form was given while this extension's page script was newer
-  // than its background: filled, never pressed, and waiting for nothing but the reload.)
-  for (const reason of [WAITING, NOT_ALLOWED]) {
-    await api(session, '/applications?status=eq.saved&auto_status=eq.needs_you&auto_reason=eq.' + encodeURIComponent(reason),
-      // attempts start over: the queue stops handing out anything tried three times, and
-      // these were not failures — they were waiting for a switch
-      { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ auto_status: 'queued', auto_reason: null, auto_attempts: 0 }) });
-  }
 }
 
 /**
@@ -432,7 +423,8 @@ async function run() {
     return;
   }
   await recoverStale(session).catch(() => { });
-  if (settings.neverSubmit !== true) await releaseWaiting(session).catch(() => { });
+  // (Filled forms used to be sent back to the queue here once sending was switched on. They
+  // now wait for their owner's approval of each one — migration 017 — and nothing releases them.)
 
   let queue = [];
   try { queue = await fetchQueue(session); } catch (e) {
@@ -498,6 +490,18 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const stopped = await paused(flight.session);
       if (stopped !== false) {
         reply({ ok: false, why: stopped ? PAUSED + ' قبل الإرسال' : 'تعذّر الوصول إلى حسابك لحظة الإرسال — لم يُرسل شيء' });
+        return;
+      }
+      // Its owner approved these answers? The approval is used up here, before anything else:
+      // one approval, one press. Answers that came out differently from the approved ones are
+      // not sent — they go back to their owner to be read again.
+      const verdict = await api(flight.session, '/rpc/consume_approval', {
+        method: 'POST',
+        body: JSON.stringify({ app_id: flight.item.application_id, p_snapshot: snapshotOf(msg.report),
+          p_by: 'extension ' + chrome.runtime.getManifest().version + (flight.settings?.skipHosts?.length ? ' · server' : '') })
+      }).catch(() => null);
+      if (verdict !== 'ok') {
+        reply({ ok: false, why: verdict === 'changed' ? CHANGED : verdict === 'none' ? NO_APPROVAL : 'تعذّر التحقق من موافقتك — لم يُرسل شيء' });
         return;
       }
       const earlier = flight.row.auto_report?.sent;
