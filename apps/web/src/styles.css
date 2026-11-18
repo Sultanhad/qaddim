@@ -565,6 +565,9 @@ section:first-of-type > .group-h { margin-top: 18px; }
   color: var(--text); font: inherit; font-size: 16px; padding: 0; margin: 0;
 }
 .filters-search input:focus { outline: none; }
+/* Chrome draws its own frame round a search field once it holds text — the second box. */
+.filters-search input[type=search] { -webkit-appearance: none; appearance: none; }
+.filters-search input[type=search]::-webkit-search-decoration { -webkit-appearance: none; }
 .filters-row { margin-bottom: 8px; }
 .pick {
   position: relative; flex: none; display: inline-flex; align-items: center;
@@ -631,3 +634,10 @@ section:first-of-type > .group-h { margin-top: 18px; }
   .appbar-title.keep { display: block; }
   .appbar-back { margin-inline-start: 10px; }
 }
+
+/* The job's field, on every card: a quiet label, not a button. */
+.field-chip {
+  display: inline-block; margin-inline-start: 10px; padding: 3px 10px; border-radius: 999px; vertical-align: middle;
+  background: rgba(47, 107, 255, .12); color: var(--blue-soft, #8fb0ff); font-size: 12px; font-weight: 700;
+}
+.deck-where + .field-chip { margin: 10px 0 0; }

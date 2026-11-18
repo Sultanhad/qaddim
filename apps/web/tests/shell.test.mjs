@@ -62,6 +62,31 @@ try {
   check('«مسح الفلاتر» يعيد كل شيء', (await page.locator('.pick.on').count()) === 0 && (await page.locator('.filters-search input').inputValue()) === '');
   check('الفلاتر تُذكر بلا كلمات البحث', await page.evaluate(() => JSON.parse(localStorage.getItem('qaddim:filters') || '{}').q === ''));
 
+  // البحث بالاسم والمجالات — على كل الوظائف، لا على أحدث ٦٠٠ فقط
+  check('كل بطاقة عليها مجالها', (await page.locator('article.card').count()) > 0 &&
+    (await page.locator('article.card').count()) === (await page.locator('article.card .field-chip').count()));
+  await page.locator('.filters-search input').fill('محاسب');
+  await page.waitForFunction(() => /وظيف|وظائف/.test(document.querySelector('.filters-count')?.textContent || ''), null, { timeout: 20000 });
+  await page.waitForTimeout(600);
+  const acc = (await page.locator('article.card p[style*="font-size: 20"]').allTextContents()).map((t) => t.trim());
+  check('«محاسب» يجد المحاسبين فقط', acc.length > 0 && acc.every((t) => /account/i.test(t) && !/key accounts/i.test(t)),
+    `${await countText()} · ${acc.slice(0, 4).join(' | ')}`);
+  await page.screenshot({ path: `${shots}/shell-search.png` });
+  await page.locator('.filters-search input').fill('zzqqxx');
+  await page.waitForTimeout(500);
+  check('كلمة لا توجد في أي وظيفة: لا وظائف، وتُسمّى', /لا وظائف/.test(await countText()) && /zzqqxx/.test(await countText()), await countText());
+  await page.locator('.filters-search input').fill('');
+  const opts = await page.locator('select[aria-label="المجال"] option').allTextContents();
+  check('المجالات كلها في الفلتر، بأعدادها', opts.length > 10 && opts.some((o) => /^الصحة والصيدلة \(\d+\)$/.test(o)), opts.slice(0, 5).join(' | '));
+  await page.locator('select[aria-label="المجال"]').selectOption('health');
+  await page.waitForFunction(() => /وظيف|وظائف/.test(document.querySelector('.filters-count')?.textContent || ''), null, { timeout: 20000 });
+  await page.waitForTimeout(600);
+  const chips = (await page.locator('article.card .field-chip').allTextContents()).map((t) => t.trim());
+  check('مجال «الصحة» يعرض وظائف الصحة وحدها', chips.length > 0 && chips.every((c) => c === 'الصحة والصيدلة'), `${await countText()} · ${chips.slice(0, 3).join(' | ')}`);
+  await page.screenshot({ path: `${shots}/shell-field.png` });
+  await page.locator('.filters-count .linkish').click();
+  await page.waitForTimeout(500);
+
   // عرض «وظيفة وحدة بزرّين» — الافتراضي لأغلب الناس
   await page.evaluate(() => localStorage.setItem('qaddim:view', 'deck'));
   await page.reload({ waitUntil: 'networkidle' });

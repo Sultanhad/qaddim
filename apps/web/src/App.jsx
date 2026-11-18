@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase, cvPathFor, authReturn } from './supabase.js';
 import { Hero, Score, Live, RankedChips, Banner, Skeleton, Field, Ladder, Icon, Mark, L, browserKind, BROWSER_AR } from './ui.jsx';
 import { ROLE_FAMILIES, SKILL_AREAS, CITY_ALIASES, CITY_COUNTRY } from '@engine/taxonomy.js';
-import { normaliseProfile, scoreJob, filterReason, seniorityLevel, yearsRequired, normaliseArrangement } from '@engine/score.js';
+import { normaliseProfile, scoreJob, filterReason, seniorityLevel, yearsRequired, normaliseArrangement, classifyLocation } from '@engine/score.js';
+import { fieldOf, FIELDS, FIELD_AR } from '@engine/fields.js';
+import { useCatalog, withText, parseQuery, matches, usable } from './catalog.js';
 import { autoApplyable } from '@engine/sources.js';
 import { mayGuess, sameWords } from '@engine/answering.js';
 import { stateOf, awaitingProof, sentOf, isPaused, STATE_AR } from '@engine/applications.js';
@@ -143,15 +145,20 @@ function expOf(job) {
 const EXP_OPTS = [['any', 'أي خبرة'], ['fresh', 'بدون خبرة / خرّيج'], ['mid', 'خبرة ١–٤ سنوات'], ['senior', 'خبرة ٥ سنوات فأكثر']];
 const MODE_OPTS = [['any', 'كل الأنماط'], ['On-site', 'من المقر'], ['Hybrid', 'هجين'], ['Remote', 'عن بُعد']];
 const AGE_OPTS = [['any', 'أي وقت'], ['7', 'آخر أسبوع'], ['30', 'آخر شهر']];
-const FIELD_OPTS = [['mine', 'مجالاتي'], ['all', 'كل المجالات']];
+/** «مجالاتي», «كل المجالات», then every field with its count — and «أخرى» last. */
+function fieldOpts(counts) {
+  const n = (id) => (counts ? ` (${counts[id] ?? 0})` : '');
+  return [['mine', 'مجالاتي'], ['all', 'كل المجالات'],
+    ...FIELDS.filter((f) => f.id !== 'other' && (!counts || counts[f.id])).map((f) => [f.id, f.ar + n(f.id)]),
+    ...(counts?.other ? [['other', 'أخرى' + n('other')]] : [])];
+}
 
 function passes({ job }, f) {
   // A city picked by name means that city. "Open to you from anywhere" would have put Supabase's
   // "Remote, Global" first under «جدة»; remote work has its own pill.
   if (f.city !== 'mine' && job.city !== f.city) return false;
-  const q = f.q.trim().toLowerCase();
-  if (q && !`${job.title} ${job.company}`.toLowerCase().includes(q)) return false;
-  if (f.exp !== 'any' && expOf(job) !== f.exp) return false;
+  // Experience is read from the text, which a searched job has only once it has been fetched.
+  if (f.exp !== 'any' && job.description !== undefined && expOf(job) !== f.exp) return false;
   // A posting that does not say how it is worked is not shown as any one of the three.
   if (f.mode !== 'any' && normaliseArrangement(job.arrangement) !== f.mode) return false;
   if (f.age !== 'any') {
@@ -176,7 +183,7 @@ function Pick({ label, value, def, options, onPick }) {
   );
 }
 
-function JobFilters({ f, set, count, profile }) {
+function JobFilters({ f, set, count, profile, counts, dropped }) {
   const mine = (profile.cities ?? []).map((c) => AR_CITY[c] || c);
   const cityOpts = [['mine', mine.length ? `مدني: ${mine.slice(0, 2).join('، ')}${mine.length > 2 ? '…' : ''}` : 'مدني'],
     ...Object.entries(AR_CITY)];
@@ -184,7 +191,7 @@ function JobFilters({ f, set, count, profile }) {
     <div className="filters">
       <label className="filters-search">
         <Icon name="search" size={18} />
-        <input type="search" value={f.q} placeholder="ابحث بالمسمى أو الشركة" aria-label="بحث"
+        <input type="search" value={f.q} placeholder="ابحث بالمسمى: محاسب، صيدلي، مهندس…" aria-label="بحث"
           onChange={(e) => set({ q: e.target.value })} />
       </label>
       <div className="chipbar filters-row">
@@ -192,13 +199,15 @@ function JobFilters({ f, set, count, profile }) {
         <Pick label="الخبرة" value={f.exp} def="any" options={EXP_OPTS} onPick={(v) => set({ exp: v })} />
         <Pick label="نمط العمل" value={f.mode} def="any" options={MODE_OPTS} onPick={(v) => set({ mode: v })} />
         <Pick label="تاريخ النشر" value={f.age} def="any" options={AGE_OPTS} onPick={(v) => set({ age: v })} />
-        <Pick label="المجال" value={f.field} def="mine" options={FIELD_OPTS} onPick={(v) => set({ field: v })} />
+        <Pick label="المجال" value={f.field} def="mine" options={fieldOpts(counts)} onPick={(v) => set({ field: v })} />
         <button type="button" className={'pick pick-toggle' + (f.auto ? ' on' : '')} aria-pressed={f.auto}
           onClick={() => set({ auto: !f.auto })}>يقدَّم عنك تلقائياً</button>
       </div>
       {count !== null && (
         <p className="filters-count">
           {count === 0 ? 'لا وظائف بهذه الفلاتر' : jobsAr(count)}
+          {/* A word no job contains is set aside rather than emptying the search — and named. */}
+          {!!dropped?.length && <> · لا تظهر «{dropped.join('، ')}» في أي وظيفة{count > 0 && '، فبحثنا بالباقي'}</>}
           {filtersOn(f) && <> · <button type="button" className="linkish" onClick={() => set({ ...FILTERS0 })}>مسح الفلاتر</button></>}
         </p>
       )}
@@ -1147,6 +1156,44 @@ function Jobs({ user, profile, onProfile }) {
     : { ...profile, cities: [filters.city], countries: [CITY_COUNTRY[filters.city]].filter(Boolean) }),
   [profile, filters.city]);
   const pool = useJobPool(lens);
+  // Searching and browsing by field read every open job, not the 600 newest the scorer is fed.
+  const countries = useMemo(() => countriesFor(lens), [lens]);
+  const catalog = useCatalog(countries);
+  const wide = filters.q.trim() !== '' || filters.field !== 'mine';
+  const fieldCounts = useMemo(() => {
+    if (!catalog) return null;
+    const c = {};
+    for (const j of catalog) if (filters.city === 'mine' || j.city === filters.city) c[j.field] = (c[j.field] || 0) + 1;
+    return c;
+  }, [catalog, filters.city]);
+  // The matches, from the whole catalogue: field, words, place, arrangement, age, auto.
+  const found = useMemo(() => {
+    if (!wide || !catalog) return null;
+    const { kept, dropped, nothing } = usable(parseQuery(filters.q), catalog);
+    const p = normaliseProfile(lens);
+    const list = nothing ? [] : catalog.filter((job) => {
+      if (filters.field !== 'mine' && filters.field !== 'all' && job.field !== filters.field) return false;
+      if (!matches(job, kept)) return false;
+      if (filters.city === 'mine') {
+        // "My cities" is where this profile can work: its cities, its countries, remote if it takes remote.
+        const L = classifyLocation(job, p);
+        if (L.cls === 'elsewhere' || L.cls === 'other_city') return false;
+        if (!p.accept_remote && (L.cls === 'remote_ok' || L.cls === 'remote_unknown')) return false;
+      }
+      return passes({ job }, filters);
+    });
+    return { list, dropped };
+  }, [wide, catalog, filters, lens]);
+  // Their text, fetched for the first 300 matches only, so they can be scored and explained.
+  const [read, setRead] = useState(null);
+  useEffect(() => {
+    if (!found) { setRead(null); return; }
+    let live = true;
+    setRead(null);
+    withText(found.list.slice(0, 300)).then((rows) => live && setRead({ found, rows }))
+      .catch(() => live && setRead({ found, rows: [] }));
+    return () => { live = false; };
+  }, [found]);
   const [actedOn, setActedOn] = useState(null);   // job ids already saved or dismissed
   const [busyId, setBusyId] = useState(null);
   const [sheetFor, setSheetFor] = useState(null);
@@ -1187,6 +1234,17 @@ function Jobs({ user, profile, onProfile }) {
   // Filters are an explicit question, so they answer it exactly: everything that passes, best
   // first, with no score threshold — and an honest "none" when nothing does.
   const { rows, fallback, count } = useMemo(() => {
+    if (wide) {
+      if (!read || read.found !== found || !actedOn) return { rows: null, fallback: false, count: null };
+      const p = normaliseProfile(lens);
+      const hit = read.rows.filter((job) => !actedOn.has(job.id) && passes({ job }, filters)).map((job) => {
+        const s = scoreJob(job, p);
+        return { job, score: s.total, reasons: s.reasons, gaps: s.gaps, flags: s.flags };
+      }).sort((a, b) => b.score - a.score);
+      // Beyond the 300 that were read, experience cannot be told; they are counted, not shown.
+      const unread = filters.exp === 'any' ? Math.max(0, found.list.length - read.rows.length) : 0;
+      return { rows: hit.slice(0, 60), fallback: false, count: hit.length + unread };
+    }
     if (!scored || !actedOn) return { rows: null, fallback: false, count: null };
     const live = scored.filter((x) => !actedOn.has(x.job.id));
     if (filtering) {
@@ -1197,7 +1255,7 @@ function Jobs({ user, profile, onProfile }) {
     return above.length
       ? { rows: above.slice(0, 40), fallback: false, count: above.length }
       : { rows: live.slice(0, 10), fallback: true, count: null };
-  }, [scored, actedOn, profile.min_score, filtering, filters]);
+  }, [scored, actedOn, profile.min_score, filtering, filters, wide, read, found, lens]);
 
   async function act(job, status, fresh) {
     const me = fresh ?? profile;
@@ -1245,7 +1303,8 @@ function Jobs({ user, profile, onProfile }) {
     setUndo(null);
   }
 
-  const bar = <JobFilters f={filters} set={setF} profile={profile} count={rows === null ? null : count} />;
+  const bar = <JobFilters f={filters} set={setF} profile={profile} count={rows === null ? null : count}
+    counts={fieldCounts} dropped={found?.dropped} />;
   if (rows === null) return <>{bar}<Skeleton /><Skeleton /></>;
 
   const nextStep = !r.done[1] ? 'أكمل ملفك لتقدّم'
@@ -1302,6 +1361,7 @@ function Jobs({ user, profile, onProfile }) {
             </div>
             <p className="deck-title">{top.job.title}</p>
             <p className="deck-where">{top.job.company} · {AR_CITY[top.job.city] || top.job.location}</p>
+            <span className="field-chip">{FIELD_AR[top.job.field ?? fieldOf(top.job.title, top.job.company)]}</span>
             <p className="faint" style={{ margin: '6px 0 0' }}>
               {top.job.salary_published ? `الراتب ${top.job.salary_published}` : L.noSalary}
               {ageOf(top.job.published_at) && <> · {ageOf(top.job.published_at)}</>}
@@ -1349,7 +1409,8 @@ function Jobs({ user, profile, onProfile }) {
       <p className="deck-foot" style={{ marginTop: 0 }}>
         <button type="button" className="linkish" onClick={() => showAs('deck')}>وظيفة وحدة بزرّين ←</button>
       </p>
-      <Live open={pool?.length ?? null} updatedAt={pool?.[0]?.last_seen} />
+      {/* Every open job they could take, not the 600 the scorer reads. */}
+      <Live open={catalog?.length ?? pool?.length ?? null} updatedAt={pool?.[0]?.last_seen} />
 
       <Ladder rungs={RUNGS} done={r.done} nextLabel={nextStep}
         onNext={() => { location.hash = r.done[1] && r.done[2] ? 'settings' : 'profile'; }} />
@@ -1418,6 +1479,7 @@ function Jobs({ user, profile, onProfile }) {
           <div style={{ marginBottom: 10 }}>
             <Score value={score} />
             <span className="faint" style={{ marginInlineStart: 10 }}>{arrangementAr(job.arrangement)}</span>
+            <span className="field-chip">{FIELD_AR[job.field ?? fieldOf(job.title, job.company)]}</span>
           </div>
           <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1.25 }}>{job.title}</p>
           {/* The raw location is whatever the board typed — "Riyadh Saudi Arabia, Dubai United
