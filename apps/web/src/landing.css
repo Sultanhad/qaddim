@@ -258,11 +258,6 @@
   position: relative; display: grid; grid-template-columns: 210px 1fr; gap: 0;
   background: #0b0e14; border: 1px solid var(--line); border-radius: 22px; overflow: hidden;
 }
-.mock-float {
-  position: absolute; inset-block-start: -18px; inset-inline-end: 24px; z-index: 2;
-  background: var(--blue); color: #fff; border-radius: 999px; padding: 10px 20px; font-weight: 800; font-size: 15px;
-  box-shadow: 0 12px 30px rgba(47,107,255,.45);
-}
 .mock-side { padding: 18px 14px; border-inline-end: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
 .mock-side .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; margin-bottom: 14px; }
 .mock-side span { padding: 10px 12px; border-radius: 10px; color: var(--dim); font-size: 14px; }

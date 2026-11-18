@@ -340,7 +340,6 @@ function AppMockup({ t }) {
   ];
   return (
     <div className="mock">
-      <span className="mock-float">{t.statuses.interview}</span>
       <aside className="mock-side">
         <div className="brand"><Mark size={26} radius={8} /><b>{t.brand}</b></div>
         {t.nav.map((n, i) => <span key={n} className={i === 2 ? 'on' : ''}>{n}</span>)}
