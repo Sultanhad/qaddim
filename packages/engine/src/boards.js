@@ -135,5 +135,32 @@ export const BOARDS = [
   { system: 'icims', slug: 'careers-riyadhair', label: 'Riyadh Air' },
   { system: 'icims', slug: 'cabincrew-riyadhair', label: 'Riyadh Air' },
   { system: 'icims', slug: 'pilots-riyadhair', label: 'Riyadh Air' },
-  { system: 'icims', slug: 'engineering-riyadhair', label: 'Riyadh Air' }
+  { system: 'icims', slug: 'engineering-riyadhair', label: 'Riyadh Air' },
+
+  // ── Added 18 Nov 2026, for Riyadh. Each was read (scripts/discover-boards.mjs) and counted:
+  //    the number is postings in the region that day. ─────────────────────────────────────
+  // Riyadh companies on systems the extension can apply on
+  { system: 'greenhouse', slug: 'brkz', label: 'BRKZ' },                                   // 14
+  { system: 'smartrecruiters', slug: 'jisr', label: 'Jisr' },                              //  6
+  { system: 'recruitee', slug: 'thmanyah', label: 'Thmanyah' },                            //  4
+  // Large employers with offices in Riyadh, on Workday — shown, applied to on their own site
+  { system: 'workday', slug: 'hitachi.wd1/hitachi', label: 'Hitachi' },                    // 44
+  { system: 'workday', slug: 'salesforce.wd12/External_Career_Site', label: 'Salesforce' },// 25
+  { system: 'workday', slug: 'pwc.wd3/Global_Experienced_Careers', label: 'PwC' },         // 21
+  { system: 'workday', slug: 'thales.wd3/Careers', label: 'Thales' },                      // 15
+  { system: 'workday', slug: 'jci.wd5/JCI', label: 'Johnson Controls' },                   // 15
+  { system: 'workday', slug: 'gsk.wd5/GSKCareers', label: 'GSK' },                         // 14
+  { system: 'workday', slug: 'mmc.wd1/MMC', label: 'Marsh McLennan' },                     // 13
+  { system: 'workday', slug: 'carrier.wd5/jobs', label: 'Carrier' },                       // 12
+  { system: 'workday', slug: 'astrazeneca.wd3/Careers', label: 'AstraZeneca' },            // 11
+  { system: 'workday', slug: 'bakerhughes.wd5/BakerHughes', label: 'Baker Hughes' },       // 10
+  { system: 'workday', slug: 'medtronic.wd1/MedtronicCareers', label: 'Medtronic' },       // 10
+  { system: 'workday', slug: 'sanofi.wd3/SanofiCareers', label: 'Sanofi' },                //  8
+  { system: 'workday', slug: 'abbott.wd5/abbottcareers', label: 'Abbott' },                //  8
+  { system: 'workday', slug: 'gevernova.wd5/Vernova_ExternalSite', label: 'GE Vernova' },  //  7
+  { system: 'workday', slug: 'pfizer.wd1/PfizerCareers', label: 'Pfizer' },                //  6
+  { system: 'workday', slug: 'novartis.wd3/Novartis_Careers', label: 'Novartis' },         //  6
+  { system: 'workday', slug: 'philips.wd3/jobs-and-careers', label: 'Philips' },           //  5
+  { system: 'workday', slug: 'motorolasolutions.wd5/Careers', label: 'Motorola Solutions' },//  5
+  { system: 'workday', slug: 'thermofisher.wd5/ThermoFisherCareers', label: 'Thermo Fisher' } // 5
 ];
