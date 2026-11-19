@@ -712,20 +712,39 @@ function incomplete(list, why) {
  * the adapters that read one page per posting, so they do not read the same page every pass.
  */
 export async function fetchAll(sources, opts = {}) {
-  const jobs = [], errors = [], partial = [], runs = [];
-  for (const s of sources) {
-    const source = `${s.system}:${s.slug}`, began = Date.now();
-    try {
-      const found = await fetchSource(s, opts);
-      if (found.partial) partial.push({ source, why: found.partial });
-      jobs.push(...found);
-      runs.push({ source, ok: true, partial: found.partial || null, listed: found.length, ms: Date.now() - began, error: null });
-    } catch (e) {
-      const error = String(e?.message || e);
-      errors.push({ source, error });
-      runs.push({ source, ok: false, partial: null, listed: 0, ms: Date.now() - began, error });
+  // Several boards at once. One after another, 115 boards took fifteen minutes a pass — longer
+  // than the gap between passes — and nearly all of it was waiting on other people's servers.
+  // Each board still reads its own pages in order, with its own pauses; what changes is only
+  // that six different employers are waited on together. Results keep the boards' order.
+  const width = Math.max(1, Math.min(opts.concurrency ?? 6, sources.length || 1));
+  const done = new Array(sources.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < sources.length) {
+      const i = next++;
+      const s = sources[i];
+      const source = `${s.system}:${s.slug}`, began = Date.now();
+      try {
+        const found = await fetchSource(s, opts);
+        done[i] = { source, found, ms: Date.now() - began };
+      } catch (e) {
+        done[i] = { source, error: String(e?.message || e), ms: Date.now() - began };
+      }
+      if (opts.pauseMs) await new Promise((r) => setTimeout(r, opts.pauseMs));
     }
-    if (opts.pauseMs) await new Promise((r) => setTimeout(r, opts.pauseMs));
+  };
+  await Promise.all(Array.from({ length: width }, lane));
+
+  const jobs = [], errors = [], partial = [], runs = [];
+  for (const d of done) {
+    if (d.error !== undefined) {
+      errors.push({ source: d.source, error: d.error });
+      runs.push({ source: d.source, ok: false, partial: null, listed: 0, ms: d.ms, error: d.error });
+      continue;
+    }
+    if (d.found.partial) partial.push({ source: d.source, why: d.found.partial });
+    jobs.push(...d.found);
+    runs.push({ source: d.source, ok: true, partial: d.found.partial || null, listed: d.found.length, ms: d.ms, error: null });
   }
   // one row per posting, even if two boards carry it
   const seen = new Set(), unique = [];

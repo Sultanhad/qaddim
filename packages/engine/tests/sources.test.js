@@ -201,6 +201,30 @@ check('Resilience', 'A failing board is recorded and the others still load',
     hostAllowed('cabincrew-riyadhair.icims.com') && !hostAllowed('a.b.icims.com') && !hostAllowed('icims.com.attacker.net'));
 }
 
+// Boards are read several at a time, and what comes back keeps the boards' order.
+{
+  const slow = (ms) => new Promise((r) => setTimeout(r, ms));
+  const B = ['a', 'b', 'c', 'd', 'e', 'f'].map((slug) => ({ system: 'lever', slug, label: slug.toUpperCase() }));
+  // The first board answers last: order must still follow the list, not the finishing line.
+  const delay = { a: 120, b: 20, c: 20, d: 20, e: 20, f: 20 };
+  const lever = async (url) => {
+    const slug = url.match(/postings\/([a-z])/)[1];
+    await slow(delay[slug]);
+    return { ok: true, status: 200, json: async () => [{ id: slug + '1', text: 'Analyst ' + slug, categories: { location: 'Riyadh, Saudi Arabia' },
+      hostedUrl: `https://jobs.lever.co/${slug}/${slug}1`, descriptionPlain: 'x', createdAt: Date.now() }] };
+  };
+  const t = Date.now();
+  const r = await fetchAll(B, { fetchImpl: lever, concurrency: 6 });
+  const took = Date.now() - t;
+  check('Parallel', 'Every board answers', r.jobs.length === 6 && r.errors.length === 0, JSON.stringify(r.errors));
+  check('Parallel', 'Results keep the order of the list, not of who finished first',
+    r.jobs.map((j) => j.company).join('') === 'ABCDEF' && r.runs.map((x) => x.source).join(',') === B.map((b) => `lever:${b.slug}`).join(','),
+    r.jobs.map((j) => j.company).join(''));
+  check('Parallel', 'Six boards cost the slowest one, not the sum', took < 220, `${took}ms`);
+  const one = await fetchAll(B.slice(0, 2), { fetchImpl: lever, concurrency: 1 });
+  check('Parallel', 'One at a time still works', one.jobs.length === 2);
+}
+
 // SmartRecruiters: every country of the region, the text of each posting once, and nothing
 // stored half-read.
 {
