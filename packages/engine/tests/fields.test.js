@@ -83,6 +83,23 @@ is('Manager - Strategic Projects', 'leadership', 'Landmark Group');
 is('Software Engineer', 'tech', 'Hilton');
 is('Supervisor', 'other');
 
+// The 22 sources added on 18 Nov: insurance, pharma, clinical research, oilfield, presales.
+is('Producer - Employee Health & Benefits', 'finance', 'Marsh McLennan');
+is('Facility Manager – Political Violence & Terrorism', 'finance', 'Marsh McLennan');
+is('Chief Risk Officer (ADGM, Broker Dealer)', 'legal', 'Bybit');
+is('Product Specialist - Hematology', 'health', 'AstraZeneca');
+is('Patient Safety Specialist, Gulf Cluster', 'health', 'Novartis');
+is('Senior Production Pharmacist', 'health', 'Sanofi');
+is('CRA II - Saudi Arabia', 'health', 'Thermo Fisher');
+is('Alliances - Partner Account Senior Administrator (EG,KW,QA)', 'sales', 'Salesforce');   // QA here is Qatar
+is('Account Solution Engineer - KSA', 'tech', 'Salesforce');
+is('Drilling Solution Engineer', 'engineering', 'NOV');
+is('I&C Mechanical Technician', 'trades', 'NOV');
+is('Senior Director Strategic Accounts TURMECA', 'sales', 'Medtronic');
+is('HVAC Projects Senior Sales Engineer', 'sales', 'Carrier');
+is('Early Career Traineeship- Tendering', 'programs', 'GE Vernova');
+is('Employee & Labour Relations Specialist', 'hr', 'Medtronic');
+
 // The list itself.
 results.push({ name: 'Every field has an Arabic name', pass: FIELDS.every((f) => f.ar && FIELD_AR[f.id] === f.ar) });
 results.push({ name: 'Nothing comes back empty', pass: ['', null, undefined, '—'].every((t) => fieldOf(t) === 'other') });
