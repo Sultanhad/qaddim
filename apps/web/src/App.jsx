@@ -22,6 +22,13 @@ const AR_CITY = {
   dubai: 'دبي', 'abu dhabi': 'أبوظبي', sharjah: 'الشارقة', doha: 'الدوحة', manama: 'المنامة',
   kuwait: 'الكويت', muscat: 'مسقط', cairo: 'القاهرة', amman: 'عمّان'
 };
+// The fields a person can choose (every kind of job), and the office ones — where the finer
+// families and the skill areas below mean something. A nurse is not asked about "data".
+const FIELD_CHOICES = FIELDS.filter((f) => f.id !== 'other');
+const OFFICE_FIELDS = new Set(['tech', 'data', 'product', 'design', 'sales', 'marketing', 'finance', 'hr', 'legal',
+  'operations', 'customer', 'admin', 'leadership', 'programs']);
+const fieldsOf = (profile) => profile?.answers?._fields ?? [];
+
 // Role families whose jobs are expected to involve writing code.
 const CODE_ROLES = new Set(['software', 'data_science', 'ai_solutions', 'tech_ops']);
 
@@ -35,14 +42,32 @@ function ageOf(published) {
   if (!published) return null;
   const days = Math.floor((Date.now() - new Date(published).getTime()) / 864e5);
   if (!Number.isFinite(days) || days < 0) return null;
-  if (days <= 1) return 'نُشرت اليوم';
-  if (days < 7) return `قبل ${days} أيام`;
-  if (days < 30) return `قبل ${Math.floor(days / 7)} أسابيع`;
+  // Arabic counts agree with their noun — «قبل أسبوع», «قبل أسبوعين», «قبل ٣ أسابيع» — and
+  // «قبل 1 أسابيع» was on every card posted a week ago.
+  const ago = (n, one, two, few, many) => (n === 1 ? `قبل ${one}` : n === 2 ? `قبل ${two}` : `قبل ${n} ${n <= 10 ? few : many}`);
+  if (days < 1) return 'نُشرت اليوم';
+  if (days < 2) return 'نُشرت أمس';
+  if (days < 7) return ago(days, 'يوم', 'يومين', 'أيام', 'يوماً');
+  if (days < 30) return ago(Math.floor(days / 7), 'أسبوع', 'أسبوعين', 'أسابيع', 'أسبوعاً');
   if (days < 60) return 'قبل شهر';
   // Past two months an advert has usually been filled or forgotten. Said once, here, so the
   // reader weighs it — and the same line is why the worker no longer sends to these by itself.
-  if (days < 365) return `قبل ${Math.floor(days / 30)} أشهر — قد تكون شُغلت`;
+  if (days < 365) return `${ago(Math.floor(days / 30), 'شهر', 'شهرين', 'أشهر', 'شهراً')} — قد تكون شُغلت`;
   return 'قبل أكثر من سنة — قد تكون شُغلت';
+}
+
+/**
+ * A company's mark: its initials on a colour worked out from its name, so the same employer
+ * looks the same on every card. Boards publish no logos we could use; initials say "a company",
+ * where a grey line of text said nothing.
+ */
+function CoMark({ name }) {
+  const n = String(name || '؟').trim();
+  const words = n.split(/[\s&.,\-]+/).filter(Boolean);
+  const initials = /^[A-Za-z0-9]/.test(n) ? (words.length > 1 ? words[0][0] + words[1][0] : n.slice(0, 2)) : n[0];
+  let h = 0;
+  for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return <span className="co-mark" aria-hidden="true" style={{ background: `hsl(${h} 45% 32%)` }}>{initials}</span>;
 }
 
 // ───────────────────────────────────────────────────────── the job pool ──
@@ -205,7 +230,7 @@ function JobFilters({ f, set, count, profile, counts, dropped }) {
       </div>
       {count !== null && (
         <p className="filters-count">
-          {count === 0 ? 'لا وظائف بهذه الفلاتر' : jobsAr(count)}
+          {count === 0 ? 'لا وظائف بهذه الفلاتر' : `${jobsAr(count)}${filtersOn(f) ? '' : ' تناسبك'}`}
           {/* A word no job contains is set aside rather than emptying the search — and named. */}
           {!!dropped?.length && <> · لا تظهر «{dropped.join('، ')}» في أي وظيفة{count > 0 && '، فبحثنا بالباقي'}</>}
           {filtersOn(f) && <> · <button type="button" className="linkish" onClick={() => set({ ...FILTERS0 })}>مسح الفلاتر</button></>}
@@ -597,6 +622,7 @@ function Help() {
 function FirstRun({ user, profile, onDone }) {
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? '',
+    fields: fieldsOf(profile),
     roles: profile?.roles ?? [],
     skill_areas: profile?.skill_areas ?? [],
     cities: profile?.cities?.length ? profile.cities : ['riyadh'],
@@ -606,24 +632,29 @@ function FirstRun({ user, profile, onDone }) {
   const [error, setError] = useState('');
   const pool = useJobPool(form);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = form.roles.length > 0 && form.cities.length > 0;
-  const softwareOff = !form.roles.some((r) => CODE_ROLES.has(r));
+  const chosen = form.fields.length + form.roles.length > 0;
+  const ready = chosen && form.cities.length > 0;
+  const office = form.fields.some((f) => OFFICE_FIELDS.has(f));
+  const softwareOff = !form.roles.some((r) => CODE_ROLES.has(r)) && !form.fields.some((f) => f === 'tech' || f === 'data');
 
   const hits = useMemo(() => {
-    if (!pool || !form.roles.length || !form.cities.length) return null;
+    if (!pool || !chosen || !form.cities.length) return null;
     // Preview exactly what will be saved, including the software-roles default, or the
     // number promised here is not the number they land on.
     return scoreAll(pool, { ...form, accept_remote: true, avoid_software_roles: softwareOff })
       .filter((r) => r.score >= START_SCORE).length;
-  }, [pool, form.roles, form.skill_areas, form.cities, form.years_experience, softwareOff]);
+  }, [pool, form.fields, form.roles, form.skill_areas, form.cities, form.years_experience, softwareOff]);
 
   async function save(e) {
     e.preventDefault();
-    if (!form.roles.length) { setError('اختر مجالاً واحداً على الأقل.'); return; }
+    if (!chosen) { setError('اختر مجالاً واحداً على الأقل.'); return; }
     if (!form.cities.length) { setError('اختر مدينة واحدة على الأقل.'); return; }
     setBusy(true); setError('');
+    const { fields, ...columns } = form;
     const patch = {
-      ...form, years_experience: Number(form.years_experience) || 0,
+      ...columns, years_experience: Number(form.years_experience) || 0,
+      // Not a column: the fields are kept with the answers, so no migration stands in the way.
+      answers: { ...(profile?.answers ?? {}), _fields: fields },
       // Someone who chose product and analysis did not ask to be shown engineering roles.
       // It is a default, not a decision: الضبط turns it off in one tap.
       avoid_software_roles: softwareOff,
@@ -651,14 +682,16 @@ function FirstRun({ user, profile, onDone }) {
           <div className="field">
             <label>وش مجالك؟</label>
             <p className="hint">اضغط عليها بالترتيب الذي يهمّك. الأول هو الأهم.</p>
-            <RankedChips options={ROLE_FAMILIES} value={form.roles} onChange={(v) => set('roles', v)} limit={10} />
+            <RankedChips options={FIELD_CHOICES} labelKey="ar" value={form.fields} onChange={(v) => set('fields', v)} limit={12} />
           </div>
 
-          <div className="field">
-            <label>وش تتقن فعلاً؟</label>
-            <p className="hint">لا نحتسب إلا ما تؤكده أنت. وما لا تؤكده يظهر كفجوة، لا كرصيد.</p>
-            <RankedChips options={SKILL_AREAS} value={form.skill_areas} onChange={(v) => set('skill_areas', v)} limit={8} />
-          </div>
+          {office && (
+            <div className="field">
+              <label>وش تتقن فعلاً؟ <span className="faint">(اختياري)</span></label>
+              <p className="hint">لا نحتسب إلا ما تؤكده أنت. وما لا تؤكده يظهر كفجوة، لا كرصيد.</p>
+              <RankedChips options={SKILL_AREAS} value={form.skill_areas} onChange={(v) => set('skill_areas', v)} limit={8} />
+            </div>
+          )}
 
           <div className="field">
             <label>وين تبي تشتغل؟</label>
@@ -678,7 +711,7 @@ function FirstRun({ user, profile, onDone }) {
 
           {error && <Banner kind="bad">{error}</Banner>}
           <button className="btn btn-go btn-lg" disabled={busy || !ready}>
-            {busy ? '…' : ready ? 'أرني الوظائف' : !form.roles.length ? 'اختر مجالك أولاً' : 'اختر مدينة'}
+            {busy ? '…' : ready ? 'أرني الوظائف' : !chosen ? 'اختر مجالك أولاً' : 'اختر مدينة'}
           </button>
           <p className="faint" style={{ marginBottom: 0 }}>
             سيرتك وبقية بياناتك تُطلب لاحقاً — عند أول وظيفة تقول عنها «يهمني».
@@ -815,7 +848,7 @@ const GROUPS = APPLY_FIELDS.reduce((acc, f) => {
 function Settings({ user, profile, onDone }) {
   const toast = useToast();
   const [form, setForm] = useState({
-    roles: profile.roles ?? [], skill_areas: profile.skill_areas ?? [],
+    fields: fieldsOf(profile), roles: profile.roles ?? [], skill_areas: profile.skill_areas ?? [],
     extra_skills: (profile.extra_skills ?? []).join('، '),
     cities: profile.cities ?? [], accept_remote: profile.accept_remote ?? true,
     avoid_software_roles: profile.avoid_software_roles ?? false,
@@ -840,8 +873,9 @@ function Settings({ user, profile, onDone }) {
   const listOf = (s) => String(s).split(/[,،\n]/).map((x) => x.trim()).filter(Boolean);
 
   const patch = useMemo(() => {
-    const { guess, server, ...columns } = form;
+    const { guess, server, fields, ...columns } = form;
     const was = profile.answers?._settings ?? {};
+    const fieldsMoved = JSON.stringify(fields) !== JSON.stringify(fieldsOf(profile));
     return {
       ...columns,
       extra_skills: listOf(form.extra_skills),
@@ -850,14 +884,14 @@ function Settings({ user, profile, onDone }) {
       min_score: Number(form.min_score) || 0,
       // The answers column is only written when this switch moved: the worker writes its
       // estimates there too, and a save that changed nothing must not write over them.
-      ...(guess !== (was.guess === true) || server !== (was.server === true)
-        ? { answers: { ...(profile.answers ?? {}), _settings: { ...was, guess, server } } }
+      ...(guess !== (was.guess === true) || server !== (was.server === true) || fieldsMoved
+        ? { answers: { ...(profile.answers ?? {}), _settings: { ...was, guess, server }, _fields: fields } }
         : {})
     };
   }, [form, profile.answers]);
 
   // Every control shows what it costs: how many jobs survive it, recomputed as you touch it.
-  const scored = useMemo(() => scoreAll(pool, { ...profile, ...patch }), [pool, patch]);
+  const scored = useMemo(() => scoreAll(pool, { ...profile, ...patch, fields: form.fields }), [pool, patch, form.fields]);
   const shown = scored?.filter((r) => r.score >= patch.min_score).length;
   const r = readiness(profile, { extension: !!ext || form.server });
 
@@ -882,14 +916,25 @@ function Settings({ user, profile, onDone }) {
 
         <div className="field">
           <label>مجالاتك — بالترتيب</label>
-          <RankedChips options={ROLE_FAMILIES} value={form.roles} onChange={(v) => set('roles', v)} />
+          <RankedChips options={FIELD_CHOICES} labelKey="ar" value={form.fields} onChange={(v) => set('fields', v)} limit={12} />
         </div>
 
-        <div className="field">
-          <label>مهارات تملكها فعلاً</label>
-          <p className="hint">لا نحتسب إلا ما تؤكده أنت. وما لا تؤكده يظهر كفجوة، لا كرصيد.</p>
-          <RankedChips options={SKILL_AREAS} value={form.skill_areas} onChange={(v) => set('skill_areas', v)} />
-        </div>
+        {/* The finer office families and skill areas: shown to whoever works in those fields,
+            or already chose from them — never to a nurse being asked about "data". */}
+        {(form.roles.length > 0 || form.fields.some((f) => OFFICE_FIELDS.has(f))) && (
+          <>
+            <div className="field">
+              <label>تخصّصات أدق <span className="faint">(اختياري)</span></label>
+              <RankedChips options={ROLE_FAMILIES} value={form.roles} onChange={(v) => set('roles', v)} limit={8} />
+            </div>
+
+            <div className="field">
+              <label>مهارات تملكها فعلاً</label>
+              <p className="hint">لا نحتسب إلا ما تؤكده أنت. وما لا تؤكده يظهر كفجوة، لا كرصيد.</p>
+              <RankedChips options={SKILL_AREAS} value={form.skill_areas} onChange={(v) => set('skill_areas', v)} />
+            </div>
+          </>
+        )}
 
         <div className="field">
           <label htmlFor="extra">أدوات وشهادات تتقنها</label>
@@ -1360,7 +1405,7 @@ function Jobs({ user, profile, onProfile }) {
               <span className="faint">{deck.length > 1 ? `باقي ${deck.length - 1}` : 'الأخيرة'}</span>
             </div>
             <p className="deck-title">{top.job.title}</p>
-            <p className="deck-where">{top.job.company} · {AR_CITY[top.job.city] || top.job.location}</p>
+            <p className="deck-where co-line"><CoMark name={top.job.company} /><span>{top.job.company} · {AR_CITY[top.job.city] || top.job.location}</span></p>
             <span className="field-chip">{FIELD_AR[top.job.field ?? fieldOf(top.job.title, top.job.company)]}</span>
             <p className="faint" style={{ margin: '6px 0 0' }}>
               {top.job.salary_published ? `الراتب ${top.job.salary_published}` : L.noSalary}
@@ -1484,8 +1529,8 @@ function Jobs({ user, profile, onProfile }) {
           <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1.25 }}>{job.title}</p>
           {/* The raw location is whatever the board typed — "Riyadh Saudi Arabia, Dubai United
               Arab Emirates". The normalised city is the one the reader asked for. */}
-          <p className="muted" style={{ margin: '6px 0 0' }}>
-            {job.company} · {AR_CITY[job.city] || job.location}
+          <p className="muted co-line" style={{ margin: '8px 0 0' }}>
+            <CoMark name={job.company} /><span>{job.company} · {AR_CITY[job.city] || job.location}</span>
           </p>
           <p className="faint" style={{ margin: '8px 0 0' }}>
             {job.salary_published ? `الراتب ${job.salary_published}` : L.noSalary}

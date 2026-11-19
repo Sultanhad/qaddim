@@ -128,6 +128,26 @@ check('Helpers', 'Entity-escaped HTML becomes plain text',
   stripHtml('&lt;p&gt;Hello &amp; welcome&lt;/p&gt;') === 'Hello & welcome');
 check('Helpers', 'Normalisation survives accents and tashkeel', norm('Résumé').trim() === 'resume');
 
+// ── fields: every kind of job, not only the office families ──
+{
+  const nurse = normaliseProfile({ fields: ['health'], cities: ['riyadh'], years_experience: 2, min_score: 60 });
+  const chef = normaliseProfile({ answers: { _fields: ['hospitality'] }, cities: ['riyadh'], years_experience: 4 });
+  const ph = job({ title: 'Pharmacist (Riyadh)', company: 'Nahdi', description: 'Dispense medicines and advise patients. '.repeat(20) });
+  const rn = job({ title: 'Registered Nurse', company: 'Hayat National Hospital', description: 'Provide patient care on the ward. '.repeat(20) });
+  const cook = job({ title: 'Chef de Partie - Hot Kitchen', company: 'Hilton', description: 'Run the hot kitchen section. '.repeat(20) });
+  check('Fields', 'A chosen field lets its jobs through', !filterReason(ph, nurse) && !filterReason(rn, nurse));
+  check('Fields', 'Other fields stay out', filterReason(cook, nurse)?.code === 'unrelated', JSON.stringify(filterReason(cook, nurse)));
+  check('Fields', 'The fields can live with the answers', !filterReason(cook, chef) && chef.fields[0] === 'hospitality');
+  const s1 = scoreJob(rn, nurse, TODAY);
+  check('Fields', 'A job in your field scores as a real match, not at the bottom', s1.total >= 60, s1.total);
+  check('Fields', 'And says why, by field', s1.reasons.some((r) => r.code === 'path' && r.fieldId === 'health' && r.rank === 0), JSON.stringify(s1.reasons));
+  check('Fields', 'An unknown field id is ignored', normaliseProfile({ fields: ['health', 'nonsense', 'other'] }).fields.join() === 'health');
+  // An office profile with no fields scores exactly as before.
+  const before = scoreJob(job({ title: 'Product Manager', description: 'Own the roadmap. '.repeat(30) }), sultan, TODAY).total;
+  const withEmpty = scoreJob(job({ title: 'Product Manager', description: 'Own the roadmap. '.repeat(30) }), normaliseProfile({ ...sultan, fields: [] }), TODAY).total;
+  check('Fields', 'No fields chosen: nothing changes', before === withEmpty, `${before} vs ${withEmpty}`);
+}
+
 // ── arrangement ──────────────────────────────────────────────────────────────
 check('Arrangement', 'Board spellings collapse to one word each',
   arrangementOf('onsite') === 'On-site' && arrangementOf('OnSite') === 'On-site' &&

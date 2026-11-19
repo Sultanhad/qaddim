@@ -5,6 +5,7 @@
 //   2. Nothing about the user is assumed. A skill the user did not confirm is a gap, never a credit.
 
 import { norm, has, hasAny, daysBetween } from './text.js';
+import { fieldOf, FIELDS } from './fields.js';
 import {
   ROLE_FAMILIES, SKILL_AREAS, GAP_TERMS, CERT_TERMS,
   HEAVY_CODE, MEDIUM_CODE, DEV_TITLE, PROGRAM_TERMS,
@@ -15,11 +16,15 @@ export const WEIGHTS = { skills: 30, path: 25, seniority: 15, location: 10, codi
 
 const familyById = Object.fromEntries(ROLE_FAMILIES.map((f) => [f.id, f]));
 const areaById = Object.fromEntries(SKILL_AREAS.map((a) => [a.id, a]));
+const FIELD_IDS = new Set(FIELDS.map((f) => f.id).filter((id) => id !== 'other'));
 
 /** Fills in what a half-written profile leaves out, without inventing anything about the person. */
 export function normaliseProfile(p = {}) {
   return {
     roles: (p.roles || []).filter((id) => familyById[id]),
+    // The field a person works in, from fields.js — every kind of job, not only the office and
+    // technology families above. Kept with the answers (profiles.answers._fields), in order.
+    fields: (p.fields || p.answers?._fields || []).filter((id) => FIELD_IDS.has(id)),
     skill_areas: (p.skill_areas || []).filter((id) => areaById[id]),
     extra_skills: (p.extra_skills || []).map((s) => norm(s).trim()).filter(Boolean),
     years_experience: Number.isFinite(+p.years_experience) ? +p.years_experience : 0,
@@ -174,6 +179,8 @@ export function filterReason(job, profile) {
 
   const family = roleFamilyOf(job.title);
   if (family && p.roles.includes(family.id)) return null;
+  // A job in a field they chose is theirs, whatever the office families make of its title.
+  if (p.fields.length && p.fields.includes(fieldOf(job.title, job.company))) return null;
 
   // No exact family match: let it through only if the description really overlaps your skills.
   const allN = norm(job.title + ' ' + job.description);
@@ -209,8 +216,18 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   const family = roleFamilyOf(job.title);
   let path = 0, pathLabel = '';
   const rank = family ? p.roles.indexOf(family.id) : -1;
+  const field = fieldOf(job.title, job.company);
+  const fieldRank = rank < 0 ? p.fields.indexOf(field) : -1;
   if (rank === 0) { path = WEIGHTS.path; pathLabel = `Your first-choice field: ${family.label}`; }
   else if (rank > 0) { path = Math.max(12, Math.round(WEIGHTS.path * (1 - rank * 0.09))); pathLabel = `Your choice #${rank + 1}: ${family.label}`; }
+  else if (fieldRank >= 0) {
+    path = fieldRank === 0 ? WEIGHTS.path : Math.max(12, Math.round(WEIGHTS.path * (1 - fieldRank * 0.09)));
+    pathLabel = fieldRank === 0 ? `Your first-choice field: ${field}` : `Your choice #${fieldRank + 1}: ${field}`;
+    // The skill areas are an office vocabulary — data, product, finance. A nurse or a chef has
+    // none of them, and that says nothing about the job; scoring it as zero would put every
+    // job in their own field at the bottom. Neutral, not a reward: half, and only as a floor.
+    skills = Math.max(skills, Math.round(WEIGHTS.skills / 2));
+  }
   else if (hasAny(titleN, PROGRAM_TERMS)) { path = 14; pathLabel = 'Graduate / early-career programme'; }
   else {
     const overlap = matched.length;
@@ -301,6 +318,7 @@ export function scoreJob(job, profile, today = new Date().toISOString().slice(0,
   // has a sentence to print.
   const candidates = [];
   if (rank >= 0) candidates.push([path / WEIGHTS.path, { code: 'path', rank, familyId: family.id, text: pathLabel }]);
+  else if (fieldRank >= 0) candidates.push([path / WEIGHTS.path, { code: 'path', rank: fieldRank, fieldId: field, text: pathLabel }]);
   if (matched.length) {
     candidates.push([skills / WEIGHTS.skills, {
       code: 'skills', areaIds: matched,

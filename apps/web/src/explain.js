@@ -6,6 +6,7 @@
 
 import { ROLE_FAMILIES, SKILL_AREAS } from '@engine/taxonomy.js';
 import { normaliseArrangement } from '@engine/score.js';
+import { FIELD_AR } from '@engine/fields.js';
 
 const familyAr = Object.fromEntries(ROLE_FAMILIES.map((f) => [f.id, f.label_ar || f.label]));
 const areaAr = Object.fromEntries(SKILL_AREAS.map((a) => [a.id, a.label_ar || a.label]));
@@ -32,9 +33,10 @@ export function reasonAr(r) {
   if (typeof r === 'string') return r;            // a score stored before codes existed
   switch (r.code) {
     case 'path':
-      return r.rank === 0
-        ? `مجالك الأول: ${familyAr[r.familyId] ?? ''}`
-        : `اختيارك ${ordinal[r.rank] ?? `رقم ${r.rank + 1}`}: ${familyAr[r.familyId] ?? ''}`;
+    {
+      const name = familyAr[r.familyId] ?? FIELD_AR[r.fieldId] ?? '';
+      return r.rank === 0 ? `مجالك الأول: ${name}` : `اختيارك ${ordinal[r.rank] ?? `رقم ${r.rank + 1}`}: ${name}`;
+    }
     case 'skills': {
       const names = (r.areaIds || []).map((id) => areaAr[id] ?? id);
       return `تستخدم ${names.length === 1 ? 'مهارة' : `${names.length} من مهاراتك`}: ${names.join('، ')}`;

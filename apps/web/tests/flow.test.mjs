@@ -48,7 +48,12 @@ await shot('1-firstrun');
 
 // الخطوة الأولى: اختيار مجال ومدينة ورؤية العدّاد
 await page.getByLabel('اسمك').fill('سلطان التجربة');
-await page.getByRole("button", { name: "إدارة وتحليل المنتجات" }).click();
+// Every kind of job is offered, not only the office families: a nurse or a chef can say what they do.
+const offered = await page.locator('.chip').allTextContents();
+console.log(offered.some((t) => /الصحة والصيدلة/.test(t)) && offered.some((t) => /الفنادق والمطاعم/.test(t))
+  ? '  ✓ المجالات كلها معروضة، لا مجالات المكاتب وحدها'
+  : '  ✗ المجالات غير المكتبية غائبة: ' + offered.slice(0, 6).join(' | '));
+await page.getByRole("button", { name: "المنتجات وتحليل الأعمال" }).click();
 await page.getByRole("button", { name: "المنتج", exact: true }).click().catch(() => {});
 await page.getByRole("button", { name: "تحليل الأعمال", exact: true }).first().click().catch(() => {});
 await page.waitForTimeout(600);

@@ -70,7 +70,8 @@ export function readiness(profile, { extension = false } = {}) {
     missingAuto,
     // Four rungs, so the meter can say "3 من 4" instead of a vague percentage.
     done: [
-      (profile?.roles?.length ?? 0) > 0 && (profile?.cities?.length ?? 0) > 0,
+      // A field chosen from either list counts: the office families, or the fields of every job.
+      ((profile?.roles?.length ?? 0) + (profile?.answers?._fields?.length ?? 0)) > 0 && (profile?.cities?.length ?? 0) > 0,
       missingApply.length === 0,
       missingAuto.length === 0,
       extension

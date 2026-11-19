@@ -119,7 +119,7 @@ const RULES = [
   ['leadership', ['strategic projects', 'special projects']],
 
   // ── 3. fields by their broad words: specialist fields first ──
-  ['operations', ['tool store*', 'inventory', 'stock controller', 'stock', 'oil movement', 'procurement', 'materials management', 'materials manager',
+  ['operations', ['operations controller', 'operations control', 'tool store*', 'inventory', 'stock controller', 'stock', 'oil movement', 'procurement', 'materials management', 'materials manager',
     'materials coordinator', 'direct materials', 'material flow', 'dc', 'warehouse', 'storekeeper', 'store keeper', 'spare parts',
     'finished goods', 'distribution center', 'distribution centre']],
   // A trainer at "Abu Dhabi Mall Fitness First" is a trainer, so fitness reads before retail's "mall";
