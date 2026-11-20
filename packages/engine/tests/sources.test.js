@@ -121,6 +121,7 @@ check('Resilience', 'A failing board is recorded and the others still load',
       if (url.includes('recruitingCEJobRequisitionDetails')) {
         const id = decodeURIComponent(url.match(/Id=([^,]+)/)[1]).replace(/"/g, '');
         if (failDetail === id) throw new Error('fetch failed');
+        if (id === '4') return { ok: true, status: 200, json: async () => ({ items: [{ ExternalDescriptionStr: '', OrganizationDescriptionStr: '<p>Home Centre is a retailer.</p>' }] }) };
         return { ok: true, status: 200, json: async () => ({ items: [{ ExternalDescriptionStr: '<p>This role is an on-site role in Riyadh.</p>' }] }) };
       }
       const facet = url.match(/selectedLocationsFacet=(\d+)/)?.[1];
@@ -160,6 +161,11 @@ check('Resilience', 'A failing board is recorded and the others still load',
   const d = await fetchAll(OR, { fetchImpl: flaky.fn });
   check('Oracle', 'A posting whose record will not load is left out, and the read marked incomplete',
     d.jobs.length === 1 && d.partial.length === 1 && /1 of 2/.test(d.partial[0].why), JSON.stringify(d.partial));
+
+  const org = oracleFetch({ total: 1, list: [req('4', 'Riyadh, Saudi Arabia')] });
+  const o = await fetchAll(OR, { fetchImpl: org.fn });
+  check('Oracle', 'A posting whose own fields are empty is read from the organisation text, not stored blank',
+    o.jobs.length === 1 && /Home Centre/.test(o.jobs[0].description), JSON.stringify(o.jobs[0]?.description));
 
   check('Oracle', 'Only the application tier of an Oracle pod is reachable',
     hostAllowed('efan.fa.em3.oraclecloud.com') && hostAllowed('fa-ewxl-saasfaprod1.fa.ocs.oraclecloud.com') &&

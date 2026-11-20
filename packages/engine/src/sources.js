@@ -446,8 +446,12 @@ const ADAPTERS = {
         const d = (await getJson(`${api}/recruitingCEJobRequisitionDetails?expand=all&onlyData=true` +
           `&finder=ById;Id=%22${encodeURIComponent(r.Id)}%22,siteNumber=${site}`, opts))?.items?.[0];
         if (!d) { unread++; continue; }
-        job.description = [d.ExternalDescriptionStr, d.ExternalResponsibilitiesStr, d.ExternalQualificationsStr]
-          .map((x) => stripHtml(x || '')).filter(Boolean).join('\n\n').slice(0, 20000) || job.description;
+        const text = (keys) => keys.map((k) => stripHtml(d[k] || '')).filter(Boolean).join('\n\n').slice(0, 20000);
+        // Some employers (Landmark) leave the posting's own fields empty and write everything into
+        // the organisation and company descriptions. Read empty, a job was never counted as read,
+        // so 173 of them were fetched again on every pass and crowded the rest out of the 150.
+        job.description = text(['ExternalDescriptionStr', 'ExternalResponsibilitiesStr', 'ExternalQualificationsStr'])
+          || text(['OrganizationDescriptionStr', 'CorporateDescriptionStr']) || job.description;
         job.arrangement = arrangementOf(job.arrangement, job.location, job.description);
       } catch { unread++; continue; }
       out.push(job);
