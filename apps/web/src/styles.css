@@ -655,3 +655,6 @@ section:first-of-type > .group-h { margin-top: 18px; }
 }
 .co-line { display: flex; align-items: center; gap: 0; min-width: 0; }
 .co-line > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A job applied to on the employer's own site, in the deck. */
+.deck-manual { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; color: var(--warn); background: rgba(255, 176, 32, .08); border: 1px solid rgba(255, 176, 32, .28); }

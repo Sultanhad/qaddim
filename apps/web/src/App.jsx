@@ -1302,11 +1302,11 @@ function Jobs({ user, profile, onProfile }) {
       : { rows: live.slice(0, 10), fallback: true, count: null };
   }, [scored, actedOn, profile.min_score, filtering, filters, wide, read, found, lens]);
 
-  async function act(job, status, fresh) {
+  async function act(job, status, fresh, opened = false) {
     const me = fresh ?? profile;
     // "Interested" means apply. If we cannot apply yet, ask for the missing answers first —
     // at the moment they matter, not in a form before any job was ever seen.
-    if (status === 'saved' && !readiness(me, { extension: !!ext || me.answers?._settings?.server === true }).canApply) { setNeedFor(job); return; }
+    if (status === 'saved' && !opened && !readiness(me, { extension: !!ext || me.answers?._settings?.server === true }).canApply) { setNeedFor(job); return; }
     setBusyId(job.id);
     const row = { user_id: user.id, job_id: job.id, status };
     // Only queue when something will actually drain the queue. Without the extension these
@@ -1329,6 +1329,10 @@ function Jobs({ user, profile, onProfile }) {
       toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن'
         : serverSkips(job.url) ? 'في الطابور — يرسله Chrome حاسبك متى فتحته (هذا الموقع لا يقبل الإرسال من الخادم)'
           : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
+    } else if (opened) {
+      // From the deck: the employer's page was opened by the press itself (a page opened later,
+      // after the save, is blocked as a pop-up on a phone). No fill sheet in between.
+      toast.ok('حُفظت في «طلباتي» · فُتحت صفحة الشركة لتقدّم منها');
     } else {
       // Not one that can be sent for them: say why, and bring the fill sheet into view. On a
       // phone it opened at the top of a page scrolled half-way down, and the press looked like
@@ -1359,8 +1363,10 @@ function Jobs({ user, profile, onProfile }) {
   // When something applies for them, the deck holds only jobs it can apply to: a job that
   // must be done by hand on the employer's site does not belong behind a one-tap «يهمني».
   const sends = profile.auto_apply && (ext || server);
-  const deck = sends ? rows.filter((x) => autoApplyable(x.job.url)) : rows;
-  const byHand = rows.length - deck.length;
+  // Every job is in the deck. One that nothing can apply to for them (Workday, Oracle, Bayt…)
+  // says so on its card, and «يهمني» on it opens the employer's page to apply there.
+  const deck = rows;
+  const manual = (job) => !(sends && autoApplyable(job.url));
   const top = deck[0];
   const ready = r.done.every(Boolean);
 
@@ -1407,6 +1413,7 @@ function Jobs({ user, profile, onProfile }) {
             <p className="deck-title">{top.job.title}</p>
             <p className="deck-where co-line"><CoMark name={top.job.company} /><span>{top.job.company} · {AR_CITY[top.job.city] || top.job.location}</span></p>
             <span className="field-chip">{FIELD_AR[top.job.field ?? fieldOf(top.job.title, top.job.company)]}</span>
+            {manual(top.job) && <p className="deck-manual">تقديم يدوي — موقع الشركة يطلب حساباً. «يهمني» يفتحه لك.</p>}
             <p className="faint" style={{ margin: '6px 0 0' }}>
               {top.job.salary_published ? `الراتب ${top.job.salary_published}` : L.noSalary}
               {ageOf(top.job.published_at) && <> · {ageOf(top.job.published_at)}</>}
@@ -1426,7 +1433,14 @@ function Jobs({ user, profile, onProfile }) {
         {top && (
           <div className="deck-actions">
             <button className="btn deck-no" disabled={busyId === top.job.id} onClick={() => { setMore(false); act(top.job, 'closed'); }}>لا يهمني</button>
-            <button className="btn btn-go deck-yes" disabled={busyId === top.job.id} onClick={() => { setMore(false); act(top.job, 'saved'); }}>يهمني</button>
+            <button className="btn btn-go deck-yes" disabled={busyId === top.job.id} onClick={() => {
+              setMore(false);
+              // Applied to on the employer's own site: that page opens now, with the press — the
+              // profile does not need to be complete for the person to apply there themselves.
+              const own = manual(top.job);
+              if (own) window.open(top.job.url, '_blank', 'noopener');
+              act(top.job, 'saved', undefined, own);
+            }}>يهمني</button>
           </div>
         )}
 
@@ -1440,7 +1454,7 @@ function Jobs({ user, profile, onProfile }) {
         <p className="deck-foot">
           {sends && <><span className="dot" /> يقدّم عنك {ext ? 'من متصفحك' : 'من الخادم'}{queued > 0 && <> · {queued} في الطابور</>} · </>}
           <button type="button" className="linkish" onClick={() => showAs('list')}>
-            {byHand > 0 ? `القائمة كاملة (+${byHand} تقدّم عليها بنفسك)` : 'القائمة كاملة'}
+            القائمة كاملة
           </button>
         </p>
       </div>
