@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "قدّم — تعبئة وإرسال طلبات التوظيف",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "يعبّي استمارات التوظيف من ملفك ويرسلها، داخل متصفحك أنت.",
   "default_locale": "ar",
   "icons": {
@@ -75,6 +75,16 @@
       ],
       "js": [
         "src/bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.bayt.com/*",
+        "https://bayt.com/*"
+      ],
+      "js": [
+        "src/bayt.js"
       ],
       "run_at": "document_idle"
     }

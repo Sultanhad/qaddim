@@ -533,6 +533,26 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
   if (msg?.type === 'qaddim:run') { run().then(() => reply({ ok: true })); return true; }
   if (msg?.type === 'qaddim:stop') { chrome.storage.local.set({ running: false }).then(() => reply({ ok: true })); return true; }
+  if (msg?.type === 'qaddim:add-job') {
+    // «أضف لقدّم» on a Bayt page. Only a page this extension's Bayt script runs on may ask.
+    if (!/^https:\/\/(www\.)?bayt\.com\//.test(sender.tab?.url || '')) { reply({ ok: false, why: 'ليست صفحة من بيت' }); return; }
+    (async () => {
+      const { session } = await state();
+      if (!session) { reply({ ok: false, why: 'افتح قدّم مرة في هذا المتصفح وسجّل دخولك' }); return; }
+      const j = msg.job || {};
+      try {
+        const id = await api(session, '/rpc/add_job_from_page', { method: 'POST', body: JSON.stringify({
+          p_url: j.url, p_title: j.title, p_company: j.company, p_location: j.location,
+          p_description: j.description, p_posted: j.posted || null, p_apply_url: j.applyUrl || null }) });
+        const rows = await api(session, '/applications?select=auto_status&job_id=eq.' + encodeURIComponent(id)).catch(() => []);
+        reply({ ok: true, queued: rows?.[0]?.auto_status === 'queued' });
+        if (rows?.[0]?.auto_status === 'queued') run();
+      } catch (e) {
+        reply({ ok: false, why: /not a Bayt/.test(String(e)) ? 'ليست صفحة وظيفة في بيت' : 'تعذّرت الإضافة — حاول بعد قليل' });
+      }
+    })();
+    return true;
+  }
   if (msg?.type === 'qaddim:sync') {
     chrome.storage.local.set({ session: msg.session, profile: msg.profile })
       .then(() => run())

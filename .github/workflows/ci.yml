@@ -61,5 +61,8 @@ jobs:
       - name: the extension end to end, against a stand-in employer
         run: npm run test:background
 
+      - name: «أضف لقدّم» on Bayt-shaped pages built here
+        run: npm run test:bayt
+
       - name: the site builds
         run: npm run build

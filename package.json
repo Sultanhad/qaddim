@@ -18,6 +18,7 @@
     "test:ext": "node apps/web/tests/extension.test.mjs",
     "test:fill": "node extension/tests/fill.test.mjs",
     "test:background": "node extension/tests/background.test.mjs",
+    "test:bayt": "node extension/tests/bayt.test.mjs",
     "test:questions": "node apps/web/tests/questions.test.mjs",
     "test:sending": "node apps/web/tests/sending.test.mjs",
     "test:answers": "node supabase/tests/answers.test.mjs",
