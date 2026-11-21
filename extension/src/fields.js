@@ -37,7 +37,16 @@ var QaddimFields = (function () {
     { key: 'phone', any: ['phone', 'mobile', 'telephone', 'جوال', 'هاتف'], not: ['relative','friend','emergency','reference','referral','manager','company','country code','dial','الطوارئ','قريب'] },
     { key: 'linkedin_url', any: ['linkedin'] },
     { key: 'current_company', any: ['current company', 'current employer', 'present employer', 'most recent employer', 'most recent company'] },
-    { key: 'current_title', any: ['current title', 'current position', 'current job title', 'most recent title', 'most recent job title', 'most recent position'] },
+    { key: 'current_title', any: ['current title', 'current position', 'current job title', 'most recent title', 'most recent job title', 'most recent position',
+      'more recent job title', 'recent job title', 'current role', 'most recent role', 'المسمى الوظيفي الحالي'] },
+    // Facts that follow from the profile: a Saudi national speaks Arabic; someone whose chosen
+    // city is in Saudi Arabia is in Saudi Arabia. Each is answered only when that holds.
+    { key: 'speaks_arabic', any: ['fluent in arabic', 'proficient in arabic', 'fluent or proficient in arabic', 'arabic proficiency',
+      'arabic fluency', 'speak arabic', 'arabic speaker', 'native arabic', 'arabic language skills', 'تتحدث العربية', 'تجيد العربية'] },
+    { key: 'in_ksa', any: ['currently in ksa', 'currently in saudi', 'currently based in saudi', 'currently located in saudi', 'based in ksa',
+      'based in saudi', 'located in ksa', 'located in saudi', 'reside in saudi', 'residing in saudi', 'live in saudi', 'living in saudi',
+      'currently in the kingdom', 'هل أنت في السعودية', 'مقيم في السعودية'] },
+    { key: 'in_riyadh', any: ['currently in riyadh', 'based in riyadh', 'located in riyadh', 'reside in riyadh', 'residing in riyadh', 'live in riyadh', 'living in riyadh'] },
     { key: 'years_experience', any: ['years of experience', 'years experience', 'total experience', 'سنوات الخبرة'] },
     { key: 'salary_expectation', any: ['salary expectation', 'expected salary', 'desired salary', 'salary requirement', 'الراتب المتوقع'] },
     { key: 'current_salary', any: ['current salary', 'present salary', 'الراتب الحالي'] },
@@ -233,12 +242,23 @@ var QaddimFields = (function () {
    *             `company`, and the control's input `type`.
    * @returns {{key,value,accept,source,why}|null} — value null means "cannot answer this honestly".
    */
+  // The three yes-or-no facts above, as a form may word their options.
+  var YES_SAYS = {
+    speaks_arabic: ['yes', 'native', 'native speaker', 'mother tongue', 'fluent', 'native or bilingual', 'نعم', 'اللغة الأم'],
+    in_ksa: ['yes', 'نعم'], in_riyadh: ['yes', 'نعم']
+  };
+
   function answerFor(label, profile, ctx) {
     var t = norm(label);
     var extra = profile.answers || {};
     var standing = standingKey(t, ctx);
     var key = standing || keyFor(label);
     var blocked = null;
+    // Only "yes" follows from the profile. Anything else — not Saudi, not in Riyadh — is not
+    // a "no" we know; it is a question for the person, like any other.
+    if (YES_SAYS[key] && profile[key] === 'yes') {
+      return { key: key, value: ARABIC.test(label) ? 'نعم' : 'Yes', accept: YES_SAYS[key].map(norm), source: key };
+    }
 
     // Sponsorship and the right to work are asked in the same words by every employer and
     // mean something different in every country. An answer saved for those words would be

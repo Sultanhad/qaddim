@@ -26,6 +26,11 @@ export function forExtension(profile) {
     // "Are you a Saudi national?" is asked as often as "what is your nationality", and the
     // answer to one follows from the other. With no nationality written, neither is answered.
     saudi_national: !nationality ? '' : /سعودي|saudi/i.test(nationality) ? 'yes' : 'no',
+    // Facts that follow from the two above, answered only when they hold: a Saudi national
+    // speaks Arabic; a chosen city in Saudi Arabia means living there.
+    speaks_arabic: /سعودي|saudi/i.test(nationality) ? 'yes' : '',
+    in_ksa: CITY_COUNTRY[cityId] === 'sa' ? 'yes' : '',
+    in_riyadh: cityId === 'riyadh' ? 'yes' : '',
     // Sponsorship is not sent as a yes or a no any more. It was derived from a column no screen
     // ever set, so it said "no" for everyone, everywhere; the extension now works it out from
     // this and from the job's country, or leaves the question to you.
