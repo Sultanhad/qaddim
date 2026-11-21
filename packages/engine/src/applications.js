@@ -74,6 +74,26 @@ export function mayQueue(app, { paused = false } = {}) {
   return s === 'MATCHED' || s === 'ACTION_REQUIRED' && !awaitingProof(app) || s === 'FAILED';
 }
 
+/**
+ * Which of a person's matches the worker queues on its own, for someone who asked it not to
+ * wait for «يهمني». It reads every match they have, not only the jobs seen for the first time
+ * this run: a strong job that arrived before the switch was turned on used to be skipped for
+ * good, because it was never "new" again.
+ *
+ * Never one they have already done something with (applied, saved, or turned down with «لا
+ * يهمني»), a closed posting, one older than `maxAgeDays` (usually filled; and each spends a
+ * place in the day's cap), or one on a system nothing can send on. Strongest first.
+ *
+ * `matches`: [{ job_id, score, job: { url, is_open, published_at } }]
+ */
+export function pickForAutoQueue(matches, { bar, taken, canSend, now = Date.now(), maxAgeDays = 60 }) {
+  const old = (d) => !!d && (now - Date.parse(d)) / 864e5 > maxAgeDays;
+  return (matches ?? [])
+    .filter((m) => m?.job && m.job.is_open !== false && m.score >= bar && !taken.has(m.job_id)
+      && canSend(m.job.url) && !old(m.job.published_at))
+    .sort((a, b) => b.score - a.score);
+}
+
 /** Has the person stopped all automation? Kept with their other settings. */
 export const isPaused = (profile) => profile?.answers?._settings?.paused === true;
 

@@ -173,6 +173,32 @@ console.log('\nالإيقاف الشامل');
   a = await answers();
   check('«استأنف» يعيده', a._settings?.paused === false && a._facts?.gender === 'ذكر');
 }
+console.log('\n«قدّم عني وحده» في صفحة الوظائف');
+{
+  // Sent from the server, so no extension is needed — as on a phone.
+  const a = await answers();
+  await admin(`/rest/v1/profiles?id=eq.${me.id}`, { method: 'PATCH',
+    body: JSON.stringify({ auto_queue: false, auto_queue_above: 80, answers: { ...a, _settings: { ...(a._settings ?? {}), server: true, paused: false } } }) });
+  const queueOn = async () => (await admin(`/rest/v1/profiles?id=eq.${me.id}&select=auto_queue`).then((r) => r.json()))[0].auto_queue;
+  await page.evaluate(() => localStorage.setItem('qaddim:view', 'deck'));
+  await page.goto(base + '/#jobs', { waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'networkidle' });
+  const offBtn = page.locator('button.deck-auto');
+  await offBtn.waitFor({ timeout: 20000 }).catch(() => {});
+  check('مطفأ: زرّ في أعلى الوظائف يقول الحدّ', await offBtn.isVisible() && (await offBtn.innerText()).includes('80'), await offBtn.innerText().catch(() => 'لا زر'));
+  await page.screenshot({ path: `${shots}/autoqueue-off.png` });
+  await offBtn.click();
+  await page.waitForSelector('.deck-auto.on', { timeout: 15000 }).catch(() => {});
+  check('بضغطة يُحفظ في ملفه', await queueOn() === true);
+  check('ويصير سطراً هادئاً يقول إنه يقدّم وحده', (await page.locator('.deck-auto.on').innerText().catch(() => '')).includes('يقدّم عنك وحده'));
+  await page.screenshot({ path: `${shots}/autoqueue-on.png` });
+  await page.locator('.deck-auto.on .linkish').click();
+  await page.waitForSelector('button.deck-auto', { timeout: 15000 }).catch(() => {});
+  check('و«أوقفه» يرجعه لـ«يهمني»', await queueOn() === false);
+  const wide = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  check('ولا تمرير أفقي على الجوال', !wide);
+}
+
 check('لا أخطاء في الصفحة', errors.length === 0, errors.join(' | '));
 
 await browser.close();

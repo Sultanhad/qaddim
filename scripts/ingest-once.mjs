@@ -15,7 +15,7 @@ import dns from 'node:dns';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';   // Node 20 has no native WebSocket; this script never uses realtime, but the client wants one
 import { fetchAll, fingerprintOf, checkLink, autoApplyable, servesRegion } from '../packages/engine/src/sources.js';
-import { awaitingProof, isPaused } from '../packages/engine/src/applications.js';
+import { awaitingProof, isPaused, pickForAutoQueue } from '../packages/engine/src/applications.js';
 import { BOARDS } from '../packages/engine/src/boards.js';
 import { scoreJob, filterReason, normaliseProfile } from '../packages/engine/src/score.js';
 import { answerPending } from './answer-questions.mjs';
@@ -308,11 +308,8 @@ if (HAS_LIFECYCLE) {
   if (shut.length || byHand.length) console.log(`  queue: ${shut.length} closed posting(s) cleared, ${byHand.length} moved to apply-by-hand`);
 }
 
-const byId = new Map(jobs.map((j) => [j.id, j]));
 // Not STALE_DAYS above: that one is how long a posting may go unseen before it is closed.
 const SEND_MAX_AGE_DAYS = 60;
-const tooOldToSend = (published) =>
-  !!published && (Date.now() - new Date(published).getTime()) / 864e5 > SEND_MAX_AGE_DAYS;
 const profiles = await everyRow(() => db.from('profiles').select('*').eq('onboarded', true));
 console.log(`scoring for ${profiles?.length ?? 0} user(s)…`);
 let written = 0, queuedAuto = 0;
@@ -340,18 +337,18 @@ for (const p of profiles ?? []) {
   // their matches, to be picked by hand.)
   if (p.auto_queue && p.auto_apply && !isPaused(p)) {
     const bar = Math.max(50, p.auto_queue_above ?? 75);
-    // Strong, and on a system the extension can actually send on.
-    // And fresh: an advert up for more than two months has usually been filled or forgotten,
-    // and each one sent there spends a place in the daily cap. It stays in the list, dated,
-    // for anyone who wants it by hand.
-    const strong = batch.filter((m) => {
-      const j = byId.get(m.job_id);
-      return m.score >= bar && autoApplyable(j?.url) && !tooOldToSend(j?.published_at);
+    // Every strong match they have, on a system something can send on, and fresh: an advert up
+    // for more than two months has usually been filled or forgotten. It stays in the list,
+    // dated, for anyone who wants it by hand. (Not only this run's new ones — see
+    // pickForAutoQueue.)
+    const mine = await everyRow(() => db.from('matches').select('job_id, score, job:jobs(url, is_open, published_at)')
+      .eq('user_id', p.id).gte('score', bar), 'job_id');
+    const have = await everyRow(() => db.from('applications').select('job_id').eq('user_id', p.id), 'job_id');
+    const strong = pickForAutoQueue(mine, {
+      bar, taken: new Set((have ?? []).map((a) => a.job_id)), canSend: autoApplyable, maxAgeDays: SEND_MAX_AGE_DAYS
     });
     if (strong.length) {
-      const have = await everyRow(() => db.from('applications').select('job_id').eq('user_id', p.id), 'job_id');
-      const seenJobs = new Set((have ?? []).map((a) => a.job_id));
-      const rows = strong.filter((m) => !seenJobs.has(m.job_id)).map((m) => ({
+      const rows = strong.map((m) => ({
         user_id: p.id, job_id: m.job_id, status: 'saved',
         auto_status: 'queued', queued_by: 'auto'
       }));

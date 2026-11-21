@@ -1378,6 +1378,7 @@ function Jobs({ user, profile, onProfile }) {
         {!online && <Banner kind="bad">لا اتصال بالشبكة — ما تضغطه الآن لن يُحفظ.</Banner>}
         {/* Only what stands in the way is said here; everything else lives in the list view. */}
         {!ready && <a className="deck-need" href={r.done[1] && r.done[2] ? '#settings' : '#profile'}>{nextStep} ←</a>}
+        {r.canApply && sends && <AutoQueueLine profile={profile} onProfile={onProfile} />}
         {needFor && (
           <div className="card" style={{ borderColor: 'var(--blue-soft)' }}>
             <p style={{ margin: 0, fontWeight: 800, color: '#fff' }}>قبل أن نقدّم على «{needFor.title}»</p>
@@ -1885,6 +1886,40 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];
  * stops all of it. Stopping holds the queue where it is: nothing is opened, nothing is sent,
  * nothing is answered by estimate, nothing is queued on its own, until it is resumed.
  */
+/**
+ * «قدّم عني وحده»: on the jobs page, where it is used — it lived three switches deep in the
+ * settings, under the sending options, and nobody on a phone found it. On: every job at or
+ * above the bar goes into the queue by itself, within 15 minutes, and «يهمني» is only for the
+ * ones below it. The bar itself is set in the settings.
+ */
+function AutoQueueLine({ profile, onProfile }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const above = profile.auto_queue_above ?? 75;
+  const flip = async (on) => {
+    setBusy(true);
+    const { data, error } = await supabase.from('profiles').update({ auto_queue: on }).eq('id', profile.id).select().single();
+    setBusy(false);
+    if (error) { toast.fail(errorAr(error), () => flip(on)); return; }
+    onProfile(data);
+    toast.ok(on ? `تمام — كل وظيفة من ${above} فأعلى تدخل الطابور وحدها خلال ١٥ دقيقة` : 'رجعنا لـ«يهمني»: لا يُقدَّم إلا على ما تختاره');
+  };
+  if (profile.auto_queue) {
+    return (
+      <p className="deck-auto on">
+        <span className="dot" /> <span>يقدّم عنك وحده على كل وظيفة من <b>{above}</b> فأعلى</span>
+        <a href="#settings">الحدّ</a>
+        <button type="button" className="linkish" disabled={busy} onClick={() => flip(false)}>{busy ? '…' : 'أوقفه'}</button>
+      </p>
+    );
+  }
+  return (
+    <button type="button" className="deck-auto" disabled={busy} onClick={() => flip(true)}>
+      {busy ? '…' : <>قدّم عني وحده على كل وظيفة من <b>{above}</b> فأعلى — بلا «يهمني» ←</>}
+    </button>
+  );
+}
+
 function RunBar({ stats, paused, onPause }) {
   const [busy, setBusy] = useState(false);
   const flip = async () => { setBusy(true); await onPause(!paused); setBusy(false); };

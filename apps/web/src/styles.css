@@ -513,6 +513,15 @@ section:first-of-type > .group-h { margin-top: 18px; }
 .deck { display: flex; flex-direction: column; min-height: calc(100dvh - 190px); }
 .deck-need { display: block; margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
   background: rgba(255, 176, 32, .08); border: 1px solid rgba(255, 176, 32, .3); color: var(--warn); font-weight: 700; text-decoration: none; }
+/* «قدّم عني وحده»: a button while off, one quiet line while on. */
+.deck-auto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; width: 100%; margin: 0 0 12px;
+  padding: 12px 14px; border-radius: 12px; font: inherit; font-size: 14px; text-align: start; cursor: pointer;
+  background: rgba(47, 107, 255, .10); border: 1px solid rgba(47, 107, 255, .35); color: var(--blue-soft); font-weight: 700; }
+button.deck-auto { display: block; line-height: 1.6; }
+.deck-auto.on { cursor: default; background: rgba(32, 201, 120, .07); border-color: rgba(32, 201, 120, .3); color: var(--dim); font-weight: 400; }
+.deck-auto.on b { color: #fff; }
+.deck-auto.on a, .deck-auto.on .linkish { font-size: 13px; padding: 0 4px; min-height: 0; }
+.deck-auto.on > span:nth-child(2) { flex: 1; }
 .deck-card { flex: 1; margin-bottom: 0; }
 .deck-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .deck-title { margin: 0; font-size: 24px; font-weight: 800; color: #fff; line-height: 1.25; }

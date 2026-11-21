@@ -1,5 +1,5 @@
 // Where an application stands. Run: node packages/engine/tests/applications.test.js
-import { stateOf, awaitingProof, mayQueue, isPaused, STATES, STATE_AR } from '../src/applications.js';
+import { stateOf, awaitingProof, mayQueue, isPaused, pickForAutoQueue, STATES, STATE_AR } from '../src/applications.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -52,6 +52,29 @@ check('Queue', 'Nor one that is sent, in the queue, being filled, or closed',
   !mayQueue(app('applied', 'submitted', null)) && !mayQueue(app('saved', 'queued', null)) && !mayQueue(app('saved', 'filling', null)) && !mayQueue(app('closed', null, null)));
 check('Queue', 'And nothing may while everything is paused', !mayQueue(app('saved', null, null), { paused: true }));
 check('Pause', 'Paused is a setting the person holds', isPaused({ answers: { _settings: { paused: true } } }) && !isPaused({ answers: {} }) && !isPaused(null));
+
+// Queued without «يهمني»: every strong match they have, not only this run's new jobs.
+{
+  const now = Date.parse('2026-11-21T00:00:00Z');
+  const m = (job_id, score, job = {}) => ({ job_id, score, job: { url: 'https://apply.workable.com/x/j/1/', is_open: true, published_at: '2026-11-10', ...job } });
+  const all = [
+    m('old-strong', 88),                                         // matched on an earlier run
+    m('weak', 70),
+    m('taken', 95),                                              // already saved / applied / «لا يهمني»
+    m('shut', 90, { is_open: false }),
+    m('stale', 90, { published_at: '2026-08-01' }),
+    m('by-hand', 92, { url: 'https://x.wd3.myworkdayjobs.com/a' }),
+    m('best', 97),
+    { job_id: 'no-job', score: 99, job: null }
+  ];
+  const can = (u) => !/myworkdayjobs/.test(u);
+  const got = pickForAutoQueue(all, { bar: 75, taken: new Set(['taken']), canSend: can, now }).map((x) => x.job_id);
+  check('AutoQueue', 'A strong match from an earlier run is queued', got.includes('old-strong'), got);
+  check('AutoQueue', 'Strongest first', got.join() === 'best,old-strong', got);
+  check('AutoQueue', 'Never below the bar, already acted on, closed, stale, by-hand, or jobless',
+    !['weak', 'taken', 'shut', 'stale', 'by-hand', 'no-job'].some((x) => got.includes(x)), got);
+  check('AutoQueue', 'A higher bar takes fewer', pickForAutoQueue(all, { bar: 95, taken: new Set(['taken']), canSend: can, now }).map((x) => x.job_id).join() === 'best', '');
+}
 
 let fail = 0;
 for (const r of results) {
