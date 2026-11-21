@@ -83,7 +83,10 @@ const ONLY = env.QADDIM_ONLY_USER || null;
 // after the press and sends no application — it waits on a bot check a server does not pass,
 // and this does not try to get past it. Those applications stay queued for the person's own
 // Chrome, which sends them (the first confirmed application, Mozn, went that way).
-export const SERVER_SKIPS = ['apply.workable.com'];
+export const SERVER_SKIPS = [];
+// And since 2026-11-21 it presses nothing anywhere: its presses never once came back confirmed
+// (0 of 12), the person's own Chrome's did (21 of 24). The server fills — answering what can be
+// answered, finding what only the person can — and hands each filled form to their Chrome.
 const NEVER = env.QADDIM_NEVER_SUBMIT === '1';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -102,7 +105,8 @@ const asked = await call('/rest/v1/profiles?select=id,auto_apply,answers&onboard
 const people = [];
 for (const p of asked ?? []) {
   if (!p.auto_apply || isPaused(p)) continue;
-  const waiting = (await call(`/rest/v1/applications?select=id,job:jobs(url)&user_id=eq.${p.id}&status=eq.saved&auto_status=eq.queued`) ?? [])
+  const waiting = (await call(`/rest/v1/applications?select=id,auto_report,job:jobs(url)&user_id=eq.${p.id}&status=eq.saved&auto_status=eq.queued`) ?? [])
+    .filter((a) => !a.auto_report?.server_filled_at)
     .filter((a) => { try { return !SERVER_SKIPS.includes(new URL(a.job?.url).hostname); } catch { return true; } });
   if (waiting?.length || ONLY) people.push(p);
 }
@@ -135,7 +139,7 @@ for (const [i, person] of people.entries()) {
     });
     const sends = watchSends(ctx);
     const sw = ctx.serviceWorkers().find((w) => w.url().endsWith('src/background.js')) ?? await ctx.waitForEvent('serviceworker', { timeout: 20000 });
-    await sw.evaluate(([never, skip]) => chrome.storage.local.set({ settings: { ...(never ? { neverSubmit: true } : {}), skipHosts: skip } }), [NEVER, SERVER_SKIPS]);
+    await sw.evaluate(([never, skip]) => chrome.storage.local.set({ settings: { ...(never ? { neverSubmit: true } : {}), skipHosts: skip, fillOnly: true } }), [NEVER, SERVER_SKIPS]);
 
     // Signed in the way the site itself remembers a sign-in, then opened where it hands the
     // session to the extension. From there the extension is on its own.

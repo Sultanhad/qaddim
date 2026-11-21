@@ -13,6 +13,7 @@ const WAITING = 'الاستمارة مفتوحة وتنتظرك';
 const PRESSED = 'ضُغط الإرسال — بانتظار تأكيد الصفحة';
 const UNVERIFIED = 'ضُغط الإرسال ولم يظهر تأكيد — تحقق من بريدك قبل أي إعادة';
 const PAUSED = 'أوقفتَ الأتمتة';
+const SERVER_FILLED = 'عُبّئ على الخادم — يرسله Chrome حاسبك';
 const CANCELLED = 'أُخرج من الطابور قبل الإرسال';
 // Must stay word for word what fill.js says when its press is not acknowledged.
 const NOT_ALLOWED = 'لم يُؤذن بالإرسال — أعد تحميل الإضافة';
@@ -214,6 +215,10 @@ async function applyOne(item, profile, settings, session) {
   }
   // Taken out of the queue since the queue was read — cancelled, or already being handled.
   if (row.auto_status !== 'queued') return 'skipped';
+  // The server's browser fills; the person's own Chrome sends (measured: the server's presses
+  // never came back confirmed, Chrome's nearly always did). What the server already filled is
+  // left in the queue for Chrome, not filled again.
+  if (settings.fillOnly && row.auto_report?.server_filled_at) return 'skipped';
   const before = row.auto_report?.sent;
   if (before?.pressed_at && !before.rearmed && before.outcome !== 'rejected') {
     // Send was already pressed on this one and nobody has said it failed. Pressing again
@@ -236,7 +241,7 @@ async function applyOne(item, profile, settings, session) {
   //
   // `neverSubmit` is not that switch. It has no control anywhere; it is a lock that tests and
   // development set so that nothing they open can ever be sent.
-  const submit = item.submit === true && settings.neverSubmit !== true;
+  const submit = item.submit === true && settings.neverSubmit !== true && settings.fillOnly !== true;
   // Counted when the attempt starts, from what the database holds: the queue never carried
   // the count, so it was written as "1" every time and the three-attempt limit never tripped.
   //
@@ -312,11 +317,21 @@ async function applyOne(item, profile, settings, session) {
     : (row.auto_report?.sent ?? null);
   const report = result.report ?? flight?.report ?? null;
 
-  const final = {
+  // Filled on the server with nothing left to answer: back to the queue for the person's
+  // Chrome to send, marked so the server does not take it again. Its attempt is not counted —
+  // filling it is not a try at sending it.
+  const handOver = settings.fillOnly === true && !pressed && result.status === 'filled';
+  const final = handOver ? {
+    auto_status: 'queued',
+    auto_reason: SERVER_FILLED,
+    auto_at: now,
+    auto_attempts: row.auto_attempts ?? 0,
+    auto_report: { ...(report ?? {}), ...(sent ? { sent } : {}), server_filled_at: now }
+  } : {
     auto_status: status,
     auto_reason: reason,
     auto_at: now,
-    auto_report: report || sent ? { ...(report ?? {}), ...(sent ? { sent } : {}) } : null,
+    auto_report: report || sent ? { ...(report ?? {}), ...(sent ? { sent } : {}), ...(settings.fillOnly ? { server_filled_at: now } : {}) } : null,
     ...(status === 'submitted' ? { status: 'applied' } : {})
   };
   // After a press this write is the only place the page's answer is kept, so a dropped

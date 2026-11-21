@@ -1327,8 +1327,7 @@ function Jobs({ user, profile, onProfile }) {
       if (ext) sendToExtension(me);
       setQueued((n) => n + 1);
       toast.ok(ext ? 'في الطابور — متصفحك يقدّم عليها الآن'
-        : serverSkips(job.url) ? 'في الطابور — يرسله Chrome حاسبك متى فتحته (هذا الموقع لا يقبل الإرسال من الخادم)'
-          : 'في الطابور — يبدأ التقديم من الخادم خلال دقيقة أو دقيقتين');
+        : 'في الطابور — يعبّئه الخادم، ويرسله Chrome حاسبك متى فتحته');
     } else if (opened) {
       // From the deck: the employer's page was opened by the press itself (a page opened later,
       // after the save, is blocked as a pop-up on a phone). No fill sheet in between.
@@ -1366,7 +1365,9 @@ function Jobs({ user, profile, onProfile }) {
   // Every job is in the deck. One that nothing can apply to for them (Workday, Oracle, Bayt…)
   // says so on its card, and «يهمني» on it opens the employer's page to apply there.
   const deck = rows;
-  const manual = (job) => !(sends && autoApplyable(job.url));
+  // (Only for someone whose applications are sent for them. Without that, «يهمني» keeps doing
+  // what it always did: asks for what is missing, then shows the fill sheet.)
+  const manual = (job) => sends && !autoApplyable(job.url);
   const top = deck[0];
   const ready = r.done.every(Boolean);
 
@@ -1875,9 +1876,6 @@ function Unverified({ row, profile, onArrived, onDone }) {
   );
 }
 
-// Sites the server's browser does not send on (scripts/apply-from-server.mjs, SERVER_SKIPS):
-// Workable disables its send button after the press and sends nothing from a server.
-const serverSkips = (url) => { try { return new URL(url).hostname === 'apply.workable.com'; } catch { return false; } };
 
 // ───────────────────────────────────────────────────────── applications ──
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'closed'];

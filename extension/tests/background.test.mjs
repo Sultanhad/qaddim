@@ -380,6 +380,22 @@ console.log('\nمتصفحان على الطابور نفسه');
   await popup.waitForTimeout(1500);
 }
 
+console.log('\nالخادم يعبّئ و Chrome يرسل');
+{
+  row('h-1'); db.queue = [item('h-1')];
+  employer.mode = 'confirm'; employer.forms = 0; employer.posts.length = 0;
+  await cycle({ profile: PROFILE, settings: { fillOnly: true } });
+  const r = db.rows['h-1'];
+  check('متصفح الخادم يعبّئ ولا يضغط', employer.forms === 1 && employer.posts.length === 0, `posts ${employer.posts.length}`);
+  check('ويعيده للطابور لـ Chrome، معلَّماً، بلا محاولة محسوبة', r.auto_status === 'queued' && !!r.auto_report?.server_filled_at && r.auto_attempts === 0 && /يرسله Chrome/.test(r.auto_reason), `${r.auto_status} · ${r.auto_reason}`);
+  await closeTabs();
+  await cycle({ profile: PROFILE, settings: { fillOnly: true } });
+  check('ولا يعبّئه الخادم مرة ثانية', employer.forms === 1);
+  await cycle({ profile: PROFILE });
+  check('ثم Chrome صاحبه يرسله', employer.posts.length === 1 && r.auto_status === 'submitted', r.auto_status);
+  await popup.waitForTimeout(3000);
+}
+
 console.log('\nأنظمة يتركها هذا المتصفح');
 {
   row('k-1'); db.queue = [item('k-1')];
