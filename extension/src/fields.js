@@ -22,6 +22,8 @@ var QaddimFields = (function () {
   // Most specific first: "current company" must win over "company".
   var RULES = [
     { key: 'cover_letter', any: ['cover letter', 'motivation letter', 'خطاب التقديم'] },
+    { key: 'heard_from', any: ['how did you hear', 'where did you hear', 'how did you find out about', 'how did you learn about',
+      'how did you come across', 'where did you find this', 'where did you see this', 'كيف عرفت', 'كيف سمعت', 'من أين عرفت', 'أين وجدت'] },
     { key: 'cv', any: ['resume', 'cv', 'curriculum vitae', 'السيرة الذاتية'] },
     { key: 'first_name', any: ['first name', 'given name', 'forename', 'الاسم الأول'] },
     { key: 'last_name', any: ['last name', 'family name', 'surname', 'اسم العائلة'] },
@@ -248,6 +250,13 @@ var QaddimFields = (function () {
     in_ksa: ['yes', 'نعم'], in_riyadh: ['yes', 'نعم']
   };
 
+  // The ways a form words "the employer's own website" — every one of them true of a job
+  // qaddim read from that site.
+  var HEARD = ['company website', 'company web site', 'company site', 'company careers page', 'company career page',
+    'careers page', 'career page', 'careers site', 'career site', 'careers website', 'career website', 'our website',
+    'our careers page', 'website', 'corporate website', 'employer website',
+    'موقع الشركة', 'الموقع الإلكتروني للشركة', 'صفحة الوظائف', 'موقع الوظائف'];
+
   function answerFor(label, profile, ctx) {
     var t = norm(label);
     var extra = profile.answers || {};
@@ -297,6 +306,16 @@ var QaddimFields = (function () {
       return { key: theirs ? 'answers' : 'estimate', value: String(e.a), accept: wording(String(e.a), label).accept, source: theirs ? 'answers' : 'estimate' };
     }
     if (byCountry) return { key: key, value: null, source: 'work_authorization', why: fact.why, scope: 'job' };
+
+    // "How did you hear about this job?" has one true answer for every application sent from
+    // here: qaddim reads each job from the employer's own careers page. Only the wordings of
+    // that are offered — never "a friend", "a recruiter", "LinkedIn" — and on a list with none
+    // of them it is left for the person.
+    if (key === 'heard_from') {
+      var ar = ARABIC.test(label);
+      return { key: key, value: ar ? 'موقع الشركة' : 'Company website', source: 'heard_from',
+        accept: HEARD.map(norm) };
+    }
 
     if (standing) {
       if (profile[standing] === 'no') return { key: standing, value: 'no', accept: ['no'], source: standing };

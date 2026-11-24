@@ -23,5 +23,15 @@ check('«What is your current or more recent job title?» → the title', ans('W
 check('an Arabic form gets نعم', ans('هل تجيد العربية؟', saudi)?.value === 'نعم');
 check('a question about Arabic tools is not about speaking it', F.keyFor('Do you have experience with Arabic NLP models?') !== 'speaks_arabic');
 
+// «How did you hear about this job?» — the employer's own site, which is where every job here comes from.
+const heard = ans('How did you hear about this job?*', saudi);
+check('«How did you hear about this job?» → Company website', heard?.value === 'Company website', heard?.value);
+check('a list offering «Careers Page» accepts it', heard?.accept.includes('careers page'));
+check('never a friend, a recruiter or LinkedIn', !['friend', 'referral', 'linkedin', 'recruiter', 'employee referral'].some((x) => heard?.accept.includes(x)));
+check('«Where did you hear about us?» is the same question', F.keyFor('Where did you hear about us?') === 'heard_from');
+check('an Arabic form: موقع الشركة', ans('كيف عرفت عن هذه الوظيفة؟', saudi)?.value === 'موقع الشركة');
+check('what they wrote themselves for it still wins', F.answerFor('How did you hear about this job?',
+  forExtension({ full_name: 'S', answers: { 'How did you hear about this job?': 'LinkedIn' } }), { country: 'sa' })?.value === 'LinkedIn');
+
 console.log(fails ? `\n✗ ${fails}` : '\n✓ ما يُستنتج من الملف يُجاب، وما لا يُستنتج يُترك لصاحبه');
 process.exit(fails ? 1 : 0);

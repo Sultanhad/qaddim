@@ -33,7 +33,7 @@ await admin(`/rest/v1/profiles?id=eq.${me.id}`, { method: 'PATCH', body: JSON.st
   answers: { _facts: { gender: 'ذكر' }, 'Are you based in the GCC?': 'Yes' } }) });
 
 // Five open jobs on systems the extension sends on, each at a different company.
-const pool = await admin('/rest/v1/jobs?select=id,company,url&is_open=eq.true&url=like.*greenhouse.io*&limit=200').then((r) => r.json());
+const pool = await admin('/rest/v1/jobs?select=id,company,url&is_open=eq.true&url=like.*greenhouse.io*&limit=300').then((r) => r.json());
 const jobs = [];
 for (const j of pool) { if (!jobs.some((x) => x.company === j.company)) jobs.push(j); if (jobs.length === 5) break; }
 if (jobs.length < 5) { console.log('✗ لا خمس وظائف مفتوحة على Greenhouse للاختبار'); await admin(`/auth/v1/admin/users/${me.id}`, { method: 'DELETE' }); process.exit(1); }
@@ -173,6 +173,32 @@ console.log('\nالإيقاف الشامل');
   a = await answers();
   check('«استأنف» يعيده', a._settings?.paused === false && a._facts?.gender === 'ذكر');
 }
+console.log('\n«أُرسل أو لا فقط» لا يخفي ما ينتظر صاحبه');
+{
+  const spare = pool.filter((j) => !jobs.some((x) => x.id === j.id)).slice(0, 2);
+  if (spare.length === 2) {
+    const [pressedJob, handJob] = spare;
+    await seed(pressedJob, { auto_status: 'needs_you', auto_reason: UNVERIFIED, auto_attempts: 1, auto_at: pressedAt,
+      auto_report: { filled: [], missing: [], sent: { pressed_at: pressedAt, by: '1.8.3', outcome: 'unverified', evidence: null } } });
+    await seed(handJob, { auto_status: 'needs_you', auto_reason: 'أسئلة إلزامية بلا إجابة منك', auto_attempts: 1,
+      auto_report: { filled: [], missing: [{ q: 'Which languages do you speak?', kind: 'checkbox', manual: true, why: 'سؤال خيارات إلزامي — اختر بنفسك' }] } });
+    await page.evaluate(() => localStorage.setItem('qaddim:apps-view', 'simple'));
+    await page.goto(base + '/#applications', { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    const box = page.locator('.waiting-on-me');
+    await box.waitFor({ timeout: 20000 }).catch(() => {});
+    const text = await box.innerText().catch(() => '');
+    check('في العرض البسيط: «واقفة تنتظرك» ظاهرة', text.includes('واقفة تنتظرك'), text.slice(0, 40));
+    check('ومعها الإرسال الذي لم يتأكد، وزرّا وصل/لم يصل', text.includes('ضُغط الإرسال ولم تؤكّده') && await box.locator('button', { hasText: 'وصل' }).count() > 0);
+    check('وما يُكمَل من صفحة الشركة، برابطها', text.includes('تُكمَل من صفحة الشركة') && await box.locator(`a[href="${handJob.url}"]`).count() === 1);
+    await page.screenshot({ path: `${shots}/simple-waiting.png`, fullPage: true });
+    await box.locator('.app-mini-row', { hasText: 'قدّمت' }).locator('button').click();
+    await page.waitForTimeout(1500);
+    check('«قدّمت» يخرجها من القائمة ويحفظها مقدَّمة', (await rowOf(handJob)).status === 'applied');
+    await page.evaluate(() => localStorage.setItem('qaddim:apps-view', 'full'));
+  } else check('وظيفتان إضافيتان للاختبار', false);
+}
+
 console.log('\n«قدّم عني وحده» في صفحة الوظائف');
 {
   // Sent from the server, so no extension is needed — as on a phone.

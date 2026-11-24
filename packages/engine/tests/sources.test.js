@@ -1,6 +1,6 @@
 // Ingestion contract, checked against recorded shapes from the real boards.
 // No network: every response here is a fixture. Run: node packages/engine/tests/sources.test.js
-import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, EMPLOYER_CAREER_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable, servesRegion } from '../src/sources.js';
+import { fetchAll, fetchSource, getJson, placeOf, ALLOWED_HOSTS, EMPLOYER_CAREER_HOSTS, BlockedHost, hostAllowed, fingerprintOf, linkHostAllowed, checkLink, probeUrlFor, searchPostAllowed, searchJson, autoApplyable, NOT_QUEUED, servesRegion } from '../src/sources.js';
 
 const results = [];
 const check = (g, n, c, d) => results.push({ g, n, pass: !!c, detail: c ? '' : String(d ?? '') });
@@ -422,8 +422,11 @@ check('Safety', 'An employer\'s own career host is named outright, and only a ca
 {
   const manifest = JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../../../extension/manifest.json', import.meta.url), 'utf8'));
   const pages = manifest.content_scripts[0].matches.map((m) => m.replace('*.', 'x.').replace('/*', '/job/1'));
-  const refused = pages.filter((u) => !autoApplyable(u));
-  check('Applying', 'Every page the extension fills may be queued', refused.length === 0, refused.join(', '));
+  const measuredOut = (u) => NOT_QUEUED.some((re) => re.test(new URL(u).hostname));
+  const refused = pages.filter((u) => !autoApplyable(u) && !measuredOut(u));
+  check('Applying', 'Every page the extension fills may be queued, but for the ones measured not to work', refused.length === 0, refused.join(', '));
+  check('Applying', 'SmartRecruiters is applied to by hand: from the queue its form is never reached',
+    !autoApplyable('https://jobs.smartrecruiters.com/Acme/123-analyst') && !autoApplyable('https://careers.smartrecruiters.com/Acme/x'));
   check('Applying', 'A Workday job is never queued', !autoApplyable('https://cisco.wd5.myworkdayjobs.com/Cisco_Careers/job/Riyadh/X_1'));
   check('Applying', 'Nor SuccessFactors, nor an employer\'s own site',
     !autoApplyable('https://career5.successfactors.eu/career?company=x') && !autoApplyable('https://careers.datadoghq.com/detail/1/'));

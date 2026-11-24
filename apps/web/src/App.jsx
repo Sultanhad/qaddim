@@ -2059,8 +2059,53 @@ function Applications({ user, profile, onProfile }) {
       .sort((a, b) => String(sentOf(b).verified_at ?? b.auto_at).localeCompare(String(sentOf(a).verified_at ?? a.auto_at)));
     const notYet = rows.filter((r) => sentOf(r)?.outcome !== 'confirmed' && !['closed', 'withdrawn'].includes(r.status)).length;
     const when = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'long' }) : ''; };
+    // What only its owner can move. This view used to show the sent ones and nothing else, and
+    // twenty applications sat stopped for days with nobody told: "only what was sent" must not
+    // mean "and never what is waiting for you".
+    const waitingOnMe = urgent.filter((r) => state.get(r.id) === 'ACTION_REQUIRED' && r.job?.is_open !== false);
+    const unconfirmed = waitingOnMe.filter(awaitingProof);
+    const byHandOnly = waitingOnMe.filter((r) => {
+      if (awaitingProof(r)) return false;
+      const w = whose(r, profile);
+      return w.byHand.length > 0 && !w.mine.length && !w.soon;
+    });
     return (
       <>
+        {waitingOnMe.length > 0 && (
+          <div className="waiting-on-me">
+            <p className="section" style={{ color: 'var(--warn)' }}>واقفة تنتظرك · {waitingOnMe.length}</p>
+            <Questions rows={waitingOnMe} profile={profile} onProfile={onProfile} onDone={load} />
+            {unconfirmed.length > 0 && (
+              <div className="card questions">
+                <p className="questions-h">ضُغط الإرسال ولم تؤكّده صفحة الشركة · {unconfirmed.length}</p>
+                <p className="faint" style={{ margin: '4px 0 10px' }}>ابحث في بريدك (ومعه Junk) عن رسالة من الشركة، ثم قل لنا: وصل أو لم يصل.</p>
+                {unconfirmed.map((row) => (
+                  <div className="app-mini" key={row.id}>
+                    <p className="app-title">{row.job?.title}</p>
+                    <p className="app-where">{row.job?.company}</p>
+                    <Unverified row={row} profile={profile} onArrived={() => setStatus(row, 'applied')} onDone={load} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {byHandOnly.length > 0 && (
+              <div className="card questions">
+                <p className="questions-h">تُكمَل من صفحة الشركة · {byHandOnly.length}</p>
+                <p className="faint" style={{ margin: '4px 0 10px' }}>
+                  فيها أسئلة اختيار متعدد عنك — مهاراتك، لغاتك، أين تفضّل العمل — لا نختار فيها نيابة عنك.
+                  عبّأنا الباقي؛ افتحها، أكمل الاختيارات، أرسل، ثم اضغط «قدّمت».
+                </p>
+                {byHandOnly.map((row) => (
+                  <div className="app-mini app-mini-row" key={row.id}>
+                    <a href={row.job?.url} target="_blank" rel="noopener noreferrer">{row.job?.title} — {row.job?.company} ↗</a>
+                    <button type="button" className="btn" onClick={() => setStatus(row, 'applied')}>قدّمت</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <hr className="rule" />
+          </div>
+        )}
         <p className="apps-sum">أُرسل فعلاً: <b>{proven.length}</b></p>
         {!proven.length && (
           <div className="card">

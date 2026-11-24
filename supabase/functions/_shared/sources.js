@@ -668,10 +668,16 @@ export const APPLY_HOSTS = [
   /^apply\.workable\.com$/, /^jobs\.lever\.co$/, /^jobs\.ashbyhq\.com$/, /(^|\.)greenhouse\.io$/,
   /^(jobs|careers)\.smartrecruiters\.com$/, /\.recruitee\.com$/, /^jobs\.unifonic\.com$/
 ];
+// Pages the extension has a script on but that are never queued, because from the queue the
+// form is never reached. Measured, not guessed: SmartRecruiters, 6 tries across every account
+// by 2026-11-25, not one field filled ("no send button") — its apply step sits behind its own
+// sign-in flow. Counted as sendable, they sat at «يحتاجك» with nothing anyone could do; now
+// they are applied to from the employer's page, like Workday.
+export const NOT_QUEUED = [/^(jobs|careers)\.smartrecruiters\.com$/];
 export function autoApplyable(url) {
   let host = '';
   try { const u = new URL(url); if (u.protocol !== 'https:') return false; host = u.hostname; } catch { return false; }
-  return APPLY_HOSTS.some((re) => re.test(host));
+  return APPLY_HOSTS.some((re) => re.test(host)) && !NOT_QUEUED.some((re) => re.test(host));
 }
 
 export const REGION = ['sa', 'ae', 'qa', 'bh', 'kw', 'om', 'eg', 'jo'];
